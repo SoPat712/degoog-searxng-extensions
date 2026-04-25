@@ -5,7 +5,7 @@ const BALLDONTLIE_BASE = {
   mlb: "https://api.balldontlie.io/mlb/v1",
 };
 const PLUGIN_NAME = "Sports Results";
-const PLUGIN_VERSION = "0.1.6";
+const PLUGIN_VERSION = "0.1.7";
 const PLUGIN_DESCRIPTION =
   "Google-style sports scorecards for soccer, NFL, NBA, and MLB.";
 const BALLDONTLIE_FREE_REFRESH_MS = 12_000;
@@ -809,6 +809,7 @@ let footballDataApiKey = "";
 let balldontlieApiKey = "";
 let preferredSoccerCompetitions = [...DEFAULT_SOCCER_COMPETITIONS];
 let debugMode = false;
+let selectedSlotPosition = "at-a-glance";
 
 const cache = {
   nbaTeams: null,
@@ -1458,11 +1459,9 @@ function renderLiveBadge(label) {
 }
 
 function renderProviderFooter(providerLabel, providerUrl, extraText = "") {
-  const debugSuffix = debugMode
-    ? ` <span class="sports-slot__footer-debug">• v${escapeHtml(
-        PLUGIN_VERSION
-      )}</span>`
-    : "";
+  const debugSuffix = ` <span class="sports-slot__footer-debug">• v${escapeHtml(
+    PLUGIN_VERSION
+  )}${debugMode ? " debug" : ""}</span>`;
 
   return `
     <div class="sports-slot__footer-meta">
@@ -2846,6 +2845,16 @@ function configureSharedSettings(settings) {
     settings.soccerCompetitions
   );
   debugMode = Boolean(settings.debugMode);
+  selectedSlotPosition = String(settings.position ?? "at-a-glance").trim() || "at-a-glance";
+}
+
+function shouldRenderSlotForContext(context) {
+  const isGlanceRequest = Array.isArray(context?.results);
+  if (selectedSlotPosition === "at-a-glance") {
+    return isGlanceRequest;
+  }
+
+  return !isGlanceRequest;
 }
 
 async function executeSportsQuery(query) {
@@ -3013,7 +3022,11 @@ export const slot = {
   trigger(query) {
     return Boolean(parseQuery(query));
   },
-  async execute(query) {
+  async execute(query, context) {
+    if (!shouldRenderSlotForContext(context)) {
+      return { html: "" };
+    }
+
     try {
       return await executeSportsQuery(query);
     } catch (error) {
