@@ -11,12 +11,17 @@
   const UPLOAD_STREAM_DELAY_MS = 140;
   const DOWNLOAD_GRACE_MS = 1500;
   const UPLOAD_GRACE_MS = 1800;
-  const DOWNLOAD_DURATION_MS = 5000;
-  const UPLOAD_DURATION_MS = 5000;
+  const MIN_DOWNLOAD_DURATION_MS = 5000;
+  const MAX_DOWNLOAD_DURATION_MS = 15000;
+  const MIN_UPLOAD_DURATION_MS = 5000;
+  const MAX_UPLOAD_DURATION_MS = 15000;
   const DOWNLOAD_CHUNK_MB = 256;
   const UPLOAD_PAYLOAD_BYTES = 8 * 1024 * 1024;
   const UPDATE_INTERVAL_MS = 200;
   const OVERHEAD_COMPENSATION_FACTOR = 1.06;
+  const PLATEAU_HOLD_MS = 1800;
+  const PLATEAU_RELATIVE_GAIN = 0.015;
+  const PLATEAU_ABSOLUTE_GAIN_MBPS = 2;
   const PHASE_LABELS = {
     idle: "",
     preflight: "Selecting server",
@@ -444,6 +449,11 @@
     const assessmentNode = card.querySelector("[data-speedtest-assessment]");
     const statusNode = card.querySelector("[data-speedtest-status]");
 
+    card.classList.toggle(
+      "speedtest-card--compact",
+      state.phase === "complete" && !state.running
+    );
+
     if (phaseNode) {
       phaseNode.textContent = PHASE_LABELS[state.phase] || "";
     }
@@ -659,6 +669,10 @@
     return `${elapsedSeconds.toFixed(1)}/${(totalMs / 1000).toFixed(1)}s`;
   }
 
+  function formatElapsedSeconds(elapsedMs) {
+    return `${(Math.max(0, elapsedMs) / 1000).toFixed(1)}s`;
+  }
+
   function speedFromBytes(totalBytes, elapsedMs) {
     if (!Number.isFinite(totalBytes) || totalBytes <= 0) {
       return 0;
@@ -672,12 +686,52 @@
     );
   }
 
+  function createAdaptiveMeasurementTracker() {
+    return {
+      bestMbps: 0,
+      lastImprovementAt: 0,
+    };
+  }
+
+  function recordAdaptiveImprovement(tracker, currentMbps, currentNow) {
+    const safeCurrent = Math.max(0, Number(currentMbps) || 0);
+    const improvementThreshold = Math.max(
+      PLATEAU_ABSOLUTE_GAIN_MBPS,
+      tracker.bestMbps * PLATEAU_RELATIVE_GAIN
+    );
+
+    if (
+      tracker.bestMbps === 0 ||
+      safeCurrent >= tracker.bestMbps + improvementThreshold
+    ) {
+      tracker.bestMbps = safeCurrent;
+      tracker.lastImprovementAt = currentNow;
+    }
+  }
+
+  function hasPhaseStabilized(tracker, elapsedMs, currentNow, minDurationMs, maxDurationMs) {
+    if (elapsedMs < minDurationMs) {
+      return false;
+    }
+
+    if (elapsedMs >= maxDurationMs) {
+      return true;
+    }
+
+    if (!tracker.lastImprovementAt) {
+      return false;
+    }
+
+    return currentNow - tracker.lastImprovementAt >= PLATEAU_HOLD_MS;
+  }
+
   async function runDownloadTest(card, run, server) {
     return new Promise((resolve, reject) => {
       const rawStart = nowMs();
       const graceDeadline = rawStart + DOWNLOAD_GRACE_MS;
-      const measurementDeadline = graceDeadline + DOWNLOAD_DURATION_MS;
+      const measurementDeadline = graceDeadline + MAX_DOWNLOAD_DURATION_MS;
       const localControllers = new Set();
+      const tracker = createAdaptiveMeasurementTracker();
       let measurementStart = rawStart;
       let totalLoaded = 0;
       let graceDone = false;
@@ -735,18 +789,26 @@
 
         const elapsedMs = Math.max(1, currentNow - measurementStart);
         lastMbps = speedFromBytes(totalLoaded, elapsedMs);
+        recordAdaptiveImprovement(tracker, lastMbps, currentNow);
         applyState(card, {
           phase: "download",
           running: true,
           currentMbps: roundToTenths(lastMbps),
           downloadMbps: roundToTenths(lastMbps),
-          status: `Testing download speed (${formatPhaseElapsed(
-            elapsedMs,
-            DOWNLOAD_DURATION_MS
+          status: `Testing download speed (${formatElapsedSeconds(
+            elapsedMs
           )})...`,
         });
 
-        if (currentNow >= measurementDeadline) {
+        if (
+          hasPhaseStabilized(
+            tracker,
+            elapsedMs,
+            currentNow,
+            MIN_DOWNLOAD_DURATION_MS,
+            MAX_DOWNLOAD_DURATION_MS
+          )
+        ) {
           finish(lastMbps);
         }
       }, UPDATE_INTERVAL_MS);
@@ -819,7 +881,7 @@
       registerTimeout(
         run,
         () => finish(lastMbps),
-        DOWNLOAD_GRACE_MS + DOWNLOAD_DURATION_MS + 1600
+        DOWNLOAD_GRACE_MS + MAX_DOWNLOAD_DURATION_MS + 1600
       );
     });
   }
@@ -828,9 +890,10 @@
     return new Promise((resolve, reject) => {
       const rawStart = nowMs();
       const graceDeadline = rawStart + UPLOAD_GRACE_MS;
-      const measurementDeadline = graceDeadline + UPLOAD_DURATION_MS;
+      const measurementDeadline = graceDeadline + MAX_UPLOAD_DURATION_MS;
       const localXhrs = new Set();
       const payload = getUploadPayload();
+      const tracker = createAdaptiveMeasurementTracker();
       let measurementStart = rawStart;
       let totalLoaded = 0;
       let graceDone = false;
@@ -888,18 +951,26 @@
 
         const elapsedMs = Math.max(1, currentNow - measurementStart);
         lastMbps = speedFromBytes(totalLoaded, elapsedMs);
+        recordAdaptiveImprovement(tracker, lastMbps, currentNow);
         applyState(card, {
           phase: "upload",
           running: true,
           currentMbps: roundToTenths(lastMbps),
           uploadMbps: roundToTenths(lastMbps),
-          status: `Testing upload speed (${formatPhaseElapsed(
-            elapsedMs,
-            UPLOAD_DURATION_MS
+          status: `Testing upload speed (${formatElapsedSeconds(
+            elapsedMs
           )})...`,
         });
 
-        if (currentNow >= measurementDeadline) {
+        if (
+          hasPhaseStabilized(
+            tracker,
+            elapsedMs,
+            currentNow,
+            MIN_UPLOAD_DURATION_MS,
+            MAX_UPLOAD_DURATION_MS
+          )
+        ) {
           finish(lastMbps);
         }
       }, UPDATE_INTERVAL_MS);
@@ -981,7 +1052,7 @@
       registerTimeout(
         run,
         () => finish(lastMbps),
-        UPLOAD_GRACE_MS + UPLOAD_DURATION_MS + 1600
+        UPLOAD_GRACE_MS + MAX_UPLOAD_DURATION_MS + 1600
       );
     });
   }
@@ -1085,13 +1156,15 @@
       applyState(card, {
         phase: "complete",
         running: false,
-        currentMbps: downloadMbps,
+        currentMbps: uploadMbps,
         downloadMbps,
         uploadMbps,
         latencyMs,
         serverLabel,
         assessment: buildAssessment(downloadMbps),
-        status: `Speed test complete using ${serverLabel}.`,
+        status: `Speed test complete using ${serverLabel}. Download ${formatMbps(
+          downloadMbps
+        )} Mbps, upload ${formatMbps(uploadMbps)} Mbps.`,
       });
     } catch (error) {
       if (run.aborted || isAbortError(error)) {

@@ -88,9 +88,18 @@
 .speedtest-card__gauge-shell {
   position: relative;
   min-height: 352px;
+  max-height: 420px;
   padding: 1.15rem 0 0.95rem;
   border-top: 1px solid var(--border-light);
   border-bottom: 1px solid var(--border-light);
+  overflow: hidden;
+  opacity: 1;
+  transition:
+    max-height 220ms ease,
+    min-height 220ms ease,
+    padding 220ms ease,
+    opacity 160ms ease,
+    border-color 160ms ease;
 }
 
 .speedtest-card__gauge {
@@ -167,6 +176,20 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   background: var(--bg-light, #2f3033);
+}
+
+.speedtest-card--compact .speedtest-card__gauge-shell {
+  min-height: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  opacity: 0;
+}
+
+.speedtest-card--compact .speedtest-card__stats {
+  border-top: 1px solid var(--border-light);
 }
 
 .speedtest-card__stat {
@@ -256,6 +279,7 @@
 
   .speedtest-card__gauge-shell {
     min-height: 312px;
+    max-height: 360px;
     padding: 0.95rem 0 0.85rem;
   }
 
