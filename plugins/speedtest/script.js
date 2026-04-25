@@ -5,9 +5,9 @@
   const SERVER_SELECTION_PINGS = 2;
   const LATENCY_SAMPLE_COUNT = 5;
   const LATENCY_TIMEOUT_MS = 2500;
-  const DOWNLOAD_STREAMS = 4;
+  const DOWNLOAD_STREAMS = 6;
   const UPLOAD_STREAMS = 3;
-  const DOWNLOAD_STREAM_DELAY_MS = 180;
+  const DOWNLOAD_STREAM_DELAY_MS = 120;
   const UPLOAD_STREAM_DELAY_MS = 140;
   const DOWNLOAD_GRACE_MS = 1500;
   const UPLOAD_GRACE_MS = 1800;
@@ -204,6 +204,7 @@
       aborted: false,
       fetchControllers: new Set(),
       uploadXhrs: new Set(),
+      downloadXhrs: new Set(),
       intervals: new Set(),
       timeouts: new Set(),
 
@@ -214,10 +215,16 @@
             xhr.abort();
           } catch {}
         });
+        this.downloadXhrs.forEach((xhr) => {
+          try {
+            xhr.abort();
+          } catch {}
+        });
         this.intervals.forEach((id) => window.clearInterval(id));
         this.timeouts.forEach((id) => window.clearTimeout(id));
         this.fetchControllers.clear();
         this.uploadXhrs.clear();
+        this.downloadXhrs.clear();
         this.intervals.clear();
         this.timeouts.clear();
       },
@@ -263,6 +270,14 @@
     }
 
     run.uploadXhrs.delete(xhr);
+  }
+
+  function unregisterDownloadXhr(run, xhr) {
+    if (!xhr) {
+      return;
+    }
+
+    run.downloadXhrs.delete(xhr);
   }
 
   function getUploadPayload() {
@@ -377,17 +392,25 @@
     arc.style.strokeDasharray = `${dash} 100`;
   }
 
-  function setDisplayValue(card, value) {
+  function setDisplayValue(card, value, options = {}) {
     const valueNode = card.querySelector("[data-speedtest-value]");
     if (!valueNode) {
       return;
     }
 
+    const immediate = Boolean(options.immediate);
     if (card._speedtestFrame) {
       window.cancelAnimationFrame(card._speedtestFrame);
     }
 
     const nextValue = Math.max(0, Number(value) || 0);
+    if (immediate) {
+      card.dataset.displayMbps = String(nextValue);
+      valueNode.textContent = formatMbps(nextValue);
+      setArc(card, nextValue);
+      return;
+    }
+
     const startValue = Number(card.dataset.displayMbps || 0);
     const startedAt = nowMs();
     const duration = 220;
@@ -458,7 +481,9 @@
       phaseNode.textContent = PHASE_LABELS[state.phase] || "";
     }
 
-    setDisplayValue(card, state.currentMbps || 0);
+    setDisplayValue(card, state.currentMbps || 0, {
+      immediate: Boolean(state.running),
+    });
 
     if (downloadNode) {
       downloadNode.textContent = formatMbps(state.downloadMbps);
@@ -730,7 +755,7 @@
       const rawStart = nowMs();
       const graceDeadline = rawStart + DOWNLOAD_GRACE_MS;
       const measurementDeadline = graceDeadline + MAX_DOWNLOAD_DURATION_MS;
-      const localControllers = new Set();
+      const localXhrs = new Set();
       const tracker = createAdaptiveMeasurementTracker();
       let measurementStart = rawStart;
       let totalLoaded = 0;
@@ -739,13 +764,17 @@
       let lastMbps = 0;
 
       const stopStreams = () => {
-        localControllers.forEach((controller) => {
+        localXhrs.forEach((xhr) => {
           try {
-            controller.abort();
+            xhr.onprogress = null;
+            xhr.onload = null;
+            xhr.onerror = null;
+            xhr.onabort = null;
+            xhr.abort();
           } catch {}
-          unregisterFetchController(run, controller);
+          unregisterDownloadXhr(run, xhr);
         });
-        localControllers.clear();
+        localXhrs.clear();
       };
 
       const finish = (value, error) => {
@@ -816,59 +845,72 @@
       const launchStream = (streamIndex, delayMs) => {
         registerTimeout(
           run,
-          async () => {
-            while (!finished && !run.aborted) {
-              if (nowMs() >= measurementDeadline) {
-                finish(lastMbps);
+          () => {
+            const sendNext = () => {
+              if (finished || run.aborted || nowMs() >= measurementDeadline) {
                 return;
               }
 
-              const controller = new AbortController();
-              localControllers.add(controller);
-              run.fetchControllers.add(controller);
+              const xhr = new XMLHttpRequest();
+              let prevLoaded = 0;
+              localXhrs.add(xhr);
+              run.downloadXhrs.add(xhr);
+
+              const cleanup = () => {
+                xhr.onprogress = null;
+                xhr.onload = null;
+                xhr.onerror = null;
+                xhr.onabort = null;
+                localXhrs.delete(xhr);
+                unregisterDownloadXhr(run, xhr);
+              };
+
+              xhr.onprogress = (event) => {
+                const diff = event.loaded - prevLoaded;
+                if (diff > 0 && graceDone) {
+                  totalLoaded += diff;
+                }
+                prevLoaded = event.loaded;
+              };
+
+              xhr.onload = () => {
+                cleanup();
+                sendNext();
+              };
+
+              xhr.onerror = () => {
+                cleanup();
+                if (!finished && !run.aborted) {
+                  sendNext();
+                }
+              };
+
+              xhr.onabort = cleanup;
 
               try {
-                const response = await fetch(
+                xhr.responseType = "arraybuffer";
+              } catch {}
+
+              try {
+                xhr.open(
+                  "GET",
                   appendQuery(server.downloadUrl, {
                     cors: "true",
                     r: randomToken(),
                     ckSize: String(DOWNLOAD_CHUNK_MB),
                   }),
-                  {
-                    cache: "no-store",
-                    signal: controller.signal,
-                  }
+                  true
                 );
-
-                if (!response.ok || !response.body) {
-                  throw new Error("Download request failed.");
-                }
-
-                const reader = response.body.getReader();
-                while (!finished && !run.aborted) {
-                  const { done, value } = await reader.read();
-                  if (done) {
-                    break;
-                  }
-
-                  if (graceDone) {
-                    totalLoaded += value.byteLength;
-                  }
-
-                  if (nowMs() >= measurementDeadline) {
-                    finish(lastMbps);
-                    return;
-                  }
-                }
+                xhr.send();
               } catch (error) {
-                if (!isAbortError(error) && !finished && !run.aborted) {
-                  continue;
+                cleanup();
+                if (!finished && !run.aborted && !isAbortError(error)) {
+                  sendNext();
                 }
-              } finally {
-                localControllers.delete(controller);
-                unregisterFetchController(run, controller);
               }
-            }
+            };
+
+            sendNext();
           },
           delayMs + streamIndex
         );
