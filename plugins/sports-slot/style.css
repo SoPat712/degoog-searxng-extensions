@@ -266,11 +266,12 @@
 .sports-slot__team-scoreblock {
   display: grid;
   gap: 0.28rem;
+  justify-items: start;
 }
 
 .sports-slot__team-abbr {
   color: color-mix(in srgb, var(--text-primary) 90%, var(--sports-away-color, var(--primary)) 10%);
-  font-size: 1rem;
+  font-size: 1.18rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -278,6 +279,10 @@
 
 .sports-slot__team:last-child .sports-slot__team-abbr {
   color: color-mix(in srgb, var(--text-primary) 90%, var(--sports-home-color, var(--primary)) 10%);
+}
+
+.sports-slot__team:last-child .sports-slot__team-scoreblock {
+  justify-items: end;
 }
 
 .sports-slot__team-score {
@@ -506,10 +511,23 @@
   padding-bottom: 1.15rem;
 }
 
+.sports-slot__footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
 .sports-slot__link,
 .sports-slot__footer-note {
   color: var(--text-secondary);
   font-size: 0.88rem;
+}
+
+.sports-slot__footer-debug {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  opacity: 0.9;
 }
 
 .sports-slot__link:hover {

@@ -5,6 +5,7 @@ const BALLDONTLIE_BASE = {
   mlb: "https://api.balldontlie.io/mlb/v1",
 };
 const PLUGIN_NAME = "Sports Results";
+const PLUGIN_VERSION = "0.1.6";
 const PLUGIN_DESCRIPTION =
   "Google-style sports scorecards for soccer, NFL, NBA, and MLB.";
 const BALLDONTLIE_FREE_REFRESH_MS = 12_000;
@@ -807,6 +808,7 @@ const KNOWN_ENTITIES = [...NBA_TEAMS, ...NFL_TEAMS, ...MLB_TEAMS, ...SOCCER_CLUB
 let footballDataApiKey = "";
 let balldontlieApiKey = "";
 let preferredSoccerCompetitions = [...DEFAULT_SOCCER_COMPETITIONS];
+let debugMode = false;
 
 const cache = {
   nbaTeams: null,
@@ -1455,6 +1457,26 @@ function renderLiveBadge(label) {
   `;
 }
 
+function renderProviderFooter(providerLabel, providerUrl, extraText = "") {
+  const debugSuffix = debugMode
+    ? ` <span class="sports-slot__footer-debug">• v${escapeHtml(
+        PLUGIN_VERSION
+      )}</span>`
+    : "";
+
+  return `
+    <div class="sports-slot__footer-meta">
+      <a class="glance-link sports-slot__link" href="${escapeHtml(
+        providerUrl
+      )}" target="_blank" rel="noreferrer">Data by ${escapeHtml(providerLabel)}</a>${debugSuffix}${
+        extraText
+          ? ` <span class="sports-slot__footer-debug">• ${escapeHtml(extraText)}</span>`
+          : ""
+      }
+    </div>
+  `;
+}
+
 function renderCard(model) {
   const awayColor = model.focusGame?.awayBrand?.color || "var(--primary)";
   const homeColor = model.focusGame?.homeBrand?.color || "var(--primary)";
@@ -1639,9 +1661,11 @@ function renderCard(model) {
       data-sports-query="${escapeHtml(model.query || "")}"
       data-sports-provider="${escapeHtml(model.provider || "")}"
       data-sports-sport="${escapeHtml(model.sport || "")}"
+      data-sports-version="${escapeHtml(PLUGIN_VERSION)}"
       data-refresh-ms="${escapeHtml(model.refreshMinIntervalMs || "")}"
       ${model.refreshable ? 'data-refreshable="true"' : ""}
       ${model.focusGame?.state === "live" ? 'data-sports-live="true"' : ""}
+      ${debugMode ? 'data-sports-debug="true"' : ""}
       ${styleAttr}
     >
       <div class="sports-slot__hero">
@@ -2298,9 +2322,10 @@ async function handleSoccerQuery(parsed) {
         title: parsed.competition.name,
         subtitle: "Current league table",
         standings: buildStandingsModel(parsed.competition.name, standings),
-        footer: `<a class="glance-link sports-slot__link" href="${escapeHtml(
+        footer: renderProviderFooter(
+          "football-data.org",
           "https://www.football-data.org/"
-        )}" target="_blank" rel="noreferrer">Data by football-data.org</a>`,
+        ),
       });
     }
 
@@ -2332,9 +2357,10 @@ async function handleSoccerQuery(parsed) {
       focusGame: focus,
       games: extras,
       gamesTitle,
-      footer: `<a class="glance-link sports-slot__link" href="${escapeHtml(
+      footer: renderProviderFooter(
+        "football-data.org",
         "https://www.football-data.org/"
-      )}" target="_blank" rel="noreferrer">Data by football-data.org</a>`,
+      ),
     });
   }
 
@@ -2420,9 +2446,10 @@ async function handleSoccerQuery(parsed) {
       games: extras,
       gamesTitle,
       standings: standingsModel,
-      footer: `<a class="glance-link sports-slot__link" href="${escapeHtml(
+      footer: renderProviderFooter(
+        "football-data.org",
         "https://www.football-data.org/"
-      )}" target="_blank" rel="noreferrer">Data by football-data.org</a>`,
+      ),
     });
   }
 
@@ -2488,9 +2515,10 @@ async function handleSoccerQuery(parsed) {
         { label: "Stage", value: headToHead?.stage || "" },
         { label: "Venue", value: headToHead?.venue || "" },
       ],
-      footer: `<a class="glance-link sports-slot__link" href="${escapeHtml(
+      footer: renderProviderFooter(
+        "football-data.org",
         "https://www.football-data.org/"
-      )}" target="_blank" rel="noreferrer">Data by football-data.org</a>`,
+      ),
     });
   }
 
@@ -2577,9 +2605,10 @@ async function handleBalldontlieTeamOrLeagueQuery(parsed, sport) {
       focusGame: focus,
       games: extras,
       gamesTitle,
-      footer: `<a class="glance-link sports-slot__link" href="${escapeHtml(
+      footer: renderProviderFooter(
+        "BALLDONTLIE",
         "https://www.balldontlie.io/docs"
-      )}" target="_blank" rel="noreferrer">Data by BALLDONTLIE</a>`,
+      ),
     });
   }
 
@@ -2674,9 +2703,10 @@ async function handleBalldontlieTeamOrLeagueQuery(parsed, sport) {
       ],
       games: extras,
       gamesTitle,
-      footer: `<a class="glance-link sports-slot__link" href="${escapeHtml(
+      footer: renderProviderFooter(
+        "BALLDONTLIE",
         "https://www.balldontlie.io/docs"
-      )}" target="_blank" rel="noreferrer">Data by BALLDONTLIE</a>`,
+      ),
     });
   }
 
@@ -2760,9 +2790,10 @@ async function handleBalldontlieTeamOrLeagueQuery(parsed, sport) {
       focusGame: focus,
       games: extras,
       gamesTitle,
-      footer: `<a class="glance-link sports-slot__link" href="${escapeHtml(
+      footer: renderProviderFooter(
+        "BALLDONTLIE",
         "https://www.balldontlie.io/docs"
-      )}" target="_blank" rel="noreferrer">Data by BALLDONTLIE</a>`,
+      ),
     });
   }
 
@@ -2798,6 +2829,14 @@ const sharedSettingsSchema = [
     description:
       "Comma-separated football-data.org competition codes to search first for generic soccer queries (defaults: PL,PD,CL,BL1,SA,FL1).",
   },
+  {
+    key: "debugMode",
+    label: "Debug mode",
+    type: "toggle",
+    default: false,
+    description:
+      "Show the sports plugin version next to the data source footer for troubleshooting updates.",
+  },
 ];
 
 function configureSharedSettings(settings) {
@@ -2806,6 +2845,7 @@ function configureSharedSettings(settings) {
   preferredSoccerCompetitions = parseConfiguredCompetitions(
     settings.soccerCompetitions
   );
+  debugMode = Boolean(settings.debugMode);
 }
 
 async function executeSportsQuery(query) {
@@ -2952,12 +2992,12 @@ async function handleLogoRoute(request) {
 export const routes = [
   {
     path: "logo",
-    method: "GET",
+    method: "get",
     handler: handleLogoRoute,
   },
   {
     path: "refresh",
-    method: "GET",
+    method: "get",
     handler: handleRefreshRoute,
   },
 ];
