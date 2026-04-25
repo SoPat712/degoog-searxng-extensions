@@ -26,6 +26,104 @@
     complete: "Complete",
     error: "Error",
   };
+  const FALLBACK_SERVERS = [
+    {
+      id: "auto",
+      label: "Automatic (lowest latency)",
+      optionLabel: "Automatic (lowest latency)",
+      auto: true,
+    },
+    {
+      id: "new-york",
+      label: "New York, United States",
+      optionLabel: "New York, United States - Clouvider",
+      sponsorName: "Clouvider",
+      downloadUrl: "https://nyc.speedtest.clouvider.net/backend/garbage.php",
+      uploadUrl: "https://nyc.speedtest.clouvider.net/backend/empty.php",
+      pingUrl: "https://nyc.speedtest.clouvider.net/backend/empty.php",
+    },
+    {
+      id: "atlanta",
+      label: "Atlanta, United States",
+      optionLabel: "Atlanta, United States - Clouvider",
+      sponsorName: "Clouvider",
+      downloadUrl: "https://atl.speedtest.clouvider.net/backend/garbage.php",
+      uploadUrl: "https://atl.speedtest.clouvider.net/backend/empty.php",
+      pingUrl: "https://atl.speedtest.clouvider.net/backend/empty.php",
+    },
+    {
+      id: "chicago",
+      label: "Chicago, United States",
+      optionLabel: "Chicago, United States - Sharktech",
+      sponsorName: "Sharktech",
+      downloadUrl: "https://chispeed.sharktech.net/backend/garbage.php",
+      uploadUrl: "https://chispeed.sharktech.net/backend/empty.php",
+      pingUrl: "https://chispeed.sharktech.net/backend/empty.php",
+    },
+    {
+      id: "los-angeles",
+      label: "Los Angeles, United States",
+      optionLabel: "Los Angeles, United States - Clouvider",
+      sponsorName: "Clouvider",
+      downloadUrl: "https://la.speedtest.clouvider.net/backend/garbage.php",
+      uploadUrl: "https://la.speedtest.clouvider.net/backend/empty.php",
+      pingUrl: "https://la.speedtest.clouvider.net/backend/empty.php",
+    },
+    {
+      id: "london",
+      label: "London, England",
+      optionLabel: "London, England - Clouvider",
+      sponsorName: "Clouvider",
+      downloadUrl: "https://lon.speedtest.clouvider.net/backend/garbage.php",
+      uploadUrl: "https://lon.speedtest.clouvider.net/backend/empty.php",
+      pingUrl: "https://lon.speedtest.clouvider.net/backend/empty.php",
+    },
+    {
+      id: "frankfurt",
+      label: "Frankfurt, Germany",
+      optionLabel: "Frankfurt, Germany - Clouvider",
+      sponsorName: "Clouvider",
+      downloadUrl: "https://fra.speedtest.clouvider.net/backend/garbage.php",
+      uploadUrl: "https://fra.speedtest.clouvider.net/backend/empty.php",
+      pingUrl: "https://fra.speedtest.clouvider.net/backend/empty.php",
+    },
+    {
+      id: "amsterdam",
+      label: "Amsterdam, Netherlands",
+      optionLabel: "Amsterdam, Netherlands - Clouvider",
+      sponsorName: "Clouvider",
+      downloadUrl: "https://ams.speedtest.clouvider.net/backend/garbage.php",
+      uploadUrl: "https://ams.speedtest.clouvider.net/backend/empty.php",
+      pingUrl: "https://ams.speedtest.clouvider.net/backend/empty.php",
+    },
+    {
+      id: "bangalore",
+      label: "Bangalore, India",
+      optionLabel: "Bangalore, India - DigitalOcean",
+      sponsorName: "DigitalOcean",
+      downloadUrl: "https://in1.backend.librespeed.org/garbage.php",
+      uploadUrl: "https://in1.backend.librespeed.org/empty.php",
+      pingUrl: "https://in1.backend.librespeed.org/empty.php",
+    },
+    {
+      id: "singapore",
+      label: "Singapore",
+      optionLabel: "Singapore - Salvatore Cahyo",
+      sponsorName: "Salvatore Cahyo",
+      downloadUrl: "https://speedtest.dsgroupmedia.com/backend/garbage.php",
+      uploadUrl: "https://speedtest.dsgroupmedia.com/backend/empty.php",
+      pingUrl: "https://speedtest.dsgroupmedia.com/backend/empty.php",
+    },
+    {
+      id: "tokyo",
+      label: "Tokyo, Japan",
+      optionLabel: "Tokyo, Japan - A573",
+      sponsorName: "A573",
+      downloadUrl: "https://librespeed.a573.net/backend/garbage.php",
+      uploadUrl: "https://librespeed.a573.net/backend/empty.php",
+      pingUrl: "https://librespeed.a573.net/backend/empty.php",
+    },
+  ];
 
   let uploadPayload = null;
 
@@ -172,25 +270,62 @@
     return uploadPayload;
   }
 
+  function decodeBase64Json(encoded) {
+    const safeEncoded = String(encoded || "").trim();
+    if (!safeEncoded) {
+      return [];
+    }
+
+    try {
+      const binary = window.atob(safeEncoded);
+      const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+      const json = new TextDecoder().decode(bytes);
+      const parsed = JSON.parse(json);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(safeEncoded));
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+  }
+
   function getServers(card) {
     if (Array.isArray(card._speedtestServers)) {
       return card._speedtestServers;
     }
 
-    const script = card.querySelector("[data-speedtest-server-data]");
-    if (!script) {
-      card._speedtestServers = [];
-      return card._speedtestServers;
-    }
-
-    try {
-      const parsed = JSON.parse(script.textContent || "[]");
-      card._speedtestServers = Array.isArray(parsed) ? parsed : [];
-    } catch {
-      card._speedtestServers = [];
-    }
+    const fromDataset = decodeBase64Json(card.dataset.speedtestServers);
+    card._speedtestServers = fromDataset.length ? fromDataset : FALLBACK_SERVERS;
 
     return card._speedtestServers;
+  }
+
+  function populateServerSelect(card) {
+    const serverSelect = card.querySelector("[data-speedtest-server-select]");
+    if (!serverSelect) {
+      return;
+    }
+
+    const servers = getServers(card);
+    const currentValue = serverSelect.value || AUTO_SERVER_ID;
+    serverSelect.innerHTML = "";
+
+    servers.forEach((server) => {
+      const option = document.createElement("option");
+      option.value = server.id;
+      option.textContent = server.optionLabel || server.label || server.id;
+      serverSelect.appendChild(option);
+    });
+
+    if (servers.some((server) => server.id === currentValue)) {
+      serverSelect.value = currentValue;
+      return;
+    }
+
+    serverSelect.value = servers[0]?.id || AUTO_SERVER_ID;
   }
 
   function formatMbps(value) {
@@ -989,6 +1124,7 @@
     }
 
     card.dataset.speedtestBound = "true";
+    populateServerSelect(card);
     card._speedtestState = initialState();
     renderCard(card, card._speedtestState);
 

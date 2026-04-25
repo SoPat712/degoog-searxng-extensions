@@ -126,9 +126,9 @@
 
 .speedtest-card__center {
   position: absolute;
-  top: 116px;
+  top: 55%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -260,7 +260,7 @@
   }
 
   .speedtest-card__center {
-    top: 102px;
+    top: 56%;
     width: min(100%, 260px);
   }
 

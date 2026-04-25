@@ -1,12 +1,14 @@
-<div class="speedtest-card" data-speedtest-card="true">
+<div
+  class="speedtest-card"
+  data-speedtest-card="true"
+  data-speedtest-servers="__SERVER_DATA_B64__"
+>
   <div class="speedtest-card__header">
     <h2 class="speedtest-card__title">Internet speed test</h2>
     <div class="speedtest-card__controls">
       <label class="speedtest-card__server-picker">
         <span class="speedtest-card__server-picker-label">Server</span>
-        <select class="speedtest-card__server-select" data-speedtest-server-select>
-          {{server_options_html}}
-        </select>
+        <select class="speedtest-card__server-select" data-speedtest-server-select></select>
       </label>
       <button class="speedtest-card__action" type="button" data-speedtest-action>
         Run test
@@ -78,8 +80,4 @@
   <div class="speedtest-card__status" data-speedtest-status>
     Ready to measure your connection.
   </div>
-
-  <script type="application/json" data-speedtest-server-data>
-    {{server_data_json}}
-  </script>
 </div>

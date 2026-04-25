@@ -122,10 +122,6 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
-function escapeJsonForScript(value) {
-  return JSON.stringify(value).replace(/</g, "\\u003c");
-}
-
 function slugify(value) {
   return String(value)
     .trim()
@@ -261,24 +257,25 @@ function buildOptionLabel(profile) {
     : profile.label;
 }
 
-function buildServerOptionsHtml(selectedId = AUTO_SERVER_PROFILE.id) {
-  return getAvailableServerProfiles()
-    .map((profile) => {
-      const selected = profile.id === selectedId ? ' selected="selected"' : "";
-      return `<option value="${escapeHtml(profile.id)}"${selected}>${escapeHtml(
-        buildOptionLabel(profile)
-      )}</option>`;
-    })
-    .join("");
+function encodeServerData(value) {
+  const json = JSON.stringify(value);
+
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(json, "utf8").toString("base64");
+  }
+
+  if (typeof btoa === "function") {
+    return btoa(unescape(encodeURIComponent(json)));
+  }
+
+  return encodeURIComponent(json);
 }
 
-function buildServerDataJson() {
-  return escapeJsonForScript(
-    getAvailableServerProfiles().map((profile) => ({
-      ...profile,
-      optionLabel: buildOptionLabel(profile),
-    }))
-  );
+function buildServerDataPayload() {
+  return getAvailableServerProfiles().map((profile) => ({
+    ...profile,
+    optionLabel: buildOptionLabel(profile),
+  }));
 }
 
 async function loadTemplate(ctx) {
@@ -304,9 +301,9 @@ function renderCardHtml() {
     return `<div class="speedtest-card"><p>${escapeHtml(PLUGIN_NAME)}</p></div>`;
   }
 
-  return templateHtml
-    .replace("{{server_options_html}}", buildServerOptionsHtml())
-    .replace("{{server_data_json}}", buildServerDataJson());
+  return templateHtml.split("__SERVER_DATA_B64__").join(
+    escapeHtml(encodeServerData(buildServerDataPayload()))
+  );
 }
 
 export const routes = [];
