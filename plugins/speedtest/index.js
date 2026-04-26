@@ -79,23 +79,27 @@ const DEFAULT_SERVER_PROFILES = [
   },
 ];
 
+const debugModeSetting = {
+  key: "debugMode",
+  label: "Debug mode",
+  type: "toggle",
+  default: false,
+  description:
+    "Show Speedtest debug details for troubleshooting server behavior and measurement output.",
+};
+
+const slotSettingsSchema = [debugModeSetting];
+
 const sharedSettingsSchema = [
-  {
-    key: "debugMode",
-    label: "Debug mode",
-    type: "toggle",
-    default: false,
-    description:
-      "Show Speedtest debug details for troubleshooting server behavior and measurement output.",
-  },
+  debugModeSetting,
   {
     key: "customServersJson",
     label: "Custom servers (JSON)",
-    type: "textarea",
+    type: "text",
     placeholder:
       '[{"name":"My server","server":"https://example.com/backend/","dlURL":"garbage.php","ulURL":"empty.php","pingURL":"empty.php"}]',
     description:
-      "Optional LibreSpeed-style servers appended to the built-in picker. Supports either {name, server, dlURL, ulURL, pingURL} or {label, downloadUrl, uploadUrl, pingUrl}.",
+      "Optional minified LibreSpeed-style JSON appended to the built-in picker. Supports either {name, server, dlURL, ulURL, pingURL} or {label, downloadUrl, uploadUrl, pingUrl}.",
   },
 ];
 
@@ -306,7 +310,7 @@ export const slot = {
   description: PLUGIN_DESCRIPTION,
   position: "at-a-glance",
   slotPositions: ["at-a-glance", "above-results", "knowledge-panel"],
-  settingsSchema: sharedSettingsSchema,
+  settingsSchema: slotSettingsSchema,
 
   async init(ctx) {
     await loadTemplate(ctx);
