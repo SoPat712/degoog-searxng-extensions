@@ -258,18 +258,22 @@ function buildOptionLabel(profile) {
     : profile.label;
 }
 
-function encodeServerData(value) {
-  const json = JSON.stringify(value);
+function encodeBase64Text(value) {
+  const text = String(value ?? "");
 
   if (typeof Buffer !== "undefined") {
-    return Buffer.from(json, "utf8").toString("base64");
+    return Buffer.from(text, "utf8").toString("base64");
   }
 
   if (typeof btoa === "function") {
-    return btoa(unescape(encodeURIComponent(json)));
+    return btoa(unescape(encodeURIComponent(text)));
   }
 
-  return encodeURIComponent(json);
+  return encodeURIComponent(text);
+}
+
+function encodeServerData(value) {
+  return encodeBase64Text(JSON.stringify(value));
 }
 
 function buildServerDataPayload() {
@@ -320,9 +324,11 @@ function renderCardHtml() {
     return `<div class="speedtest-card"><p>${escapeHtml(PLUGIN_NAME)}</p></div>`;
   }
 
-  return templateHtml.split("__SERVER_DATA_B64__").join(
-    escapeHtml(encodeServerData(buildServerDataPayload()))
-  );
+  return templateHtml
+    .split("__SERVER_DATA_B64__")
+    .join(escapeHtml(encodeServerData(buildServerDataPayload())))
+    .split("__WORKER_JS_B64__")
+    .join(escapeHtml(encodeBase64Text(workerScriptJs)));
 }
 
 export const routes = [

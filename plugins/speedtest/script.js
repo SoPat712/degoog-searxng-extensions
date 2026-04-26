@@ -1,7 +1,6 @@
 (() => {
   const CARD_SELECTOR = ".speedtest-card[data-speedtest-card]";
   const AUTO_SERVER_ID = "auto";
-  const LIBRESPEED_WORKER_URL = "/api/plugin/speedtest/worker";
   const MAX_GAUGE_MBPS = 1000;
   const SERVER_SELECTION_PINGS = 2;
   const LATENCY_SAMPLE_COUNT = 5;
@@ -601,26 +600,60 @@
     });
   }
 
-  function decodeBase64Json(encoded) {
+  function decodeBase64Text(encoded) {
     const safeEncoded = String(encoded || "").trim();
     if (!safeEncoded) {
-      return [];
+      return "";
     }
 
     try {
       const binary = window.atob(safeEncoded);
       const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-      const json = new TextDecoder().decode(bytes);
-      const parsed = JSON.parse(json);
-      return Array.isArray(parsed) ? parsed : [];
+      return new TextDecoder().decode(bytes);
     } catch {
       try {
-        const parsed = JSON.parse(decodeURIComponent(safeEncoded));
-        return Array.isArray(parsed) ? parsed : [];
+        return decodeURIComponent(safeEncoded);
       } catch {
-        return [];
+        return "";
       }
     }
+  }
+
+  function decodeBase64Json(encoded) {
+    try {
+      const parsed = JSON.parse(decodeBase64Text(encoded));
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function getWorkerScript(card) {
+    if (typeof card._speedtestWorkerScript === "string") {
+      return card._speedtestWorkerScript;
+    }
+
+    const scriptText = decodeBase64Text(card.dataset.speedtestWorker);
+    card._speedtestWorkerScript = scriptText;
+    return scriptText;
+  }
+
+  function getWorkerUrl(card) {
+    if (typeof card._speedtestWorkerUrl === "string" && card._speedtestWorkerUrl) {
+      return card._speedtestWorkerUrl;
+    }
+
+    const scriptText = getWorkerScript(card);
+    if (!scriptText) {
+      return "";
+    }
+
+    const blob = new Blob([scriptText], {
+      type: "application/javascript",
+    });
+    const workerUrl = URL.createObjectURL(blob);
+    card._speedtestWorkerUrl = workerUrl;
+    return workerUrl;
   }
 
   function getServers(card) {
@@ -1613,9 +1646,11 @@
         return;
       }
 
-      const workerUrl = `${LIBRESPEED_WORKER_URL}?r=${encodeURIComponent(
-        randomToken()
-      )}`;
+      const workerUrl = getWorkerUrl(card);
+      if (!workerUrl) {
+        reject(new Error("LibreSpeed worker source is unavailable."));
+        return;
+      }
       let worker = null;
       try {
         worker = new Worker(workerUrl);
