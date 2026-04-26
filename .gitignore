@@ -1,3 +1,4 @@
 examples
 /*.md
 !/README.md
+!/AGENTS.md

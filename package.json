@@ -34,8 +34,8 @@
     {
       "path": "plugins/speedtest",
       "name": "Speedtest",
-      "description": "Minimal internet speed test with selectable servers, latency, download-first flow, and a circular gauge.",
-      "version": "1.0.10",
+      "description": "Minimal internet speed test slot with selectable servers, plus the !speed bang command.",
+      "version": "1.0.12",
       "type": "slot"
     }
   ],

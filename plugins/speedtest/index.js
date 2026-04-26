@@ -5,7 +5,7 @@ let customServerProfiles = [];
 let debugMode = false;
 
 const PLUGIN_NAME = "Speedtest";
-const PLUGIN_VERSION = "1.0.10";
+const PLUGIN_VERSION = "1.0.12";
 const PLUGIN_DESCRIPTION =
   "Minimal internet speed test with selectable servers, latency, download-first flow, and a circular gauge.";
 
