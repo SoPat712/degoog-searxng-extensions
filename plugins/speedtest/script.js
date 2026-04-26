@@ -8,15 +8,16 @@
   const DOWNLOAD_STREAMS = 6;
   const UPLOAD_STREAMS = 3;
   const DOWNLOAD_STREAM_DELAY_MS = 120;
-  const UPLOAD_STREAM_DELAY_MS = 140;
+  const UPLOAD_STREAM_DELAY_MS = 300;
   const DOWNLOAD_GRACE_MS = 1500;
-  const UPLOAD_GRACE_MS = 1800;
+  const UPLOAD_GRACE_MS = 3000;
   const MIN_DOWNLOAD_DURATION_MS = 5000;
   const MAX_DOWNLOAD_DURATION_MS = 30000;
   const MIN_UPLOAD_DURATION_MS = 5000;
   const MAX_UPLOAD_DURATION_MS = 30000;
   const DOWNLOAD_CHUNK_MB = 256;
-  const UPLOAD_PAYLOAD_BYTES = 8 * 1024 * 1024;
+  const UPLOAD_PAYLOAD_BYTES = 20 * 1024 * 1024;
+  const UPLOAD_WARMUP_TIMEOUT_MS = 4000;
   const UPDATE_INTERVAL_MS = 200;
   const THROUGHPUT_WINDOW_MS = 1600;
   const OVERHEAD_COMPENSATION_FACTOR = 1.06;
@@ -283,12 +284,90 @@
 
   function getUploadPayload() {
     if (!uploadPayload) {
-      uploadPayload = new Blob([new Uint8Array(UPLOAD_PAYLOAD_BYTES)], {
+      const oneMegabyte = 1024 * 1024;
+      const chunkCount = Math.floor(UPLOAD_PAYLOAD_BYTES / oneMegabyte);
+      const remainderBytes = UPLOAD_PAYLOAD_BYTES % oneMegabyte;
+      const chunks = [];
+
+      const createChunk = (size) => {
+        const buffer = new ArrayBuffer(size);
+        try {
+          const view = new Uint32Array(buffer);
+          const maxInt = 2 ** 32 - 1;
+          for (let index = 0; index < view.length; index += 1) {
+            view[index] = Math.floor(Math.random() * maxInt);
+          }
+        } catch {}
+        return buffer;
+      };
+
+      for (let index = 0; index < chunkCount; index += 1) {
+        chunks.push(createChunk(oneMegabyte));
+      }
+
+      if (remainderBytes > 0) {
+        chunks.push(createChunk(remainderBytes));
+      }
+
+      uploadPayload = new Blob(chunks, {
         type: "application/octet-stream",
       });
     }
 
     return uploadPayload;
+  }
+
+  async function warmUpUploadServer(run, server) {
+    return new Promise((resolve) => {
+      if (run.aborted) {
+        resolve();
+        return;
+      }
+
+      const xhr = new XMLHttpRequest();
+      let settled = false;
+      const timeoutId = registerTimeout(run, () => {
+        try {
+          xhr.abort();
+        } catch {}
+      }, UPLOAD_WARMUP_TIMEOUT_MS);
+
+      run.uploadXhrs.add(xhr);
+
+      const finish = () => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        window.clearTimeout(timeoutId);
+        run.timeouts.delete(timeoutId);
+        xhr.onload = null;
+        xhr.onerror = null;
+        xhr.onabort = null;
+        unregisterUploadXhr(run, xhr);
+        resolve();
+      };
+
+      xhr.onload = finish;
+      xhr.onerror = finish;
+      xhr.onabort = finish;
+
+      try {
+        xhr.open(
+          "POST",
+          appendQuery(server.uploadUrl, {
+            cors: "true",
+            r: randomToken(),
+          }),
+          true
+        );
+        xhr.setRequestHeader("Content-Encoding", "identity");
+        xhr.send();
+      } catch {
+        finish();
+      }
+    });
   }
 
   function decodeBase64Json(encoded) {
@@ -966,6 +1045,11 @@
   }
 
   async function runUploadTest(card, run, server) {
+    await warmUpUploadServer(run, server);
+    if (run.aborted) {
+      throw abortError();
+    }
+
     return new Promise((resolve, reject) => {
       const rawStart = nowMs();
       const graceDeadline = rawStart + UPLOAD_GRACE_MS;
