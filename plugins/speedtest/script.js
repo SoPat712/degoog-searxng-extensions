@@ -1,6 +1,7 @@
 (() => {
   const CARD_SELECTOR = ".speedtest-card[data-speedtest-card]";
   const AUTO_SERVER_ID = "auto";
+  const LIBRESPEED_WORKER_URL = "/api/plugin/speedtest/worker";
   const MAX_GAUGE_MBPS = 1000;
   const SERVER_SELECTION_PINGS = 2;
   const LATENCY_SAMPLE_COUNT = 5;
@@ -306,6 +307,9 @@
 
       lines.push("");
       lines.push(`${phaseName[0].toUpperCase()}${phaseName.slice(1)}:`);
+      if (phase.source) {
+        lines.push(`  source: ${phase.source}`);
+      }
       lines.push(`  final result: ${formatDebugMbps(phase.finalMbps)}`);
       lines.push(`  tail average: ${formatDebugMbps(phase.tailAverageMbps)}`);
       lines.push(`  cumulative at finish: ${formatDebugMbps(phase.finalCumulativeMbps)}`);
@@ -379,6 +383,14 @@
     renderDebug(card);
   }
 
+  function unregisterWorker(run, worker) {
+    if (!worker) {
+      return;
+    }
+
+    run.workers.delete(worker);
+  }
+
   function median(values) {
     const sorted = values
       .map((value) => Number(value))
@@ -419,6 +431,7 @@
       fetchControllers: new Set(),
       uploadXhrs: new Set(),
       downloadXhrs: new Set(),
+      workers: new Set(),
       intervals: new Set(),
       timeouts: new Set(),
 
@@ -434,11 +447,17 @@
             xhr.abort();
           } catch {}
         });
+        this.workers.forEach((worker) => {
+          try {
+            worker.terminate();
+          } catch {}
+        });
         this.intervals.forEach((id) => window.clearInterval(id));
         this.timeouts.forEach((id) => window.clearTimeout(id));
         this.fetchControllers.clear();
         this.uploadXhrs.clear();
         this.downloadXhrs.clear();
+        this.workers.clear();
         this.intervals.clear();
         this.timeouts.clear();
       },
@@ -1587,6 +1606,211 @@
     });
   }
 
+  async function runLibrespeedTransferTest(card, run, server, latencyMs) {
+    return new Promise((resolve, reject) => {
+      if (run.aborted) {
+        reject(abortError());
+        return;
+      }
+
+      const workerUrl = `${LIBRESPEED_WORKER_URL}?r=${encodeURIComponent(
+        randomToken()
+      )}`;
+      let worker = null;
+      try {
+        worker = new Worker(workerUrl);
+      } catch (error) {
+        reject(
+          error instanceof Error ? error : new Error("LibreSpeed worker failed.")
+        );
+        return;
+      }
+      run.workers.add(worker);
+
+      let finished = false;
+      let downloadPhaseStartedAt = 0;
+      let uploadPhaseStartedAt = 0;
+      let lastDownloadMbps = 0;
+      let lastUploadMbps = 0;
+      let peakDownloadMbps = 0;
+      let peakUploadMbps = 0;
+      let lastDownloadLiveMbps = 0;
+      let lastUploadLiveMbps = 0;
+
+      const finish = (error) => {
+        if (finished) {
+          return;
+        }
+
+        finished = true;
+        clearRegisteredInterval(run, intervalId);
+        worker.onmessage = null;
+        worker.onerror = null;
+
+        try {
+          worker.terminate();
+        } catch {}
+        unregisterWorker(run, worker);
+
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve({
+          downloadMbps: roundToTenths(lastDownloadMbps),
+          uploadMbps: roundToTenths(lastUploadMbps),
+          debug: {
+            download: {
+              source: "LibreSpeed worker",
+              finalMbps: roundToTenths(lastDownloadMbps),
+              tailAverageMbps: null,
+              finalCumulativeMbps: roundToTenths(lastDownloadMbps),
+            finalRollingMbps: roundToTenths(lastDownloadLiveMbps),
+            peakRollingMbps: roundToTenths(peakDownloadMbps),
+            transferredBytes: null,
+            measuredSeconds: downloadPhaseStartedAt
+                ? Math.max(
+                    0,
+                    (uploadPhaseStartedAt || nowMs()) - downloadPhaseStartedAt
+                  ) /
+                  1000
+                : 0,
+              tailSampleCount: null,
+              bonusMs: null,
+            },
+            upload: {
+              source: "LibreSpeed worker",
+              finalMbps: roundToTenths(lastUploadMbps),
+              tailAverageMbps: null,
+              finalCumulativeMbps: roundToTenths(lastUploadMbps),
+              finalRollingMbps: roundToTenths(lastUploadLiveMbps),
+              peakRollingMbps: roundToTenths(peakUploadMbps),
+              transferredBytes: null,
+              measuredSeconds: uploadPhaseStartedAt
+                ? Math.max(0, nowMs() - uploadPhaseStartedAt) / 1000
+                : 0,
+              tailSampleCount: null,
+              bonusMs: null,
+            },
+          },
+        });
+      };
+
+      const handleStatus = (data) => {
+        const testState = Number(data?.testState);
+        const downloadLiveMbps = Number(data?.dlStatus) || 0;
+        const uploadLiveMbps = Number(data?.ulStatus) || 0;
+
+        if (downloadLiveMbps > 0) {
+          lastDownloadLiveMbps = downloadLiveMbps;
+          lastDownloadMbps = downloadLiveMbps;
+          peakDownloadMbps = Math.max(peakDownloadMbps, downloadLiveMbps);
+        }
+
+        if (uploadLiveMbps > 0) {
+          lastUploadLiveMbps = uploadLiveMbps;
+          lastUploadMbps = uploadLiveMbps;
+          peakUploadMbps = Math.max(peakUploadMbps, uploadLiveMbps);
+        }
+
+        if (testState === 1) {
+          if (!downloadPhaseStartedAt) {
+            downloadPhaseStartedAt = nowMs();
+          }
+
+          applyState(card, {
+            phase: "download",
+            running: true,
+            currentMbps: roundToTenths(downloadLiveMbps),
+            downloadMbps: roundToTenths(downloadLiveMbps),
+            uploadMbps: roundToTenths(lastUploadLiveMbps),
+            latencyMs,
+            serverLabel: server.optionLabel || server.label,
+            status: "Testing download speed...",
+          });
+          return;
+        }
+
+        if (testState === 3) {
+          if (!uploadPhaseStartedAt) {
+            uploadPhaseStartedAt = nowMs();
+          }
+
+          applyState(card, {
+            phase: "upload",
+            running: true,
+            currentMbps: roundToTenths(uploadLiveMbps),
+            downloadMbps: roundToTenths(lastDownloadMbps),
+            uploadMbps: roundToTenths(uploadLiveMbps),
+            latencyMs,
+            serverLabel: server.optionLabel || server.label,
+            status: "Testing upload speed...",
+          });
+          return;
+        }
+
+        if (testState >= 4) {
+          finish();
+        }
+      };
+
+      worker.onerror = () => {
+        finish(new Error("LibreSpeed worker failed."));
+      };
+
+      worker.onmessage = (event) => {
+        if (run.aborted) {
+          finish(abortError());
+          return;
+        }
+
+        try {
+          handleStatus(JSON.parse(event.data));
+        } catch {}
+      };
+
+      const intervalId = registerInterval(run, () => {
+        if (run.aborted) {
+          finish(abortError());
+          return;
+        }
+
+        try {
+          worker.postMessage("status");
+        } catch (error) {
+          finish(error instanceof Error ? error : new Error("Worker status failed."));
+        }
+      }, UPDATE_INTERVAL_MS);
+
+      try {
+        worker.postMessage(
+          `start ${JSON.stringify({
+            mpot: true,
+            test_order: "D_U",
+            time_dl_max: 15,
+            time_ul_max: 15,
+            time_auto: true,
+            time_dlGraceTime: 1.5,
+            time_ulGraceTime: 3,
+            xhr_ignoreErrors: 1,
+            xhr_multistreamDelay: 300,
+            garbagePhp_chunkSize: 100,
+            xhr_ul_blob_megabytes: 20,
+            enable_quirks: true,
+            overheadCompensationFactor: 1.06,
+            telemetry_level: "none",
+            url_dl: server.downloadUrl,
+            url_ul: server.uploadUrl,
+            url_ping: server.pingUrl,
+          })}`
+        );
+      } catch (error) {
+        finish(error instanceof Error ? error : new Error("Worker start failed."));
+      }
+    });
+  }
+
   async function startTest(card) {
     if (card.dataset.speedtestRunning === "true") {
       return;
@@ -1696,38 +1920,27 @@
         status: "Testing download speed...",
       });
 
-      const downloadResult = await runDownloadTest(card, run, chosenServer);
-      const downloadMbps = downloadResult.mbps;
-      setDebugPhase(card, "download", downloadResult.debug);
-      appendDebugEvent(
+      const transferResult = await runLibrespeedTransferTest(
         card,
-        `Download final ${formatDebugMbps(downloadResult.debug.finalMbps)} from cumulative ${formatDebugMbps(
-          downloadResult.debug.finalCumulativeMbps
-        )}; tail comparison ${formatDebugMbps(
-          downloadResult.debug.tailAverageMbps
-        )}.`
+        run,
+        chosenServer,
+        latencyMs
       );
-
-      applyState(card, {
-        phase: "upload",
-        running: true,
-        currentMbps: 0,
-        downloadMbps,
-        latencyMs,
-        serverLabel,
-        status: "Testing upload speed...",
-      });
-
-      const uploadResult = await runUploadTest(card, run, chosenServer);
-      const uploadMbps = uploadResult.mbps;
-      setDebugPhase(card, "upload", uploadResult.debug);
+      const downloadMbps = transferResult.downloadMbps;
+      const uploadMbps = transferResult.uploadMbps;
+      setDebugPhase(card, "download", transferResult.debug.download);
+      setDebugPhase(card, "upload", transferResult.debug.upload);
       appendDebugEvent(
         card,
-        `Upload final ${formatDebugMbps(uploadResult.debug.finalMbps)} from cumulative ${formatDebugMbps(
-          uploadResult.debug.finalCumulativeMbps
-        )}; tail comparison ${formatDebugMbps(
-          uploadResult.debug.tailAverageMbps
-        )}.`
+        `Download final ${formatDebugMbps(
+          transferResult.debug.download.finalMbps
+        )} from LibreSpeed worker.`
+      );
+      appendDebugEvent(
+        card,
+        `Upload final ${formatDebugMbps(
+          transferResult.debug.upload.finalMbps
+        )} from LibreSpeed worker.`
       );
 
       if (run.aborted) {
