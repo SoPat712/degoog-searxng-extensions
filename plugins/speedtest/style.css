@@ -1,3 +1,37 @@
+.speedtest-command {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.speedtest-command__banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--bg));
+}
+
+.speedtest-command__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.85rem;
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.speedtest-command__note {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
 .speedtest-card {
   --speedtest-accent: #4285f4;
   width: 100%;

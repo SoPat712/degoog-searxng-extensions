@@ -28,6 +28,10 @@ All engines connect to your SearXNG instance via the JSON API.
 - **Cool Weather** — animated current weather and 7-day forecast for any city
 - **Speedtest** — minimal internet speed test with selectable servers, latency, download-first flow, and a circular gauge
 
+**Speedtest** also exposes a bang command:
+
+- `!speedtest`
+
 **Sports Results** ships as both:
 
 - a slot plugin that appears directly in search results

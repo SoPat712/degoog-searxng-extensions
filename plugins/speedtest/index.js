@@ -5,7 +5,7 @@ let customServerProfiles = [];
 let debugMode = false;
 
 const PLUGIN_NAME = "Speedtest";
-const PLUGIN_VERSION = "1.0.8";
+const PLUGIN_VERSION = "1.0.9";
 const PLUGIN_DESCRIPTION =
   "Minimal internet speed test with selectable servers, latency, download-first flow, and a circular gauge.";
 
@@ -403,6 +403,16 @@ function renderCardHtml() {
   return forceInjectServerPayload(rendered, serverPayload);
 }
 
+function renderCommandWrapper(innerHtml) {
+  return `<div class="command-result speedtest-command">
+    <div class="speedtest-command__banner">
+      <strong class="speedtest-command__badge">Plugin !speedtest</strong>
+      <span class="speedtest-command__note">Rendered by the degoog-toolkit Speedtest plugin command.</span>
+    </div>
+    ${innerHtml}
+  </div>`;
+}
+
 export const routes = [];
 
 export const slot = {
@@ -452,8 +462,8 @@ export const command = {
   configure: configureSharedSettings,
   async execute() {
     return {
-      title: PLUGIN_NAME,
-      html: renderCardHtml(),
+      title: `${PLUGIN_NAME} Plugin Command`,
+      html: renderCommandWrapper(renderCardHtml()),
     };
   },
 };
