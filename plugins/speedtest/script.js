@@ -981,6 +981,7 @@
 
   function updateButton(card, state) {
     const button = card.querySelector("[data-speedtest-action]");
+    const cancelButton = card.querySelector("[data-speedtest-cancel]");
     const serverSelect = card.querySelector("[data-speedtest-server-select]");
     if (!button) {
       return;
@@ -991,9 +992,13 @@
     if (serverSelect) {
       serverSelect.disabled = running;
     }
+    if (cancelButton) {
+      cancelButton.hidden = !running;
+      cancelButton.disabled = !running;
+    }
 
     if (running) {
-      button.textContent = "Running...";
+      button.textContent = "Running";
       return;
     }
 
@@ -1086,6 +1091,27 @@
     };
     card._speedtestState = state;
     renderCard(card, state);
+  }
+
+  function cancelTest(card) {
+    const run = card._speedtestRun;
+    if (!run) {
+      return;
+    }
+
+    run.abort();
+    card._speedtestRun = null;
+    card.dataset.speedtestRunning = "false";
+    const currentState = card._speedtestState || initialState();
+    applyState(card, {
+      ...currentState,
+      phase: "idle",
+      running: false,
+      currentMbps: 0,
+      assessment: "",
+      status: "Speed test cancelled.",
+    });
+    appendDebugEvent(card, "Cancelled by user.");
   }
 
   function buildAssessment(downloadMbps) {
@@ -2126,8 +2152,12 @@
     renderCard(card, card._speedtestState);
 
     const button = card.querySelector("[data-speedtest-action]");
+    const cancelButton = card.querySelector("[data-speedtest-cancel]");
     if (button) {
       button.addEventListener("click", () => startTest(card));
+    }
+    if (cancelButton) {
+      cancelButton.addEventListener("click", () => cancelTest(card));
     }
 
     window.requestAnimationFrame(() => startTest(card));

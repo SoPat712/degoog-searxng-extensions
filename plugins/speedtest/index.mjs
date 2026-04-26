@@ -3,7 +3,7 @@ let customServerProfiles = [];
 let debugMode = false;
 
 const PLUGIN_NAME = "Speedtest";
-const PLUGIN_VERSION = "0.3.9";
+const PLUGIN_VERSION = "0.4.1";
 const PLUGIN_DESCRIPTION =
   "Minimal internet speed test with selectable servers, latency, download-first flow, and a circular gauge.";
 
@@ -202,7 +202,7 @@ function parseCustomServerProfiles(rawValue) {
 }
 
 function configureSharedSettings(settings) {
-  debugMode = Boolean(settings?.debugMode);
+  debugMode = settings?.debugMode === true || settings?.debugMode === "true";
   customServerProfiles = parseCustomServerProfiles(settings?.customServersJson);
 }
 
@@ -287,7 +287,7 @@ function renderCardHtml() {
 export const routes = [];
 
 export const slot = {
-  id: "speedtest",
+  id: "speedtest-slot",
   name: PLUGIN_NAME,
   description: PLUGIN_DESCRIPTION,
   position: "at-a-glance",
@@ -318,7 +318,5 @@ export const slot = {
     };
   },
 };
-
-export const slotPlugin = slot;
 
 export default { slot };

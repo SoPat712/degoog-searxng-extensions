@@ -21,6 +21,14 @@
   padding-top: 1rem;
 }
 
+.speedtest-card__button-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-left: auto;
+}
+
 .speedtest-card__server-picker {
   display: flex;
   flex-direction: column;
@@ -67,6 +75,14 @@
   cursor: pointer;
   transition: background-color 160ms ease, border-color 160ms ease, opacity 160ms ease;
   margin-left: auto;
+}
+
+.speedtest-card__button-group .speedtest-card__action {
+  margin-left: 0;
+}
+
+.speedtest-card__action--cancel {
+  color: var(--text-secondary);
 }
 
 .speedtest-card__action:hover:not(:disabled) {
@@ -288,8 +304,13 @@
     max-width: none;
   }
 
+  .speedtest-card__button-group {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
   .speedtest-card__action {
-    align-self: flex-end;
+    align-self: auto;
   }
 
   .speedtest-card__gauge-shell {

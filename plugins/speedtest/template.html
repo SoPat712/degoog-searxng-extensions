@@ -74,9 +74,19 @@
       <span class="speedtest-card__server-picker-label">Server</span>
       <select class="speedtest-card__server-select" data-speedtest-server-select></select>
     </label>
-    <button class="speedtest-card__action" type="button" data-speedtest-action>
+    <div class="speedtest-card__button-group">
+      <button
+        class="speedtest-card__action speedtest-card__action--cancel"
+        type="button"
+        data-speedtest-cancel
+        hidden
+      >
+        Cancel
+      </button>
+      <button class="speedtest-card__action" type="button" data-speedtest-action>
       Run test
-    </button>
+      </button>
+    </div>
   </div>
 
   <details class="speedtest-card__debug" __DEBUG_HIDDEN__>
