@@ -72,6 +72,7 @@ const FLAGS = {
 const POPULAR_PAIRS = [
   ["EUR","USD"],["GBP","USD"],["USD","JPY"],
   ["USD","UAH"],["BTC","USD"],["USD","CNY"],
+  ["AUD","USD"],["EUR","GBP"],
 ];
 
 function parseQuery(query) {

@@ -208,17 +208,33 @@
 
     function renderPickerList(filter) {
       if (!pickerList) return;
+      
+      // Get selected currency for this picker
+      const selectedCode = pickerTarget === "from" ? fromCode : toCode;
+      
+      // Filter currencies
       const filtered = filter
         ? CURRENCIES.filter(c => c.code.toLowerCase().includes(filter) || c.name.toLowerCase().includes(filter))
         : CURRENCIES;
       
-      pickerList.innerHTML = filtered.map((c, i) =>
-        `<div class="cxs-picker-item" data-code="${c.code}" style="animation-delay: ${i * 0.02}s">
+      // Split into selected and others
+      const selected = filtered.filter(c => c.code === selectedCode);
+      const others = filtered.filter(c => c.code !== selectedCode);
+      
+      // Combine: selected first, then others
+      const sorted = [...selected, ...others];
+      
+      pickerList.innerHTML = sorted.map((c, i) => {
+        const isSelected = c.code === selectedCode;
+        return `<div class="cxs-picker-item${isSelected ? ' cxs-picker-item--selected' : ''}" data-code="${c.code}" style="animation-delay: ${i * 0.02}s">
           <span class="cxs-picker-flag">${c.flag}</span>
-          <span class="cxs-picker-code">${c.code}</span>
-          <span class="cxs-picker-name">${c.name}</span>
-        </div>`
-      ).join("");
+          <div class="cxs-picker-info">
+            <span class="cxs-picker-name">${c.name}</span>
+            <span class="cxs-picker-code">${c.code}</span>
+          </div>
+          ${isSelected ? '<span class="cxs-picker-checkmark">✓</span>' : ''}
+        </div>`;
+      }).join("");
     }
 
     const fromBtn = wrap.querySelector("#cxs-from-btn");
@@ -296,6 +312,9 @@
         fromCode = pair.dataset.from;
         toCode   = pair.dataset.to;
         
+        // Reset amount to 1
+        amountEl.value = "1";
+        
         const oldResult = previousResult;
         updateCurUI("from", fromCode);
         updateCurUI("to", toCode);
@@ -303,9 +322,12 @@
         const newRate = await fetchRate(fromCode, toCode);
         if (newRate !== null) rate = newRate;
         
-        const newResult = (parseFloat(amountEl.value) || 0) * rate;
+        const newResult = 1 * rate;
         animateNumber(resultEl, oldResult, newResult);
         previousResult = newResult;
+        
+        if (rateFromEl) rateFromEl.textContent = fromCode;
+        if (rateValEl) rateValEl.textContent = fmt(rate) + " " + toCode;
       });
     }
 
