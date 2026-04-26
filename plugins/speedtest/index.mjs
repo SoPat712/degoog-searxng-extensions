@@ -294,6 +294,38 @@ function replaceTemplateToken(template, tokenName, value) {
   return safeTemplate.replace(tokenPattern, replacement);
 }
 
+function forceInjectServerPayload(template, serverPayload) {
+  const safeJson = escapeHtml(JSON.stringify(serverPayload));
+  const safeB64 = escapeHtml(encodeServerData(serverPayload));
+  let rendered = String(template ?? "");
+
+  if (/data-speedtest-servers\s*=/.test(rendered)) {
+    rendered = rendered.replace(
+      /data-speedtest-servers\s*=\s*"[^"]*"/i,
+      `data-speedtest-servers="${safeB64}"`
+    );
+  } else {
+    rendered = rendered.replace(
+      /<div\s+class="speedtest-card"/i,
+      `<div class="speedtest-card" data-speedtest-servers="${safeB64}"`
+    );
+  }
+
+  if (/<template\s+data-speedtest-servers-json>[\s\S]*?<\/template>/i.test(rendered)) {
+    rendered = rendered.replace(
+      /<template\s+data-speedtest-servers-json>[\s\S]*?<\/template>/i,
+      `<template data-speedtest-servers-json>${safeJson}</template>`
+    );
+  } else {
+    rendered = rendered.replace(
+      /<\/div>\s*$/,
+      `  <template data-speedtest-servers-json>${safeJson}</template>\n</div>`
+    );
+  }
+
+  return rendered;
+}
+
 async function loadTemplate(ctx) {
   templateHtml = ctx?.template || "";
   if (!templateHtml && ctx?.readFile) {
@@ -335,7 +367,7 @@ function renderCardHtml() {
     escapeHtml(PLUGIN_VERSION)
   );
   rendered = replaceTemplateToken(rendered, "DEBUG_HIDDEN", debugMode ? "" : "hidden");
-  return rendered;
+  return forceInjectServerPayload(rendered, serverPayload);
 }
 
 export const routes = [];
