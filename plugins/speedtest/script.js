@@ -15,6 +15,8 @@
   const MAX_UPLOAD_DURATION_MS = 20000;
   const DOWNLOAD_CHUNK_MB = 100;
   const UPLOAD_PAYLOAD_BYTES = 20 * 1024 * 1024;
+  const MOBILE_UPLOAD_PAYLOAD_BYTES = 4 * 1024 * 1024;
+  const SMALL_CHUNK_UPLOAD_BYTES = 256 * 1024;
   const UPLOAD_WARMUP_TIMEOUT_MS = 4000;
   const UPDATE_INTERVAL_MS = 200;
   const FINAL_RESULT_WINDOW_MS = 5000;
@@ -137,7 +139,7 @@
     },
   ];
 
-  let uploadPayload = null;
+  const uploadPayloadCache = new Map();
 
   function nowMs() {
     return typeof performance !== "undefined" && typeof performance.now === "function"
@@ -578,11 +580,78 @@
     run.downloadXhrs.delete(xhr);
   }
 
-  function getUploadPayload() {
-    if (!uploadPayload) {
+  function isMobileUserAgent(ua) {
+    return /Android|iPhone|iPad|iPod|Windows Phone/i.test(ua);
+  }
+
+  function isSafariUserAgent(ua) {
+    return /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+  }
+
+  function isIosLikeDevice() {
+    const ua = String(navigator.userAgent || "");
+    const platform = String(navigator.platform || "");
+    const touchPoints = Number(navigator.maxTouchPoints || 0);
+    return (
+      /iPad|iPhone|iPod/i.test(ua) ||
+      (platform === "MacIntel" && touchPoints > 1)
+    );
+  }
+
+  function canUseUploadProgressEvents() {
+    try {
+      const xhr = new XMLHttpRequest();
+      return Boolean(xhr.upload) && "onprogress" in xhr.upload;
+    } catch {
+      return false;
+    }
+  }
+
+  function getUploadStrategy() {
+    const ua = String(navigator.userAgent || "");
+    const isMobile = isMobileUserAgent(ua);
+    const isSafari = isSafariUserAgent(ua);
+    const isIosSafari = isIosLikeDevice() && isSafari;
+    const hasUploadProgress = canUseUploadProgressEvents();
+    const useSmallChunkWorkaround = isIosSafari || !hasUploadProgress;
+
+    if (useSmallChunkWorkaround) {
+      return {
+        source: isIosSafari
+          ? "Best sustained window after grace (Safari small-chunk fallback)"
+          : "Best sustained window after grace (small-chunk fallback)",
+        debugLabel: isIosSafari
+          ? "iOS Safari small-chunk fallback"
+          : "Small-chunk upload fallback",
+        streamCount: isMobile ? 2 : UPLOAD_STREAMS,
+        streamDelayMs: UPLOAD_STREAM_DELAY_MS,
+        payloadBytes: SMALL_CHUNK_UPLOAD_BYTES,
+        useSmallChunkWorkaround: true,
+      };
+    }
+
+    return {
+      source: isMobile
+        ? "Best sustained window after grace (mobile upload mode)"
+        : "Best sustained window after grace",
+      debugLabel: isMobile
+        ? "Mobile upload mode"
+        : "Standard upload mode",
+      streamCount: isMobile ? 2 : UPLOAD_STREAMS,
+      streamDelayMs: UPLOAD_STREAM_DELAY_MS,
+      payloadBytes: isMobile
+        ? MOBILE_UPLOAD_PAYLOAD_BYTES
+        : UPLOAD_PAYLOAD_BYTES,
+      useSmallChunkWorkaround: false,
+    };
+  }
+
+  function getUploadPayload(byteLength = UPLOAD_PAYLOAD_BYTES) {
+    const safeByteLength = Math.max(1, Math.floor(Number(byteLength) || 0));
+    if (!uploadPayloadCache.has(safeByteLength)) {
       const oneMegabyte = 1024 * 1024;
-      const chunkCount = Math.floor(UPLOAD_PAYLOAD_BYTES / oneMegabyte);
-      const remainderBytes = UPLOAD_PAYLOAD_BYTES % oneMegabyte;
+      const chunkCount = Math.floor(safeByteLength / oneMegabyte);
+      const remainderBytes = safeByteLength % oneMegabyte;
       const chunks = [];
 
       const createChunk = (size) => {
@@ -605,12 +674,15 @@
         chunks.push(createChunk(remainderBytes));
       }
 
-      uploadPayload = new Blob(chunks, {
-        type: "application/octet-stream",
-      });
+      uploadPayloadCache.set(
+        safeByteLength,
+        new Blob(chunks, {
+          type: "application/octet-stream",
+        })
+      );
     }
 
-    return uploadPayload;
+    return uploadPayloadCache.get(safeByteLength);
   }
 
   async function warmUpUploadServer(run, server) {
@@ -1450,11 +1522,12 @@
     }
 
     return new Promise((resolve, reject) => {
+      const uploadStrategy = getUploadStrategy();
       const rawStart = nowMs();
       const graceDeadline = rawStart + UPLOAD_GRACE_MS;
       const measurementDeadline = graceDeadline + MAX_UPLOAD_DURATION_MS;
       const localXhrs = new Set();
-      const payload = getUploadPayload();
+      const payload = getUploadPayload(uploadStrategy.payloadBytes);
       const throughputSamples = [];
       const measurementSamples = [];
       const warmupSamples = [];
@@ -1499,7 +1572,7 @@
         return {
           mbps: roundToTenths(finalMbps),
           debug: {
-            source: "Best sustained window after grace",
+            source: uploadStrategy.source,
             finalMbps: roundToTenths(finalMbps),
             bestSustainedMbps: roundToTenths(bestWindow.mbps),
             tailAverageMbps: roundToTenths(tailAverageMbps),
@@ -1612,6 +1685,13 @@
         }
       }, UPDATE_INTERVAL_MS);
 
+      appendDebugEvent(
+        card,
+        `Upload strategy: ${uploadStrategy.debugLabel} (${uploadStrategy.streamCount} stream${
+          uploadStrategy.streamCount === 1 ? "" : "s"
+        }, ${Math.round(uploadStrategy.payloadBytes / 1024)} KB payloads).`
+      );
+
       const launchStream = (streamIndex, delayMs) => {
         registerTimeout(
           run,
@@ -1627,37 +1707,69 @@
               run.uploadXhrs.add(xhr);
 
               const cleanup = () => {
-                xhr.upload.onprogress = null;
-                xhr.upload.onload = null;
-                xhr.upload.onerror = null;
+                try {
+                  xhr.upload.onprogress = null;
+                  xhr.upload.onload = null;
+                  xhr.upload.onerror = null;
+                } catch {}
+                xhr.onload = null;
+                xhr.onerror = null;
                 xhr.onabort = null;
                 localXhrs.delete(xhr);
                 unregisterUploadXhr(run, xhr);
               };
 
-              xhr.upload.onprogress = (event) => {
-                const diff = event.loaded - prevLoaded;
-                if (diff > 0) {
+              if (uploadStrategy.useSmallChunkWorkaround) {
+                const countChunk = () => {
                   if (graceDone) {
-                    totalLoaded += diff;
+                    totalLoaded += payload.size;
                   } else {
-                    warmupLoaded += diff;
+                    warmupLoaded += payload.size;
                   }
-                }
-                prevLoaded = event.loaded;
-              };
+                };
 
-              xhr.upload.onload = () => {
-                cleanup();
-                sendNext();
-              };
+                const handleComplete = (countBytes) => {
+                  if (countBytes) {
+                    countChunk();
+                  }
+                  cleanup();
+                  if (!finished && !run.aborted) {
+                    sendNext();
+                  }
+                };
 
-              xhr.upload.onerror = () => {
-                cleanup();
-                if (!finished && !run.aborted) {
+                xhr.onload = () => {
+                  handleComplete(true);
+                };
+
+                xhr.onerror = () => {
+                  handleComplete(true);
+                };
+              } else {
+                xhr.upload.onprogress = (event) => {
+                  const diff = event.loaded - prevLoaded;
+                  if (diff > 0) {
+                    if (graceDone) {
+                      totalLoaded += diff;
+                    } else {
+                      warmupLoaded += diff;
+                    }
+                  }
+                  prevLoaded = event.loaded;
+                };
+
+                xhr.upload.onload = () => {
+                  cleanup();
                   sendNext();
-                }
-              };
+                };
+
+                xhr.upload.onerror = () => {
+                  cleanup();
+                  if (!finished && !run.aborted) {
+                    sendNext();
+                  }
+                };
+              }
 
               xhr.onabort = cleanup;
 
@@ -1686,8 +1798,8 @@
         );
       };
 
-      for (let index = 0; index < UPLOAD_STREAMS; index += 1) {
-        launchStream(index, UPLOAD_STREAM_DELAY_MS * index);
+      for (let index = 0; index < uploadStrategy.streamCount; index += 1) {
+        launchStream(index, uploadStrategy.streamDelayMs * index);
       }
 
       registerTimeout(
