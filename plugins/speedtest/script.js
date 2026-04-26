@@ -11,8 +11,8 @@
   const UPLOAD_STREAM_DELAY_MS = 300;
   const DOWNLOAD_GRACE_MS = 1500;
   const UPLOAD_GRACE_MS = 3000;
-  const MAX_DOWNLOAD_DURATION_MS = 15000;
-  const MAX_UPLOAD_DURATION_MS = 15000;
+  const MAX_DOWNLOAD_DURATION_MS = 20000;
+  const MAX_UPLOAD_DURATION_MS = 20000;
   const DOWNLOAD_CHUNK_MB = 100;
   const UPLOAD_PAYLOAD_BYTES = 20 * 1024 * 1024;
   const UPLOAD_WARMUP_TIMEOUT_MS = 4000;
@@ -20,8 +20,14 @@
   const FINAL_RESULT_WINDOW_MS = 5000;
   const THROUGHPUT_WINDOW_MS = 1600;
   const WARMUP_SEED_WINDOW_MS = 700;
+  const SUSTAINED_RESULT_WINDOW_MS = 4000;
+  const SUSTAINED_MIN_WINDOW_MS = 2500;
+  const SUSTAINED_MIN_SAMPLE_COUNT = 6;
+  const SUSTAINED_IMPROVEMENT_RATIO = 0.02;
+  const SUSTAINED_IMPROVEMENT_MBPS = 2.5;
+  const STABILIZE_HOLD_MS = 2400;
+  const MIN_PHASE_DURATION_MS = 5000;
   const OVERHEAD_COMPENSATION_FACTOR = 1.06;
-  const MAX_AUTO_BONUS_PER_INTERVAL_MS = 400;
   const DEBUG_EVENT_LIMIT = 40;
   const PHASE_LABELS = {
     idle: "",
@@ -215,35 +221,102 @@
     return `${(safe / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  function recordFinalWindowSample(samples, sample) {
-    samples.push(sample);
-
-    while (
-      samples.length > 2 &&
-      sample.time - samples[0].time > FINAL_RESULT_WINDOW_MS
-    ) {
-      samples.shift();
-    }
+  function recordMeasurementSample(samples, sample) {
+    samples.push({
+      time: Number(sample?.time) || 0,
+      bytes: Math.max(0, Number(sample?.bytes) || 0),
+      rollingMbps: Math.max(0, Number(sample?.rollingMbps) || 0),
+      cumulativeMbps: Math.max(0, Number(sample?.cumulativeMbps) || 0),
+    });
   }
 
-  function finalizedWindowMbps(samples, fallbackMbps) {
-    const rollingValues = samples
-      .map((sample) => Number(sample.rollingMbps) || 0)
-      .filter((value) => value > 0);
-
-    if (rollingValues.length >= 3) {
-      return trimmedMean(rollingValues);
+  function summarizeTrailingWindow(samples, windowMs = FINAL_RESULT_WINDOW_MS) {
+    const safeSamples = Array.isArray(samples) ? samples : [];
+    if (safeSamples.length < 2) {
+      return {
+        mbps: 0,
+        durationMs: 0,
+        sampleCount: safeSamples.length,
+      };
     }
 
-    const cumulativeValues = samples
-      .map((sample) => Number(sample.cumulativeMbps) || 0)
-      .filter((value) => value > 0);
-
-    if (cumulativeValues.length) {
-      return cumulativeValues[cumulativeValues.length - 1];
+    const endSample = safeSamples[safeSamples.length - 1];
+    let startIndex = safeSamples.length - 1;
+    while (
+      startIndex > 0 &&
+      endSample.time - safeSamples[startIndex - 1].time <= windowMs
+    ) {
+      startIndex -= 1;
     }
 
-    return Number(fallbackMbps) || 0;
+    const startSample = safeSamples[startIndex];
+    const durationMs = Math.max(0, endSample.time - startSample.time);
+    return {
+      mbps:
+        durationMs > 0
+          ? speedFromBytes(endSample.bytes - startSample.bytes, durationMs)
+          : 0,
+      durationMs,
+      sampleCount: safeSamples.length - startIndex,
+    };
+  }
+
+  function findBestSustainedWindow(samples) {
+    const safeSamples = Array.isArray(samples) ? samples : [];
+    if (safeSamples.length < 2) {
+      return {
+        mbps: 0,
+        durationMs: 0,
+        sampleCount: safeSamples.length,
+      };
+    }
+
+    let bestWindow = {
+      mbps: 0,
+      durationMs: 0,
+      sampleCount: 0,
+    };
+    let startIndex = 0;
+
+    for (let endIndex = 1; endIndex < safeSamples.length; endIndex += 1) {
+      const endSample = safeSamples[endIndex];
+      while (
+        startIndex < endIndex &&
+        endSample.time - safeSamples[startIndex].time > SUSTAINED_RESULT_WINDOW_MS
+      ) {
+        startIndex += 1;
+      }
+
+      const sampleCount = endIndex - startIndex + 1;
+      const durationMs = endSample.time - safeSamples[startIndex].time;
+      if (
+        sampleCount < SUSTAINED_MIN_SAMPLE_COUNT ||
+        durationMs < SUSTAINED_MIN_WINDOW_MS
+      ) {
+        continue;
+      }
+
+      const mbps = speedFromBytes(
+        endSample.bytes - safeSamples[startIndex].bytes,
+        durationMs
+      );
+      if (mbps > bestWindow.mbps) {
+        bestWindow = {
+          mbps,
+          durationMs,
+          sampleCount,
+        };
+      }
+    }
+
+    return bestWindow;
+  }
+
+  function sustainedImprovementThreshold(bestMbps) {
+    return Math.max(
+      SUSTAINED_IMPROVEMENT_MBPS,
+      Math.max(0, Number(bestMbps) || 0) * SUSTAINED_IMPROVEMENT_RATIO
+    );
   }
 
   function createEmptyDebugData() {
@@ -278,7 +351,7 @@
         "Run a speed test to capture debug details.",
         "",
         "This panel will show the selected server, latency samples, and",
-        "the final tail-average versus cumulative phase calculations.",
+        "the sustained-window, trailing-window, and cumulative phase calculations.",
       ].join("\n");
     }
 
@@ -310,14 +383,22 @@
         lines.push(`  source: ${phase.source}`);
       }
       lines.push(`  final result: ${formatDebugMbps(phase.finalMbps)}`);
-      lines.push(`  tail average: ${formatDebugMbps(phase.tailAverageMbps)}`);
+      lines.push(
+        `  best sustained window: ${formatDebugMbps(phase.bestSustainedMbps)}`
+      );
+      lines.push(`  trailing window average: ${formatDebugMbps(phase.tailAverageMbps)}`);
       lines.push(`  cumulative at finish: ${formatDebugMbps(phase.finalCumulativeMbps)}`);
       lines.push(`  rolling at finish: ${formatDebugMbps(phase.finalRollingMbps)}`);
       lines.push(`  peak rolling: ${formatDebugMbps(phase.peakRollingMbps)}`);
       lines.push(`  transferred after grace: ${formatDebugMegabytes(phase.transferredBytes)}`);
       lines.push(`  measured time: ${(Number(phase.measuredSeconds) || 0).toFixed(2)} s`);
-      lines.push(`  auto bonus at finish: ${Math.max(0, Number(phase.bonusMs) || 0)} ms`);
-      lines.push(`  tail window samples: ${phase.tailSampleCount || 0}`);
+      lines.push(
+        `  sustained window length: ${(Math.max(0, Number(phase.bestWindowSeconds) || 0)).toFixed(2)} s`
+      );
+      lines.push(
+        `  trailing window length: ${(Math.max(0, Number(phase.tailWindowSeconds) || 0)).toFixed(2)} s`
+      );
+      lines.push(`  trailing window samples: ${phase.tailSampleCount || 0}`);
     });
 
     if (debug.events.length) {
@@ -382,14 +463,6 @@
     renderDebug(card);
   }
 
-  function unregisterWorker(run, worker) {
-    if (!worker) {
-      return;
-    }
-
-    run.workers.delete(worker);
-  }
-
   function median(values) {
     const sorted = values
       .map((value) => Number(value))
@@ -430,7 +503,6 @@
       fetchControllers: new Set(),
       uploadXhrs: new Set(),
       downloadXhrs: new Set(),
-      workers: new Set(),
       intervals: new Set(),
       timeouts: new Set(),
 
@@ -446,17 +518,11 @@
             xhr.abort();
           } catch {}
         });
-        this.workers.forEach((worker) => {
-          try {
-            worker.terminate();
-          } catch {}
-        });
         this.intervals.forEach((id) => window.clearInterval(id));
         this.timeouts.forEach((id) => window.clearTimeout(id));
         this.fetchControllers.clear();
         this.uploadXhrs.clear();
         this.downloadXhrs.clear();
-        this.workers.clear();
         this.intervals.clear();
         this.timeouts.clear();
       },
@@ -626,34 +692,6 @@
     } catch {
       return [];
     }
-  }
-
-  function getWorkerScript(card) {
-    if (typeof card._speedtestWorkerScript === "string") {
-      return card._speedtestWorkerScript;
-    }
-
-    const scriptText = decodeBase64Text(card.dataset.speedtestWorker);
-    card._speedtestWorkerScript = scriptText;
-    return scriptText;
-  }
-
-  function getWorkerUrl(card) {
-    if (typeof card._speedtestWorkerUrl === "string" && card._speedtestWorkerUrl) {
-      return card._speedtestWorkerUrl;
-    }
-
-    const scriptText = getWorkerScript(card);
-    if (!scriptText) {
-      return "";
-    }
-
-    const blob = new Blob([scriptText], {
-      type: "application/javascript",
-    });
-    const workerUrl = URL.createObjectURL(blob);
-    card._speedtestWorkerUrl = workerUrl;
-    return workerUrl;
   }
 
   function getServers(card) {
@@ -1038,11 +1076,6 @@
     };
   }
 
-  function formatPhaseElapsed(elapsedMs, totalMs) {
-    const elapsedSeconds = Math.min(totalMs, Math.max(0, elapsedMs)) / 1000;
-    return `${elapsedSeconds.toFixed(1)}/${(totalMs / 1000).toFixed(1)}s`;
-  }
-
   function formatElapsedSeconds(elapsedMs) {
     return `${(Math.max(0, elapsedMs) / 1000).toFixed(1)}s`;
   }
@@ -1057,18 +1090,6 @@
       ((totalBytes * 8) / (safeElapsedMs / 1000)) *
       OVERHEAD_COMPENSATION_FACTOR /
       1_000_000
-    );
-  }
-
-  function autoBonusFromBytesPerSecond(bytesPerSecond) {
-    const safe = Math.max(0, Number(bytesPerSecond) || 0);
-    if (safe <= 0) {
-      return 0;
-    }
-
-    return Math.min(
-      MAX_AUTO_BONUS_PER_INTERVAL_MS,
-      (5 * safe) / 100000
     );
   }
 
@@ -1111,43 +1132,49 @@
     return speedFromBytes(deltaBytes, deltaMs);
   }
 
-  function createAdaptiveMeasurementTracker() {
+  function createSustainedTracker() {
     return {
-      bestMbps: 0,
+      bestWindow: {
+        mbps: 0,
+        durationMs: 0,
+        sampleCount: 0,
+      },
       lastImprovementAt: 0,
     };
   }
 
-  function recordAdaptiveImprovement(tracker, currentMbps, currentNow) {
-    const safeCurrent = Math.max(0, Number(currentMbps) || 0);
-    const improvementThreshold = Math.max(
-      PLATEAU_ABSOLUTE_GAIN_MBPS,
-      tracker.bestMbps * PLATEAU_RELATIVE_GAIN
-    );
+  function updateSustainedTracker(tracker, candidateWindow, currentNow) {
+    const candidateMbps = Math.max(0, Number(candidateWindow?.mbps) || 0);
+    if (candidateMbps <= 0) {
+      return tracker.bestWindow;
+    }
 
+    const threshold = sustainedImprovementThreshold(tracker.bestWindow.mbps);
     if (
-      tracker.bestMbps === 0 ||
-      safeCurrent >= tracker.bestMbps + improvementThreshold
+      tracker.bestWindow.mbps === 0 ||
+      candidateMbps >= tracker.bestWindow.mbps + threshold
     ) {
-      tracker.bestMbps = safeCurrent;
+      tracker.bestWindow = {
+        mbps: candidateMbps,
+        durationMs: Math.max(0, Number(candidateWindow?.durationMs) || 0),
+        sampleCount: Math.max(0, Number(candidateWindow?.sampleCount) || 0),
+      };
       tracker.lastImprovementAt = currentNow;
     }
+
+    return tracker.bestWindow;
   }
 
-  function hasPhaseStabilized(tracker, elapsedMs, currentNow, minDurationMs, maxDurationMs) {
-    if (elapsedMs < minDurationMs) {
-      return false;
-    }
-
+  function shouldStopPhase(tracker, elapsedMs, currentNow, maxDurationMs) {
     if (elapsedMs >= maxDurationMs) {
       return true;
     }
 
-    if (!tracker.lastImprovementAt) {
+    if (elapsedMs < MIN_PHASE_DURATION_MS || !tracker.lastImprovementAt) {
       return false;
     }
 
-    return currentNow - tracker.lastImprovementAt >= PLATEAU_HOLD_MS;
+    return currentNow - tracker.lastImprovementAt >= STABILIZE_HOLD_MS;
   }
 
   async function runDownloadTest(card, run, server) {
@@ -1157,8 +1184,9 @@
       const measurementDeadline = graceDeadline + MAX_DOWNLOAD_DURATION_MS;
       const localXhrs = new Set();
       const throughputSamples = [];
-      const tailWindowSamples = [];
+      const measurementSamples = [];
       const warmupSamples = [];
+      const sustainedTracker = createSustainedTracker();
       let measurementStart = rawStart;
       let totalLoaded = 0;
       let warmupLoaded = 0;
@@ -1167,7 +1195,11 @@
       let lastMbps = 0;
       let stableMbps = 0;
       let peakRollingMbps = 0;
-      let bonusMs = 0;
+      let trailingWindow = {
+        mbps: 0,
+        durationMs: 0,
+        sampleCount: 0,
+      };
 
       const stopStreams = () => {
         localXhrs.forEach((xhr) => {
@@ -1184,11 +1216,14 @@
       };
 
       const buildPhaseResult = (fallbackMbps) => {
-        const tailAverageMbps = finalizedWindowMbps(
-          tailWindowSamples,
-          stableMbps || fallbackMbps
-        );
-        const finalMbps = stableMbps || fallbackMbps || tailAverageMbps || 0;
+        const bestWindow = sustainedTracker.bestWindow || {
+          mbps: 0,
+          durationMs: 0,
+          sampleCount: 0,
+        };
+        const tailAverageMbps = trailingWindow.mbps || 0;
+        const finalMbps =
+          bestWindow.mbps || tailAverageMbps || stableMbps || fallbackMbps || 0;
         const measuredSeconds = graceDone
           ? Math.max(0, nowMs() - measurementStart) / 1000
           : 0;
@@ -1196,15 +1231,18 @@
         return {
           mbps: roundToTenths(finalMbps),
           debug: {
+            source: "Best sustained window after grace",
             finalMbps: roundToTenths(finalMbps),
+            bestSustainedMbps: roundToTenths(bestWindow.mbps),
             tailAverageMbps: roundToTenths(tailAverageMbps),
             finalCumulativeMbps: roundToTenths(stableMbps),
             finalRollingMbps: roundToTenths(lastMbps),
             peakRollingMbps: roundToTenths(peakRollingMbps),
             transferredBytes: totalLoaded,
             measuredSeconds,
-            tailSampleCount: tailWindowSamples.length,
-            bonusMs: Math.round(bonusMs),
+            bestWindowSeconds: bestWindow.durationMs / 1000,
+            tailWindowSeconds: trailingWindow.durationMs / 1000,
+            tailSampleCount: trailingWindow.sampleCount,
           },
         };
       };
@@ -1254,10 +1292,7 @@
                 running: true,
                 currentMbps: roundToTenths(lastMbps),
                 downloadMbps: roundToTenths(lastMbps),
-                status: `Testing download speed (${formatPhaseElapsed(
-                  0,
-                  MAX_DOWNLOAD_DURATION_MS
-                )})...`,
+                status: "Testing download speed...",
               });
             }
             graceDone = true;
@@ -1265,42 +1300,47 @@
               totalLoaded = 0;
               measurementStart = nowMs();
             }
-            bonusMs = 0;
             throughputSamples.length = 0;
-            tailWindowSamples.length = 0;
+            measurementSamples.length = 0;
             recordThroughputSample(throughputSamples, 0, measurementStart);
           }
           return;
         }
 
         const elapsedMs = Math.max(1, currentNow - measurementStart);
-        const bytesPerSecond = totalLoaded / (elapsedMs / 1000);
         recordThroughputSample(throughputSamples, totalLoaded, currentNow);
         const rollingMbps = rollingMbpsFromSamples(throughputSamples);
         const cumulativeMbps = speedFromBytes(totalLoaded, elapsedMs);
         stableMbps = cumulativeMbps;
         lastMbps = rollingMbps > 0 ? rollingMbps : cumulativeMbps;
         peakRollingMbps = Math.max(peakRollingMbps, lastMbps);
-        recordFinalWindowSample(tailWindowSamples, {
+        recordMeasurementSample(measurementSamples, {
           time: currentNow,
+          bytes: totalLoaded,
           rollingMbps: lastMbps,
           cumulativeMbps,
         });
-        bonusMs += autoBonusFromBytesPerSecond(bytesPerSecond);
-        const effectiveElapsedMs = elapsedMs + bonusMs;
+        trailingWindow = summarizeTrailingWindow(measurementSamples);
+        updateSustainedTracker(
+          sustainedTracker,
+          findBestSustainedWindow(measurementSamples),
+          currentNow
+        );
         applyState(card, {
           phase: "download",
           running: true,
           currentMbps: roundToTenths(lastMbps),
           downloadMbps: roundToTenths(lastMbps),
-          status: `Testing download speed (${formatPhaseElapsed(
-            effectiveElapsedMs,
-            MAX_DOWNLOAD_DURATION_MS
-          )})...`,
+          status: `Testing download speed (${formatElapsedSeconds(elapsedMs)})...`,
         });
 
-        if (effectiveElapsedMs >= MAX_DOWNLOAD_DURATION_MS) {
-          finish(stableMbps || lastMbps);
+        if (shouldStopPhase(sustainedTracker, elapsedMs, currentNow, MAX_DOWNLOAD_DURATION_MS)) {
+          finish(
+            sustainedTracker.bestWindow.mbps ||
+              trailingWindow.mbps ||
+              stableMbps ||
+              lastMbps
+          );
         }
       }, UPDATE_INTERVAL_MS);
 
@@ -1391,7 +1431,13 @@
 
       registerTimeout(
         run,
-        () => finish(stableMbps || lastMbps),
+        () =>
+          finish(
+            sustainedTracker.bestWindow.mbps ||
+              trailingWindow.mbps ||
+              stableMbps ||
+              lastMbps
+          ),
         DOWNLOAD_GRACE_MS + MAX_DOWNLOAD_DURATION_MS + 1600
       );
     });
@@ -1410,8 +1456,9 @@
       const localXhrs = new Set();
       const payload = getUploadPayload();
       const throughputSamples = [];
-      const tailWindowSamples = [];
+      const measurementSamples = [];
       const warmupSamples = [];
+      const sustainedTracker = createSustainedTracker();
       let measurementStart = rawStart;
       let totalLoaded = 0;
       let warmupLoaded = 0;
@@ -1420,7 +1467,11 @@
       let lastMbps = 0;
       let stableMbps = 0;
       let peakRollingMbps = 0;
-      let bonusMs = 0;
+      let trailingWindow = {
+        mbps: 0,
+        durationMs: 0,
+        sampleCount: 0,
+      };
 
       const stopStreams = () => {
         localXhrs.forEach((xhr) => {
@@ -1433,11 +1484,14 @@
       };
 
       const buildPhaseResult = (fallbackMbps) => {
-        const tailAverageMbps = finalizedWindowMbps(
-          tailWindowSamples,
-          stableMbps || fallbackMbps
-        );
-        const finalMbps = stableMbps || fallbackMbps || tailAverageMbps || 0;
+        const bestWindow = sustainedTracker.bestWindow || {
+          mbps: 0,
+          durationMs: 0,
+          sampleCount: 0,
+        };
+        const tailAverageMbps = trailingWindow.mbps || 0;
+        const finalMbps =
+          bestWindow.mbps || tailAverageMbps || stableMbps || fallbackMbps || 0;
         const measuredSeconds = graceDone
           ? Math.max(0, nowMs() - measurementStart) / 1000
           : 0;
@@ -1445,15 +1499,18 @@
         return {
           mbps: roundToTenths(finalMbps),
           debug: {
+            source: "Best sustained window after grace",
             finalMbps: roundToTenths(finalMbps),
+            bestSustainedMbps: roundToTenths(bestWindow.mbps),
             tailAverageMbps: roundToTenths(tailAverageMbps),
             finalCumulativeMbps: roundToTenths(stableMbps),
             finalRollingMbps: roundToTenths(lastMbps),
             peakRollingMbps: roundToTenths(peakRollingMbps),
             transferredBytes: totalLoaded,
             measuredSeconds,
-            tailSampleCount: tailWindowSamples.length,
-            bonusMs: Math.round(bonusMs),
+            bestWindowSeconds: bestWindow.durationMs / 1000,
+            tailWindowSeconds: trailingWindow.durationMs / 1000,
+            tailSampleCount: trailingWindow.sampleCount,
           },
         };
       };
@@ -1503,10 +1560,7 @@
                 running: true,
                 currentMbps: roundToTenths(lastMbps),
                 uploadMbps: roundToTenths(lastMbps),
-                status: `Testing upload speed (${formatPhaseElapsed(
-                  0,
-                  MAX_UPLOAD_DURATION_MS
-                )})...`,
+                status: "Testing upload speed...",
               });
             }
             graceDone = true;
@@ -1514,42 +1568,47 @@
               totalLoaded = 0;
               measurementStart = nowMs();
             }
-            bonusMs = 0;
             throughputSamples.length = 0;
-            tailWindowSamples.length = 0;
+            measurementSamples.length = 0;
             recordThroughputSample(throughputSamples, 0, measurementStart);
           }
           return;
         }
 
         const elapsedMs = Math.max(1, currentNow - measurementStart);
-        const bytesPerSecond = totalLoaded / (elapsedMs / 1000);
         recordThroughputSample(throughputSamples, totalLoaded, currentNow);
         const rollingMbps = rollingMbpsFromSamples(throughputSamples);
         const cumulativeMbps = speedFromBytes(totalLoaded, elapsedMs);
         stableMbps = cumulativeMbps;
         lastMbps = rollingMbps > 0 ? rollingMbps : cumulativeMbps;
         peakRollingMbps = Math.max(peakRollingMbps, lastMbps);
-        recordFinalWindowSample(tailWindowSamples, {
+        recordMeasurementSample(measurementSamples, {
           time: currentNow,
+          bytes: totalLoaded,
           rollingMbps: lastMbps,
           cumulativeMbps,
         });
-        bonusMs += autoBonusFromBytesPerSecond(bytesPerSecond);
-        const effectiveElapsedMs = elapsedMs + bonusMs;
+        trailingWindow = summarizeTrailingWindow(measurementSamples);
+        updateSustainedTracker(
+          sustainedTracker,
+          findBestSustainedWindow(measurementSamples),
+          currentNow
+        );
         applyState(card, {
           phase: "upload",
           running: true,
           currentMbps: roundToTenths(lastMbps),
           uploadMbps: roundToTenths(lastMbps),
-          status: `Testing upload speed (${formatPhaseElapsed(
-            effectiveElapsedMs,
-            MAX_UPLOAD_DURATION_MS
-          )})...`,
+          status: `Testing upload speed (${formatElapsedSeconds(elapsedMs)})...`,
         });
 
-        if (effectiveElapsedMs >= MAX_UPLOAD_DURATION_MS) {
-          finish(stableMbps || lastMbps);
+        if (shouldStopPhase(sustainedTracker, elapsedMs, currentNow, MAX_UPLOAD_DURATION_MS)) {
+          finish(
+            sustainedTracker.bestWindow.mbps ||
+              trailingWindow.mbps ||
+              stableMbps ||
+              lastMbps
+          );
         }
       }, UPDATE_INTERVAL_MS);
 
@@ -1633,216 +1692,15 @@
 
       registerTimeout(
         run,
-        () => finish(stableMbps || lastMbps),
+        () =>
+          finish(
+            sustainedTracker.bestWindow.mbps ||
+              trailingWindow.mbps ||
+              stableMbps ||
+              lastMbps
+          ),
         UPLOAD_GRACE_MS + MAX_UPLOAD_DURATION_MS + 1600
       );
-    });
-  }
-
-  async function runLibrespeedTransferTest(card, run, server, latencyMs) {
-    return new Promise((resolve, reject) => {
-      if (run.aborted) {
-        reject(abortError());
-        return;
-      }
-
-      const workerUrl = getWorkerUrl(card);
-      if (!workerUrl) {
-        reject(new Error("LibreSpeed worker source is unavailable."));
-        return;
-      }
-      let worker = null;
-      try {
-        worker = new Worker(workerUrl);
-      } catch (error) {
-        reject(
-          error instanceof Error ? error : new Error("LibreSpeed worker failed.")
-        );
-        return;
-      }
-      run.workers.add(worker);
-
-      let finished = false;
-      let downloadPhaseStartedAt = 0;
-      let uploadPhaseStartedAt = 0;
-      let lastDownloadMbps = 0;
-      let lastUploadMbps = 0;
-      let peakDownloadMbps = 0;
-      let peakUploadMbps = 0;
-      let lastDownloadLiveMbps = 0;
-      let lastUploadLiveMbps = 0;
-
-      const finish = (error) => {
-        if (finished) {
-          return;
-        }
-
-        finished = true;
-        clearRegisteredInterval(run, intervalId);
-        worker.onmessage = null;
-        worker.onerror = null;
-
-        try {
-          worker.terminate();
-        } catch {}
-        unregisterWorker(run, worker);
-
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve({
-          downloadMbps: roundToTenths(lastDownloadMbps),
-          uploadMbps: roundToTenths(lastUploadMbps),
-          debug: {
-            download: {
-              source: "LibreSpeed worker",
-              finalMbps: roundToTenths(lastDownloadMbps),
-              tailAverageMbps: null,
-              finalCumulativeMbps: roundToTenths(lastDownloadMbps),
-            finalRollingMbps: roundToTenths(lastDownloadLiveMbps),
-            peakRollingMbps: roundToTenths(peakDownloadMbps),
-            transferredBytes: null,
-            measuredSeconds: downloadPhaseStartedAt
-                ? Math.max(
-                    0,
-                    (uploadPhaseStartedAt || nowMs()) - downloadPhaseStartedAt
-                  ) /
-                  1000
-                : 0,
-              tailSampleCount: null,
-              bonusMs: null,
-            },
-            upload: {
-              source: "LibreSpeed worker",
-              finalMbps: roundToTenths(lastUploadMbps),
-              tailAverageMbps: null,
-              finalCumulativeMbps: roundToTenths(lastUploadMbps),
-              finalRollingMbps: roundToTenths(lastUploadLiveMbps),
-              peakRollingMbps: roundToTenths(peakUploadMbps),
-              transferredBytes: null,
-              measuredSeconds: uploadPhaseStartedAt
-                ? Math.max(0, nowMs() - uploadPhaseStartedAt) / 1000
-                : 0,
-              tailSampleCount: null,
-              bonusMs: null,
-            },
-          },
-        });
-      };
-
-      const handleStatus = (data) => {
-        const testState = Number(data?.testState);
-        const downloadLiveMbps = Number(data?.dlStatus) || 0;
-        const uploadLiveMbps = Number(data?.ulStatus) || 0;
-
-        if (downloadLiveMbps > 0) {
-          lastDownloadLiveMbps = downloadLiveMbps;
-          lastDownloadMbps = downloadLiveMbps;
-          peakDownloadMbps = Math.max(peakDownloadMbps, downloadLiveMbps);
-        }
-
-        if (uploadLiveMbps > 0) {
-          lastUploadLiveMbps = uploadLiveMbps;
-          lastUploadMbps = uploadLiveMbps;
-          peakUploadMbps = Math.max(peakUploadMbps, uploadLiveMbps);
-        }
-
-        if (testState === 1) {
-          if (!downloadPhaseStartedAt) {
-            downloadPhaseStartedAt = nowMs();
-          }
-
-          applyState(card, {
-            phase: "download",
-            running: true,
-            currentMbps: roundToTenths(downloadLiveMbps),
-            downloadMbps: roundToTenths(downloadLiveMbps),
-            uploadMbps: roundToTenths(lastUploadLiveMbps),
-            latencyMs,
-            serverLabel: server.optionLabel || server.label,
-            status: "Testing download speed...",
-          });
-          return;
-        }
-
-        if (testState === 3) {
-          if (!uploadPhaseStartedAt) {
-            uploadPhaseStartedAt = nowMs();
-          }
-
-          applyState(card, {
-            phase: "upload",
-            running: true,
-            currentMbps: roundToTenths(uploadLiveMbps),
-            downloadMbps: roundToTenths(lastDownloadMbps),
-            uploadMbps: roundToTenths(uploadLiveMbps),
-            latencyMs,
-            serverLabel: server.optionLabel || server.label,
-            status: "Testing upload speed...",
-          });
-          return;
-        }
-
-        if (testState >= 4) {
-          finish();
-        }
-      };
-
-      worker.onerror = () => {
-        finish(new Error("LibreSpeed worker failed."));
-      };
-
-      worker.onmessage = (event) => {
-        if (run.aborted) {
-          finish(abortError());
-          return;
-        }
-
-        try {
-          handleStatus(JSON.parse(event.data));
-        } catch {}
-      };
-
-      const intervalId = registerInterval(run, () => {
-        if (run.aborted) {
-          finish(abortError());
-          return;
-        }
-
-        try {
-          worker.postMessage("status");
-        } catch (error) {
-          finish(error instanceof Error ? error : new Error("Worker status failed."));
-        }
-      }, UPDATE_INTERVAL_MS);
-
-      try {
-        worker.postMessage(
-          `start ${JSON.stringify({
-            mpot: true,
-            test_order: "D_U",
-            time_dl_max: 15,
-            time_ul_max: 15,
-            time_auto: true,
-            time_dlGraceTime: 1.5,
-            time_ulGraceTime: 3,
-            xhr_ignoreErrors: 1,
-            xhr_multistreamDelay: 300,
-            garbagePhp_chunkSize: 100,
-            xhr_ul_blob_megabytes: 20,
-            enable_quirks: true,
-            overheadCompensationFactor: 1.06,
-            telemetry_level: "none",
-            url_dl: server.downloadUrl,
-            url_ul: server.uploadUrl,
-            url_ping: server.pingUrl,
-          })}`
-        );
-      } catch (error) {
-        finish(error instanceof Error ? error : new Error("Worker start failed."));
-      }
     });
   }
 
@@ -1955,27 +1813,46 @@
         status: "Testing download speed...",
       });
 
-      const transferResult = await runLibrespeedTransferTest(
-        card,
-        run,
-        chosenServer,
-        latencyMs
-      );
-      const downloadMbps = transferResult.downloadMbps;
-      const uploadMbps = transferResult.uploadMbps;
-      setDebugPhase(card, "download", transferResult.debug.download);
-      setDebugPhase(card, "upload", transferResult.debug.upload);
+      const downloadResult = await runDownloadTest(card, run, chosenServer);
+      const downloadMbps = downloadResult.mbps;
+      setDebugPhase(card, "download", downloadResult.debug);
       appendDebugEvent(
         card,
         `Download final ${formatDebugMbps(
-          transferResult.debug.download.finalMbps
-        )} from LibreSpeed worker.`
+          downloadResult.debug.finalMbps
+        )} from best sustained ${formatDebugMbps(
+          downloadResult.debug.bestSustainedMbps
+        )}; trailing comparison ${formatDebugMbps(
+          downloadResult.debug.tailAverageMbps
+        )}; cumulative comparison ${formatDebugMbps(
+          downloadResult.debug.finalCumulativeMbps
+        )}.`
       );
+
+      applyState(card, {
+        phase: "upload",
+        running: true,
+        currentMbps: 0,
+        downloadMbps,
+        latencyMs,
+        serverLabel,
+        status: "Testing upload speed...",
+      });
+
+      const uploadResult = await runUploadTest(card, run, chosenServer);
+      const uploadMbps = uploadResult.mbps;
+      setDebugPhase(card, "upload", uploadResult.debug);
       appendDebugEvent(
         card,
         `Upload final ${formatDebugMbps(
-          transferResult.debug.upload.finalMbps
-        )} from LibreSpeed worker.`
+          uploadResult.debug.finalMbps
+        )} from best sustained ${formatDebugMbps(
+          uploadResult.debug.bestSustainedMbps
+        )}; trailing comparison ${formatDebugMbps(
+          uploadResult.debug.tailAverageMbps
+        )}; cumulative comparison ${formatDebugMbps(
+          uploadResult.debug.finalCumulativeMbps
+        )}.`
       );
 
       if (run.aborted) {

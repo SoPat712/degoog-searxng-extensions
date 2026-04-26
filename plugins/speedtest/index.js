@@ -1,5 +1,4 @@
 let templateHtml = "";
-let workerScriptJs = "";
 let customServerProfiles = [];
 
 const PLUGIN_NAME = "Speedtest";
@@ -288,24 +287,6 @@ async function loadTemplate(ctx) {
   if (!templateHtml && ctx?.readFile) {
     templateHtml = await ctx.readFile("template.html");
   }
-
-  if (ctx?.readFile) {
-    workerScriptJs = await ctx.readFile("librespeed-worker.js");
-  }
-}
-
-async function handleWorkerRoute() {
-  if (!workerScriptJs) {
-    return new Response("Not found", { status: 404 });
-  }
-
-  return new Response(workerScriptJs, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/javascript; charset=utf-8",
-      "Cache-Control": "public, max-age=3600",
-    },
-  });
 }
 
 function shouldTrigger(query) {
@@ -326,18 +307,10 @@ function renderCardHtml() {
 
   return templateHtml
     .split("__SERVER_DATA_B64__")
-    .join(escapeHtml(encodeServerData(buildServerDataPayload())))
-    .split("__WORKER_JS_B64__")
-    .join(escapeHtml(encodeBase64Text(workerScriptJs)));
+    .join(escapeHtml(encodeServerData(buildServerDataPayload())));
 }
 
-export const routes = [
-  {
-    path: "worker",
-    method: "get",
-    handler: handleWorkerRoute,
-  },
-];
+export const routes = [];
 
 export const slot = {
   id: "speedtest",
