@@ -11,7 +11,7 @@
 .speedtest-card__header {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 1rem;
   padding: 0 0 1rem;
 }
@@ -21,14 +21,7 @@
   align-items: flex-end;
   gap: 0.75rem;
   flex-wrap: wrap;
-}
-
-.speedtest-card__title {
-  margin: 0;
-  font-size: clamp(1.5rem, 3vw, 1.9rem);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  font-weight: 600;
+  margin-left: auto;
 }
 
 .speedtest-card__server-picker {

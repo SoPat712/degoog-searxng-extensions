@@ -589,8 +589,9 @@
     }
 
     if (statusNode) {
-      statusNode.textContent =
-        state.status || "Ready to measure your connection.";
+      const statusText = String(state.status || "").trim();
+      statusNode.textContent = statusText;
+      statusNode.hidden = !statusText;
     }
 
     updateButton(card, state);
@@ -873,6 +874,7 @@
       let graceDone = false;
       let finished = false;
       let lastMbps = 0;
+      let stableMbps = 0;
 
       const stopStreams = () => {
         localXhrs.forEach((xhr) => {
@@ -933,6 +935,7 @@
         recordThroughputSample(throughputSamples, totalLoaded, currentNow);
         const rollingMbps = rollingMbpsFromSamples(throughputSamples);
         const cumulativeMbps = speedFromBytes(totalLoaded, elapsedMs);
+        stableMbps = cumulativeMbps;
         lastMbps = rollingMbps > 0 ? rollingMbps : cumulativeMbps;
         recordAdaptiveImprovement(tracker, lastMbps, currentNow);
         applyState(card, {
@@ -954,7 +957,7 @@
             MAX_DOWNLOAD_DURATION_MS
           )
         ) {
-          finish(lastMbps);
+          finish(stableMbps || lastMbps);
         }
       }, UPDATE_INTERVAL_MS);
 
@@ -1038,7 +1041,7 @@
 
       registerTimeout(
         run,
-        () => finish(lastMbps),
+        () => finish(stableMbps || lastMbps),
         DOWNLOAD_GRACE_MS + MAX_DOWNLOAD_DURATION_MS + 1600
       );
     });
@@ -1063,6 +1066,7 @@
       let graceDone = false;
       let finished = false;
       let lastMbps = 0;
+      let stableMbps = 0;
 
       const stopStreams = () => {
         localXhrs.forEach((xhr) => {
@@ -1088,7 +1092,7 @@
           return;
         }
 
-        resolve(roundToTenths(Math.max(value, tracker.bestMbps)));
+        resolve(roundToTenths(value));
       };
 
       const intervalId = registerInterval(run, () => {
@@ -1119,6 +1123,7 @@
         recordThroughputSample(throughputSamples, totalLoaded, currentNow);
         const rollingMbps = rollingMbpsFromSamples(throughputSamples);
         const cumulativeMbps = speedFromBytes(totalLoaded, elapsedMs);
+        stableMbps = cumulativeMbps;
         lastMbps = rollingMbps > 0 ? rollingMbps : cumulativeMbps;
         recordAdaptiveImprovement(tracker, lastMbps, currentNow);
         applyState(card, {
@@ -1140,7 +1145,7 @@
             MAX_UPLOAD_DURATION_MS
           )
         ) {
-          finish(lastMbps);
+          finish(stableMbps || lastMbps);
         }
       }, UPDATE_INTERVAL_MS);
 
@@ -1220,7 +1225,7 @@
 
       registerTimeout(
         run,
-        () => finish(lastMbps),
+        () => finish(stableMbps || lastMbps),
         UPLOAD_GRACE_MS + MAX_UPLOAD_DURATION_MS + 1600
       );
     });
@@ -1331,9 +1336,7 @@
         latencyMs,
         serverLabel,
         assessment: buildAssessment(downloadMbps),
-        status: `Speed test complete using ${serverLabel}. Download ${formatMbps(
-          downloadMbps
-        )} Mbps, upload ${formatMbps(uploadMbps)} Mbps.`,
+        status: "",
       });
     } catch (error) {
       if (run.aborted || isAbortError(error)) {
