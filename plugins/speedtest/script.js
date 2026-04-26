@@ -1,6 +1,6 @@
 (() => {
   const CARD_SELECTOR = ".speedtest-card[data-speedtest-card]";
-  const CLIENT_PLUGIN_VERSION = "1.0.1";
+  const CLIENT_PLUGIN_VERSION = "1.0.2";
   const AUTO_SERVER_ID = "auto";
   const MAX_GAUGE_MBPS = 1000;
   const SERVER_SELECTION_PINGS = 2;
@@ -1544,8 +1544,14 @@
     }
   }
 
+  function normalizeProbeError(error) {
+    const message = String(error?.message || "").trim();
+    return message || "No response";
+  }
+
   async function probeServer(server, run, sampleCount = SERVER_SELECTION_PINGS) {
     const samples = [];
+    const errors = [];
 
     for (let index = 0; index < sampleCount; index += 1) {
       try {
@@ -1554,10 +1560,17 @@
         if (run.aborted) {
           throw error;
         }
+        errors.push(normalizeProbeError(error));
       }
     }
 
-    return samples.length ? Math.min(...samples) : Number.POSITIVE_INFINITY;
+    const latencyMs = samples.length ? Math.min(...samples) : Number.POSITIVE_INFINITY;
+    return {
+      latencyMs,
+      samples: samples.map((value) => roundToTenths(value)),
+      error:
+        samples.length > 0 ? "" : errors[0] || "No successful ping samples",
+    };
   }
 
   async function selectBestServer(card, run, servers) {
@@ -1568,7 +1581,7 @@
     let completed = 0;
     const results = await Promise.all(
       servers.map(async (server) => {
-        const latencyMs = await probeServer(server, run);
+        const probe = await probeServer(server, run);
         completed += 1;
         applyState(card, {
           phase: "preflight",
@@ -1576,9 +1589,25 @@
           serverLabel: "Selecting server...",
           status: `Checking servers (${completed}/${servers.length})...`,
         });
+        const serverLabel = server.optionLabel || server.label || server.id;
+        if (Number.isFinite(probe.latencyMs)) {
+          appendDebugEvent(
+            card,
+            `Checked ${serverLabel}: ${formatLatency(probe.latencyMs)} from samples ${
+              probe.samples.length
+                ? probe.samples.map((value) => formatLatency(value)).join(", ")
+                : "none"
+            }.`
+          );
+        } else {
+          appendDebugEvent(
+            card,
+            `Checked ${serverLabel}: unavailable (${probe.error || "No response"}).`
+          );
+        }
         return {
           server,
-          latencyMs,
+          latencyMs: probe.latencyMs,
         };
       })
     );
@@ -2361,7 +2390,13 @@
         if (!chosenServer) {
           throw new Error("The selected speed test server is unavailable.");
         }
-        selectionLatencyMs = await probeServer(chosenServer, run, 1);
+        const manualProbe = await probeServer(chosenServer, run, 1);
+        selectionLatencyMs = manualProbe.latencyMs;
+        if (!Number.isFinite(selectionLatencyMs)) {
+          throw new Error(
+            `Selected server did not respond to ping (${manualProbe.error || "No response"}).`
+          );
+        }
       }
 
       const serverLabel = chosenServer.optionLabel || chosenServer.label;
