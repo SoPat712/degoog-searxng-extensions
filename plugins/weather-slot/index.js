@@ -233,15 +233,22 @@ export default {
         addr.village ||
         addr.municipality ||
         addr.county ||
+        loc.name ||
         city;
       const regionName = addr.state || addr.region || "";
       const countryName = addr.country || "";
-      const displayName = [
-        cityName,
-        regionName && regionName !== cityName ? regionName : null,
-        countryName,
-      ]
-        .filter(Boolean)
+      // Case-insensitive dedupe so we don't render "kerala, Kerala, India"
+      // when the matched OSM feature is itself a state/region/country.
+      const _seenLocParts = new Set();
+      const displayName = [cityName, regionName, countryName]
+        .map((s) => (s == null ? "" : String(s)).trim())
+        .filter((s) => {
+          if (!s) return false;
+          const key = s.toLowerCase();
+          if (_seenLocParts.has(key)) return false;
+          _seenLocParts.add(key);
+          return true;
+        })
         .join(", ");
 
       const tempParam =
