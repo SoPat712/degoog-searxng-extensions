@@ -3,10 +3,9 @@ import bundledServerCatalog from "./servers-data.mjs";
 let templateHtml = "";
 let customServerProfiles = [];
 let debugMode = false;
-let naturalLanguageEnabled = false;
 
 const PLUGIN_NAME = "Speedtest";
-const PLUGIN_VERSION = "1.4.2";
+const PLUGIN_VERSION = "1.5.0";
 const PLUGIN_DESCRIPTION =
   "Minimal internet speed test with selectable servers, latency, download-first flow, and a circular gauge.";
 
@@ -271,13 +270,13 @@ function parseCustomServerProfiles(rawValue) {
 
 function configureSettings(settings) {
   debugMode = settings?.debugMode === true || settings?.debugMode === "true";
-  // degoog auto-injects a `naturalLanguage` toggle into any command whose
-  // settingsSchema is paired with a non-empty `naturalLanguagePhrases`
-  // array (per AGENTS.md). The saved value lands here on startup/save;
-  // we mirror it into a module-level flag so the sibling slot's
-  // trailing-keyword matcher (`slotTrigger`) can honour the same toggle.
-  naturalLanguageEnabled =
-    settings?.naturalLanguage === true || settings?.naturalLanguage === "true";
+  // Note: degoog auto-injects a `naturalLanguage` toggle on the command
+  // below (because it declares a non-empty `naturalLanguagePhrases`
+  // array). That toggle is evaluated CLIENT-SIDE by degoog — if it's off
+  // the plugin's `execute` simply never runs on bare phrases, so we do
+  // not need to mirror the value into any server-side state here. Any
+  // unrecognised keys in `settings` (including `naturalLanguage`) are
+  // safely ignored.
   customServerProfiles = parseCustomServerProfiles(settings?.customServersJson);
 }
 
@@ -419,141 +418,44 @@ function renderCardHtml() {
 
 export const routes = [];
 
-// Dual-capability plugin: exports both a `slot` (so natural-language
-// phrases like "run a speed test" render the card above results) AND a
-// `command` (so `!speed`, `!speed-test`, etc. work as bang commands).
-// Mirrors the pattern used by plugins/currency-slot/index.js, which the
-// user has confirmed works end-to-end.
+// Command-only plugin. An earlier version of this file also exported a
+// `slot` so trailing-keyword queries like "my internet speed" would
+// render the card, but degoog's Settings → Plugins UI renders one row
+// per exported capability (even for a slot with no `settingsSchema` —
+// it falls back to a default Position row). That produced a duplicate
+// "Speedtest" entry on the settings page with no way to collapse. To
+// guarantee a single Configure row we removed the slot export entirely.
 //
-// Note on the built-in + trigger choice: degoog core ships a `speedtest`
-// bang command. Per AGENTS.md the command loader keeps the FIRST
-// registered match and silently drops later duplicates — and "drops"
-// means the entire plugin command record, aliases included, vanishes
-// from `!`-autobang suggestions. To avoid that regression this plugin's
-// command uses `trigger: "speed"` (no collision) and deliberately omits
-// "speedtest" from its aliases. `!speedtest` is still served by the
-// slot's own `BANG_PREFIX_RX` when the operator has disabled the core
-// built-in; when the built-in is enabled, `!speedtest` routes there
-// and users reach this plugin via `!speed` / `!speed-test` / etc.
+// Trade-offs to be aware of if editing this file:
+//   • Trailing / mid-query natural phrases ("my internet speed",
+//     "how fast is my connection today") no longer fire — the command's
+//     `naturalLanguagePhrases` are matched CLIENT-SIDE, prefix-only,
+//     word-boundary (see AGENTS.md › "Natural language matching").
+//     Leading-keyword phrases like "speed test", "internet speed test",
+//     "check my internet speed" still work.
+//   • `!speedtest` is NOT claimed here because it collides with degoog
+//     core's built-in `speedtest` command; the loader keeps the first
+//     match and silently drops later duplicates (aliases included). We
+//     use `trigger: "speed"` instead, which is collision-free and shows
+//     up in the `!`-autobang list. Users who have disabled the core
+//     built-in can still type `!speedtest`, but only the built-in path
+//     serves it — this plugin responds to `!speed` and its aliases.
 //
-// IMPORTANT — schema export wiring (see AGENTS.md):
-// A previous regression caused degoog to lose this plugin's custom
-// `settingsSchema` (Debug mode) when the export wiring wasn't explicit
-// enough (spread syntax, anonymous default export, etc.). The defensive
-// pattern below spells out every field on named `export const slot` and
-// `export const command` objects, re-exports the command as `default`,
-// and keeps `settingsSchema: [debugModeSetting]` inline on both so
-// every loader path in degoog resolves to an object with the schema
+// `naturalLanguagePhrases` being non-empty also causes degoog to
+// auto-inject the per-command "Natural language" toggle into this
+// plugin's Configure screen. Do NOT add a manual toggle for that — it
+// would produce a duplicate field. The toggle is evaluated client-side,
+// so `execute()` simply never runs when it's off.
+//
+// IMPORTANT — schema export wiring (see AGENTS.md): a previous
+// regression caused degoog to lose the custom `settingsSchema` when
+// the export wiring used spread syntax or an anonymous default. The
+// defensive pattern here spells out every field on a named
+// `export const command = { ... }` and re-exports it as `default`, so
+// every loader path resolves to the same object with `settingsSchema`
 // attached. Do NOT refactor this back into a spread or anonymous
-// default — the settings page will disappear again.
-
-async function slotInit(ctx) {
-  await loadTemplate(ctx);
-}
-
-async function slotExecute() {
-  return {
-    title: PLUGIN_NAME,
-    html: renderCardHtml(),
-  };
-}
-
-// Bang prefixes the slot should fire on. Mirrors the old command trigger +
-// aliases. \b-anchored so "!speedy" etc. don't match.
-const BANG_PREFIX_RX =
-  /^!(speedtest|speed|speed-test|networkspeed|internetspeed)\b/i;
-
-// Leading / embedded natural-language phrases the slot should fire on.
-// Unlike a command's naturalLanguagePhrases (which degoog matches
-// client-side, prefix-only), the slot does its own matching here so
-// trailing/anywhere-in-query variants like "run a speed test please" also
-// work.
-const NATURAL_LANGUAGE_PHRASES = [
-  "speed test",
-  "speedtest",
-  "internet speed",
-  "network speed",
-  "wifi speed",
-  "connection speed",
-  "bandwidth test",
-  "check my speed",
-  "test my internet",
-  "how fast is my internet",
-  "how fast is my connection",
-];
-
-function slotTrigger(query) {
-  const q = String(query || "").trim();
-  if (!q) return false;
-
-  // Bangs always fire — this is the "bang is an addition to the slot"
-  // behaviour. Works whether or not the built-in core speedtest command
-  // is enabled, because the slot isn't bound to a string trigger.
-  if (BANG_PREFIX_RX.test(q)) return true;
-
-  // Everything below is natural-language matching. Honour the per-command
-  // "Natural language" toggle that degoog auto-injects on the sibling
-  // command export (because it declares `naturalLanguagePhrases`). The
-  // command's `configure()` mirrors the saved value into the
-  // `naturalLanguageEnabled` module flag, and we read it here so the
-  // slot's trailing-keyword matcher stays in sync with the single toggle
-  // the user sees in Settings. If the toggle is off, only bangs fire.
-  if (!naturalLanguageEnabled) return false;
-
-  const lower = q.toLowerCase();
-  for (const phrase of NATURAL_LANGUAGE_PHRASES) {
-    const p = phrase.toLowerCase();
-    if (!p) continue;
-    if (
-      lower === p ||
-      lower.startsWith(p + " ") ||
-      lower.endsWith(" " + p) ||
-      lower.includes(" " + p + " ")
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
-// IMPORTANT — single Configure row:
-// Per AGENTS.md › "Collapsing to one capability per folder", when a
-// plugin folder exports BOTH a slot and a command, declare
-// `settingsSchema` on exactly one of them — otherwise Settings →
-// Plugins renders two rows for the same folder (the bug the user hit
-// in 1.4.1, where both rows showed the identical slot description).
-// The command owns the schema here, so the slot has NO `settingsSchema`
-// and NO `configure` hook: module-level state (debugMode,
-// naturalLanguageEnabled, customServerProfiles) is populated solely by
-// `command.configure`, and the slot reads from those shared vars. If
-// the slot carried its own `configure`, degoog would call it with an
-// empty settings object (since the slot has no schema) and wipe the
-// module state the command just set.
-export const slot = {
-  id: "speedtest",
-  name: PLUGIN_NAME,
-  description: PLUGIN_DESCRIPTION,
-  position: "above-results",
-  init: slotInit,
-  trigger: slotTrigger,
-  execute: slotExecute,
-};
-
-export const slotPlugin = slot;
-
-// ── Bang command export ───────────────────────────────────────
-// Makes `!speed`, `!speed-test`, `!networkspeed`, and `!internetspeed`
-// render the same card the slot does. Slots don't fire for bang-command
-// queries in degoog, so there's no double-render risk.
-//
-// `naturalLanguagePhrases` is required for degoog to auto-inject the
-// per-command "Natural language" toggle into this plugin's Configure
-// screen. The phrases are matched CLIENT-SIDE, prefix-only, with a
-// word-boundary space (see AGENTS.md › "Natural language matching").
-// Trailing / anywhere-in-query variants like "my internet speed" are
-// handled server-side by the sibling slot's `slotTrigger` below — that
-// matcher also gates on `naturalLanguageEnabled` so both paths honour
-// the single auto-injected toggle.
+// default — the Configure screen will regress to the Position
+// fallback again.
 export const command = {
   name: PLUGIN_NAME,
   description: PLUGIN_DESCRIPTION,
@@ -592,8 +494,6 @@ export const command = {
   },
 };
 
-// Default export must be a single concrete capability so degoog registers
-// it correctly. The command is chosen here (matching currency-slot) so
-// the bang behaviour is the primary entry point; `export const slot`
-// above still registers the slot capability by its named export.
+// Default export must be a single concrete capability so degoog
+// registers it correctly.
 export default command;

@@ -34,8 +34,8 @@
     {
       "path": "plugins/speedtest",
       "name": "Speedtest",
-      "description": "Internet speed test with selectable servers, latency, and a circular gauge. Supports !speed (aliases !speed-test, !networkspeed, !internetspeed), plus natural queries like 'speed test' or 'internet speed' when Natural language is enabled.",
-      "version": "1.4.2",
+      "description": "Internet speed test with selectable servers, latency, and a circular gauge. Supports !speed (aliases !speed-test, !networkspeed, !internetspeed), plus leading natural phrases like 'speed test' or 'internet speed test' when Natural language is enabled.",
+      "version": "1.5.0",
       "type": "slot"
     }
   ],
