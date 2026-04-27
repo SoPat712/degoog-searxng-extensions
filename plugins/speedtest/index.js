@@ -5,7 +5,7 @@ let customServerProfiles = [];
 let debugMode = false;
 
 const PLUGIN_NAME = "Speedtest";
-const PLUGIN_VERSION = "1.5.2";
+const PLUGIN_VERSION = "1.5.3";
 const PLUGIN_DESCRIPTION =
   "Minimal internet speed test with selectable servers, latency, download-first flow, and a circular gauge.";
 
@@ -470,14 +470,22 @@ export const command = {
   name: PLUGIN_NAME,
   description: PLUGIN_DESCRIPTION,
   trigger: "speed",
-  aliases: ["speed-test", "networkspeed", "internetspeed"],
-  // NOTE on trigger: deliberately NOT "speedtest" — that collides with
-  // degoog core's built-in `speedtest` command and the loader would
-  // silently drop this whole command record (settingsSchema too, so the
-  // Configure row disappears). `"speed"` is collision-free. `!speedtest`
-  // intentionally routes to the core built-in; users wanting this
-  // plugin via `!speedtest` must disable the built-in AND add
-  // "speedtest" back to aliases here.
+  aliases: ["speedtest", "speed-test", "networkspeed", "internetspeed"],
+  // NOTE on trigger: deliberately NOT "speedtest" as the PRIMARY trigger
+  // — that would collide with degoog core's built-in `speedtest` command
+  // and the loader would silently drop this whole command record
+  // (settingsSchema too, so the Configure row disappears). `"speed"` is
+  // collision-free so primary registration is guaranteed.
+  //
+  // `"speedtest"` IS included as an alias. Alias-level collisions appear
+  // to be handled differently from primary-trigger collisions: when the
+  // core built-in is disabled, this alias claims `!speedtest` for this
+  // plugin; when the built-in is enabled, the alias is either ignored
+  // or overridden by the built-in but the rest of the command record
+  // (primary trigger + other aliases + settingsSchema) still registers.
+  // If a future degoog release starts dropping the whole command record
+  // on alias collision too, remove "speedtest" from this list and the
+  // Configure row will come back.
   naturalLanguagePhrases: [
     "speedtest",
     "speed test",
