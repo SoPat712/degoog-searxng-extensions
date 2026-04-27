@@ -1,10 +1,13 @@
 let template = "";
 
 const settings = {
-  units: "celsius",
-  windUnit: "kmh",
-  pressureUnit: "hPa",
-  precipUnit: "mm",
+  // Default to imperial units for brand-new installs. Existing saved
+  // preferences still win because `configure(s)` below only falls back to
+  // these defaults when the stored value is undefined/empty/invalid.
+  units: "fahrenheit",
+  windUnit: "mph",
+  pressureUnit: "mmHg",
+  precipUnit: "inch",
   timeFormat: "auto",
   // Mirrors the "Natural language" toggle degoog auto-injects when a
   // command declares `naturalLanguagePhrases`. Defaults on to match the
@@ -170,16 +173,19 @@ const commandDef = {
   },
 
   configure(s) {
-    settings.units = s?.units === "fahrenheit" ? "fahrenheit" : "celsius";
+    // Defaults flipped to imperial: unset/invalid stored values fall back
+    // to fahrenheit / mph / mmHg / inch / 12h. An explicit saved value in
+    // the other unit still wins so existing users keep their preferences.
+    settings.units = s?.units === "celsius" ? "celsius" : "fahrenheit";
     settings.windUnit = ["kmh", "mph", "ms", "kn"].includes(s?.windUnit)
       ? s.windUnit
-      : "kmh";
+      : "mph";
     settings.pressureUnit = ["hPa", "kPa", "mmHg", "inHg"].includes(
       s?.pressureUnit,
     )
       ? s.pressureUnit
-      : "hPa";
-    settings.precipUnit = s?.precipUnit === "inch" ? "inch" : "mm";
+      : "mmHg";
+    settings.precipUnit = s?.precipUnit === "mm" ? "mm" : "inch";
     settings.timeFormat = ["auto", "24h", "12h"].includes(s?.timeFormat)
       ? s.timeFormat
       : "auto";
@@ -622,6 +628,33 @@ const WEATHER_KEYWORD_RX =
 const LOCATION_STRIP_RX =
   /\b(weather|forecast|temperature|today|tomorrow|in|for|at|the|погода|прогноз|метео|в|у|для)\b/gi;
 
+// Mirrors degoog's client-side `getNaturalLanguageBangQuery` logic (phrase
+// prefix match OR first-word-is-trigger/alias fallback). When this returns
+// true, the command will already render for the query, so the slot must
+// stay silent to avoid a double render (one inline command result without a
+// card, one above-results slot panel with a card). Keeping this in lockstep
+// with `commandDef.naturalLanguagePhrases`/`trigger`/`aliases` means we do
+// not need to hardcode the phrase list here.
+function isHandledByCommand(query) {
+  const lower = String(query || "")
+    .trim()
+    .toLowerCase();
+  if (!lower) return false;
+  if (lower.startsWith("!")) return true;
+  const phrases = commandDef.naturalLanguagePhrases || [];
+  for (const phrase of phrases) {
+    const p = String(phrase || "").toLowerCase();
+    if (!p) continue;
+    if (lower === p || lower.startsWith(p + " ")) return true;
+  }
+  const firstWord = lower.split(/\s+/)[0];
+  if (firstWord === String(commandDef.trigger || "").toLowerCase()) return true;
+  for (const alias of commandDef.aliases || []) {
+    if (firstWord === String(alias || "").toLowerCase()) return true;
+  }
+  return false;
+}
+
 export const slot = {
   id: "weather-slot",
   name: "Cool Weather",
@@ -647,6 +680,12 @@ export const slot = {
     // appear to do nothing.
     if (!settings.naturalLanguage) return false;
     const q = (query || "").trim();
+    // Defer to the command whenever degoog's client matcher will already
+    // route the query there (leading "weather in …", "forecast for …",
+    // first-word "weather"/alias, or an explicit "!weather …" bang). The
+    // command renders inline without panel chrome which is the preferred
+    // look; this prevents the slot from stacking a second card on top.
+    if (isHandledByCommand(q)) return false;
     if (q.length < 3 || q.length > 150) return false;
     if (!WEATHER_KEYWORD_RX.test(q)) return false;
     const remainder = q

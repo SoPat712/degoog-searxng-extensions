@@ -363,10 +363,33 @@
     const padT = 24;
     const padB = 26;
 
+    // On narrow viewports we want fewer hours visible at once and let the
+    // user swipe horizontally for the rest. We do that by giving the SVG
+    // an explicit pixel width that can exceed its scrollable parent.
+    const viewportW =
+      typeof window !== "undefined" && window.innerWidth
+        ? window.innerWidth
+        : 1024;
+    const isNarrow = viewportW <= 560;
+    // ~6 hours visible on a phone (container is ~ viewport - some padding).
+    const visibleHoursOnMobile = 6;
+    const pxPerHourMobile = Math.max(
+      48,
+      Math.floor((viewportW - 80) / visibleHoursOnMobile),
+    );
+    const svgPxWidth = isNarrow
+      ? Math.max(viewportW, primary.length * pxPerHourMobile)
+      : null;
+
     const svg = svgEl("svg", {
       viewBox: "0 0 " + W + " " + H,
       preserveAspectRatio: "none",
     });
+    if (svgPxWidth) {
+      svg.style.width = svgPxWidth + "px";
+      svg.style.height = H + "px";
+      svg.style.display = "block";
+    }
 
     // Determine Y range
     const series = [primary];
@@ -560,7 +583,12 @@
     }
     svg.appendChild(axisGroup);
 
-    chartEl.appendChild(svg);
+    // Put the SVG inside a horizontally-scrollable wrapper so mobile can
+    // swipe through the hours instead of squishing them all onto one line.
+    const scrollWrap = document.createElement("div");
+    scrollWrap.className = "wxs-chart-scroll";
+    scrollWrap.appendChild(svg);
+    chartEl.appendChild(scrollWrap);
     // Re-attach the tooltip so it survives innerHTML clears between renders
     chartEl.appendChild(tooltipEl);
     tooltipEl.classList.remove("wxs-tt-visible");
@@ -662,10 +690,19 @@
         "</strong></div>" +
         altLine;
 
-      const xPct = ((padL + i * xStep) / W) * 100;
-      // Clamp so the tooltip doesn't spill off the edges
-      const clamped = Math.max(8, Math.min(92, xPct));
-      tooltipEl.style.left = clamped + "%";
+      // Position the tooltip relative to the chart container. When the
+      // SVG is wider than the container and scrolled, we need to subtract
+      // the scroll offset so the tooltip points at the right bar.
+      const containerW = chartEl.clientWidth || 1;
+      const svgRenderedW =
+        (svgPxWidth && svgPxWidth) ||
+        svg.getBoundingClientRect().width ||
+        containerW;
+      const dataPx = ((padL + i * xStep) / W) * svgRenderedW;
+      const scrollLeft = scrollWrap ? scrollWrap.scrollLeft : 0;
+      const visiblePx = dataPx - scrollLeft;
+      const clampedPx = Math.max(20, Math.min(containerW - 20, visiblePx));
+      tooltipEl.style.left = clampedPx + "px";
       tooltipEl.style.top = "0px";
       tooltipEl.classList.add("wxs-tt-visible");
 
@@ -688,6 +725,12 @@
       });
     });
     chartEl.addEventListener("mouseleave", hide);
+    // When the user scrolls the chart horizontally (mobile swipe), the
+    // tooltip's container-relative position would no longer line up with
+    // the data point, so just hide it.
+    if (scrollWrap) {
+      scrollWrap.addEventListener("scroll", hide, { passive: true });
+    }
   }
 
   function fmtVal(v, tab, unitsInfo) {
