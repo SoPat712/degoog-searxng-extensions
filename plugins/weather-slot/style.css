@@ -1,295 +1,790 @@
-/* ── Weather Command ─────────────────────────────────────── */
+/* ── Cool Weather Slot — Minimal Theme ───────────────────── */
+
 .wxs-wrap {
-  --wxs-sun: #f59e0b;
-  max-width: 680px;
-  margin-bottom: 12px;
-  font-family: var(--font-sans, sans-serif);
+    --wxs-accent: #4285f4;
+    --wxs-sun: #f59e0b;
+    --wxs-rain: #60a5fa;
+    --wxs-snow: #bfdbfe;
+
+    max-width: 720px;
+    margin-bottom: 12px;
+    font-family: var(--font-sans, sans-serif);
+    color: var(--text-primary);
+    position: relative;
 }
 
-.wxs-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border-light);
-  margin-bottom: 14px;
+/* ── Eyebrow / header ─────────────────────────── */
+
+.wxs-header {
+    margin-bottom: 16px;
 }
 
-.wxs-city {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
+.wxs-eyebrow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
 }
 
-.wxs-temp-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  line-height: 1;
+.wxs-eyebrow-label {
+    color: var(--text-secondary);
+}
+
+.wxs-eyebrow-location {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.wxs-eyebrow-sep {
+    opacity: 0.55;
+}
+
+.wxs-eyebrow-date {
+    color: var(--text-secondary);
+}
+
+/* ── Hero ──────────────────────────────────────── */
+
+.wxs-hero {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 24px;
+    align-items: start;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 18px;
+}
+
+.wxs-hero-left {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas:
+        "icon temp meta"
+        "icon temp meta";
+    align-items: center;
+    gap: 14px 18px;
+    min-width: 0;
+}
+
+.wxs-hero-icon {
+    grid-area: icon;
+    width: 88px;
+    height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.wxs-hero-temp {
+    grid-area: temp;
+    display: flex;
+    align-items: flex-start;
+    line-height: 0.95;
+    white-space: nowrap;
 }
 
 .wxs-num {
-  font-size: 64px;
-  font-weight: 300;
-  color: var(--text-primary);
-  letter-spacing: -2px;
+    font-size: clamp(3.2rem, 8vw, 4.4rem);
+    font-weight: 300;
+    color: var(--text-primary);
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    transition: opacity 200ms ease;
 }
 
 .wxs-deg {
-  font-size: 28px;
-  font-weight: 300;
-  color: var(--text-secondary);
-  padding-bottom: 10px;
+    font-size: clamp(1.4rem, 3.5vw, 1.8rem);
+    font-weight: 300;
+    color: var(--text-secondary);
+    margin-top: 0.35em;
+    margin-left: 0.1em;
+    letter-spacing: -0.02em;
 }
 
-.wxs-desc {
-  font-size: 14px;
-  color: var(--text-primary);
-  margin-top: 8px;
+.wxs-hero-meta {
+    grid-area: meta;
+    display: grid;
+    gap: 4px;
+    min-width: 0;
 }
 
-.wxs-feels {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 3px;
+.wxs-meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
 }
 
-/* Animated icon */
-.wxs-icon-wrap {
-  flex-shrink: 0;
-  width: 88px;
-  height: 88px;
-  position: relative;
+.wxs-meta-label {
+    color: var(--text-secondary);
 }
 
-.wxs-icon-inner {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.25s ease, transform 0.25s ease;
+.wxs-meta-value {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
 }
 
-.wxs-icon-in  { opacity: 1; transform: scale(1); }
-.wxs-icon-out { opacity: 0; transform: scale(0.82); }
-
-/* Float animation */
-.wxs-ani-float { animation: wxs-float 4s ease-in-out infinite; }
-.wxs-ani-sun   { animation: wxs-float 4s ease-in-out infinite; }
-@keyframes wxs-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
-@keyframes wxs-spin  { from{transform:rotate(0)} to{transform:rotate(360deg)} }
-@keyframes wxs-fadein{ from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
-
-/* Rain drops */
-.wxs-drop {
-  position: absolute;
-  width: 2px;
-  border-radius: 2px;
-  background: #60a5fa;
-  opacity: 0.8;
-  animation: wxs-rain 1.1s linear infinite;
-}
-@keyframes wxs-rain {
-  0%   { transform: translateY(-2px); opacity: 0; }
-  50%  { opacity: 0.8; }
-  100% { transform: translateY(18px); opacity: 0; }
+.wxs-hero-right {
+    display: grid;
+    gap: 6px;
+    text-align: right;
+    min-width: 0;
 }
 
-/* Snow flakes */
-.wxs-flake {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #bfdbfe;
-  animation: wxs-snow 1.4s linear infinite;
-}
-@keyframes wxs-snow {
-  0%   { transform: translateY(-2px); opacity: 0; }
-  50%  { opacity: 1; }
-  100% { transform: translateY(14px); opacity: 0; }
+.wxs-hero-eyebrow {
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
 }
 
-/* Lightning bolt */
-.wxs-bolt { animation: wxs-flash 2s ease-in-out infinite; }
-@keyframes wxs-flash { 0%,100%{opacity:.45} 50%{opacity:1} }
-
-/* Stats */
-.wxs-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--border-light);
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 12px;
+.wxs-hero-date {
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: 500;
 }
 
-.wxs-st { background: var(--bg); padding: 11px 13px; }
-
-.wxs-st-l {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
+.wxs-hero-desc {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
 }
 
-.wxs-st-v {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary);
+.wxs-hero-hilo {
+    margin-top: 4px;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
 }
 
-/* Sunrise/sunset */
-.wxs-sun-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  padding: 10px 13px;
-  border: 1px solid var(--border-light);
-  border-radius: 10px;
+.wxs-hilo-hi strong,
+.wxs-hilo-lo strong {
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
-.wxs-sun-bar {
-  flex: 1;
-  height: 6px;
-  background: var(--bg);
-  border-radius: 3px;
-  position: relative;
+.wxs-hilo-sep {
+    opacity: 0.55;
 }
 
-.wxs-sun-fill {
-  height: 100%;
-  background: #f59e0b;
-  opacity: 0.7;
-  border-radius: 3px;
-  transition: width 0.6s ease;
+/* ── Tabs ─────────────────────────────────────── */
+
+.wxs-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
 }
 
-.wxs-sun-dot {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 10px;
-  height: 10px;
-  background: #f59e0b;
-  border-radius: 50%;
-  transition: left 0.6s ease;
+.wxs-tabs::-webkit-scrollbar {
+    display: none;
 }
 
-.wxs-sun-time {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
-  white-space: nowrap;
+.wxs-tab {
+    position: relative;
+    padding: 10px 14px;
+    font-size: 0.94rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: color 160ms ease;
 }
 
-/* Forecast label */
-.wxs-fl {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
+.wxs-tab:hover {
+    color: var(--text-primary);
 }
 
-.wxs-fl-hint {
-  font-size: 9px;
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--text-secondary);
+.wxs-tab-active {
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
-/* Day cards */
+.wxs-tab-active::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--wxs-accent);
+}
+
+/* ── Chart ────────────────────────────────────── */
+
+.wxs-chart-wrap {
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    padding: 16px 16px 12px;
+    background: var(--bg-light, transparent);
+    margin-bottom: 20px;
+}
+
+.wxs-chart-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.wxs-chart-title {
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.wxs-chart-sub {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.wxs-chart {
+    position: relative;
+    width: 100%;
+    height: 170px;
+}
+
+.wxs-chart svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.wxs-chart-grid line {
+    stroke: var(--border-light);
+    stroke-dasharray: 2 4;
+    opacity: 0.6;
+}
+
+.wxs-chart-axis text {
+    fill: var(--text-secondary);
+    font-size: 10px;
+    font-family: inherit;
+}
+
+.wxs-chart-label {
+    fill: var(--text-primary);
+    font-size: 10px;
+    font-weight: 600;
+    text-anchor: middle;
+    font-family: inherit;
+}
+
+.wxs-chart-area {
+    opacity: 0.18;
+}
+
+.wxs-chart-line {
+    fill: none;
+    stroke-width: 2.2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.wxs-chart-bar {
+    transition: opacity 160ms ease;
+}
+
+.wxs-chart-point {
+    fill: var(--bg, #111);
+    stroke-width: 2;
+    cursor: pointer;
+}
+
+.wxs-chart-marker {
+    cursor: pointer;
+}
+
+.wxs-chart-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--bg, #1a1a1a);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    white-space: nowrap;
+    transform: translate(-50%, -100%);
+    opacity: 0;
+    transition: opacity 120ms ease;
+    z-index: 2;
+}
+
+.wxs-chart-tooltip.wxs-tt-visible {
+    opacity: 1;
+}
+
+.wxs-chart-tooltip strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.wxs-chart-tooltip .wxs-tt-label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.74rem;
+    margin-bottom: 2px;
+}
+
+.wxs-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 6px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.wxs-chart-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wxs-chart-legend i {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+    font-style: normal;
+}
+
+/* ── Days ─────────────────────────────────────── */
+
+.wxs-days-label {
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.wxs-days-hint {
+    font-size: 0.74rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-secondary);
+}
+
 .wxs-days {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 22px;
 }
 
 .wxs-day {
-  background: var(--bg);
-  border: 1.5px solid transparent;
-  border-radius: 8px;
-  padding: 9px 4px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+    background: var(--bg-light, transparent);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 12px 6px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition:
+        border-color 160ms ease,
+        background-color 160ms ease,
+        transform 160ms ease;
+    user-select: none;
+}
+
+.wxs-day:hover {
+    background: var(--bg-hover, rgba(255, 255, 255, 0.04));
 }
 
 .wxs-day-active {
-  border-color: var(--primary);
-  background: var(--bg-light);
+    border-color: var(--wxs-accent);
+    background: color-mix(in srgb, var(--wxs-accent) 12%, transparent);
 }
 
 .wxs-day-name {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  margin-bottom: 5px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
 }
 
 .wxs-day-icon {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 28px;
-  margin-bottom: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 36px;
+    margin-bottom: 6px;
 }
 
 .wxs-day-hi {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
+    font-size: 0.96rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
 }
 
 .wxs-day-lo {
-  font-size: 10px;
-  color: var(--text-secondary);
-  margin-top: 1px;
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
 }
 
-/* Hourly panel */
-.wxs-hourly {
-  margin-top: 8px;
-  border: 1px solid var(--border-light);
-  border-radius: 10px;
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition: max-height 0.35s ease, opacity 0.3s ease;
+.wxs-day-precip {
+    margin-top: 6px;
+    font-size: 0.76rem;
+    color: var(--wxs-rain);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
 }
 
-.wxs-hourly-open {
-  max-height: 80px;
-  opacity: 1;
+.wxs-day-precip svg {
+    display: block;
 }
 
-.wxs-hourly-scroll {
-  display: flex;
-  overflow-x: auto;
-  padding: 10px 12px;
-  gap: 14px;
-  scrollbar-width: none;
+.wxs-day-precip.wxs-day-precip-zero {
+    color: var(--text-secondary);
+    opacity: 0.55;
 }
 
-.wxs-hourly-scroll::-webkit-scrollbar { display: none; }
+/* ── Details grid ────────────────────────────── */
 
-.wxs-h { flex-shrink: 0; text-align: center; min-width: 36px; }
-.wxs-h-time { font-size: 10px; color: var(--text-secondary); margin-bottom: 3px; }
-.wxs-h-temp { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+.wxs-details-label {
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
 
-@media (max-width: 500px) {
-  .wxs-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .wxs-days  { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .wxs-num   { font-size: 52px; }
+.wxs-details {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--border-light);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.wxs-detail {
+    background: var(--bg-light, var(--bg));
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.wxs-detail-label {
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.wxs-detail-value {
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.wxs-detail-sub {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-left: 4px;
+}
+
+/* ── Sun row ─────────────────────────────────── */
+
+.wxs-sun-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 18px;
+    align-items: center;
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    background: var(--bg-light, transparent);
+}
+
+.wxs-sun-side {
+    display: grid;
+    gap: 2px;
+}
+
+.wxs-sun-side-right {
+    text-align: right;
+}
+
+.wxs-sun-label {
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.wxs-sun-time {
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.wxs-sun-track {
+    position: relative;
+    height: 60px;
+}
+
+.wxs-sun-arc {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+}
+
+.wxs-sun-arc-bg {
+    stroke: var(--border);
+    opacity: 0.7;
+}
+
+.wxs-sun-arc-fill {
+    stroke: var(--wxs-sun);
+    opacity: 0.8;
+    stroke-linecap: round;
+}
+
+.wxs-sun-dot {
+    position: absolute;
+    top: 0;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--wxs-sun);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--wxs-sun) 60%, transparent);
+    transform: translate(-50%, -50%);
+    transition:
+        left 0.6s ease,
+        top 0.6s ease;
+    pointer-events: none;
+}
+
+/* ── Footer ──────────────────────────────────── */
+
+.wxs-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+}
+
+.wxs-footer a {
+    color: var(--text-link, var(--wxs-accent));
+    text-decoration: none;
+}
+
+.wxs-footer a:hover {
+    text-decoration: underline;
+}
+
+.wxs-footer-sep {
+    opacity: 0.55;
+}
+
+/* ── Animated hero icons ─────────────────────── */
+
+.wxs-ani-float {
+    animation: wxs-float 4s ease-in-out infinite;
+}
+.wxs-ani-sun {
+    animation: wxs-float 4s ease-in-out infinite;
+}
+
+@keyframes wxs-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+@keyframes wxs-spin {
+    from {
+        transform: rotate(0);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes wxs-fadein {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.wxs-drop {
+    position: absolute;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--wxs-rain);
+    opacity: 0.85;
+    animation: wxs-rain 1.1s linear infinite;
+}
+
+@keyframes wxs-rain {
+    0% {
+        transform: translateY(-2px);
+        opacity: 0;
+    }
+    50% {
+        opacity: 0.85;
+    }
+    100% {
+        transform: translateY(18px);
+        opacity: 0;
+    }
+}
+
+.wxs-flake {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--wxs-snow);
+    animation: wxs-snow 1.4s linear infinite;
+}
+
+@keyframes wxs-snow {
+    0% {
+        transform: translateY(-2px);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(14px);
+        opacity: 0;
+    }
+}
+
+.wxs-bolt {
+    animation: wxs-flash 2s ease-in-out infinite;
+}
+
+@keyframes wxs-flash {
+    0%,
+    100% {
+        opacity: 0.45;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+.wxs-hero-icon > div {
+    animation: wxs-fadein 0.35s ease;
+}
+
+/* ── Responsive ──────────────────────────────── */
+
+@media (max-width: 720px) {
+    .wxs-hero {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .wxs-hero-right {
+        text-align: left;
+    }
+
+    .wxs-hero-hilo {
+        justify-content: flex-start;
+    }
+
+    .wxs-details {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .wxs-hero-left {
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+            "icon temp"
+            "meta meta";
+    }
+
+    .wxs-hero-icon {
+        width: 72px;
+        height: 72px;
+    }
+
+    .wxs-days {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 420px) {
+    .wxs-days {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .wxs-details {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .wxs-sun-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .wxs-sun-side-right {
+        text-align: left;
+    }
+
+    .wxs-sun-track {
+        height: 54px;
+    }
 }
