@@ -428,7 +428,7 @@ export const slot = {
   configure(settings) {
     this._defaultFrom = settings?.defaultFrom || "USD";
     this._defaultTo = settings?.defaultTo || "EUR";
-    this._naturalLanguage = settings?.naturalLanguage !== false;
+    this._naturalLanguage = settings?.naturalLanguage === true;
   },
 
   trigger(query) {
@@ -611,7 +611,7 @@ export const command = {
   configure(settings) {
     this._defaultFrom = settings?.defaultFrom || "USD";
     this._defaultTo = settings?.defaultTo || "EUR";
-    this._naturalLanguage = settings?.naturalLanguage !== false;
+    this._naturalLanguage = settings?.naturalLanguage === true;
   },
 
   async execute(args) {
