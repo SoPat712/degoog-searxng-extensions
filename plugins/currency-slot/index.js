@@ -617,8 +617,8 @@ export const command = {
   async execute(args) {
     const result = await slot.execute.call(
       {
-        _defaultFrom: this._defaultFrom || "USD",
-        _defaultTo: this._defaultTo || "EUR",
+        _defaultFrom: this._defaultFrom || slot._defaultFrom || "USD",
+        _defaultTo: this._defaultTo || slot._defaultTo || "EUR",
       },
       args || "",
       null,
