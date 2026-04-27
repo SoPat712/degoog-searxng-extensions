@@ -5,7 +5,7 @@ let customServerProfiles = [];
 let debugMode = false;
 
 const PLUGIN_NAME = "Speedtest";
-const PLUGIN_VERSION = "1.2.2";
+const PLUGIN_VERSION = "1.4.0";
 const PLUGIN_DESCRIPTION =
   "Minimal internet speed test with selectable servers, latency, download-first flow, and a circular gauge.";
 
@@ -411,29 +411,30 @@ function renderCardHtml() {
 
 export const routes = [];
 
-// Single-capability plugin: this file exports only a slot. The slot's own
-// `trigger(query)` recognises the `!speedtest` / `!speed` / etc. bang
-// prefixes, so the bang behaviour is an addition to the slot rather than
-// a separate command capability. This keeps Settings → Plugins to a
-// single row for Speedtest (see AGENTS.md › "Collapsing to one capability
-// per folder").
+// Dual-capability plugin: exports both a `slot` (so natural-language
+// phrases like "run a speed test" render the card above results) AND a
+// `command` (so `!speedtest`, `!speed`, etc. work as bang commands).
+// Mirrors the pattern used by plugins/currency-slot/index.js, which the
+// user has confirmed works end-to-end.
 //
-// Side-benefit of being slot-only: degoog's core ships a built-in
-// `speedtest` bang command whose trigger would collide with a plugin
-// command using the same trigger, causing the loader to silently skip
-// the plugin (and its settings entry) even after the Configure screen
-// shows a "disabled" toggle. A slot has no string trigger to collide
-// with, so it registers regardless.
+// Note on the built-in: degoog core ships a `speedtest` bang command.
+// Per AGENTS.md, the command loader keeps the FIRST registered match
+// and silently skips duplicates. This plugin claims `trigger:
+// "speedtest"` on the assumption that the operator has disabled the
+// core built-in from Settings. `!speed` (and friends) are kept as
+// aliases so there's always a guaranteed-working entry point even if a
+// future degoog release re-prioritises the built-in.
 //
 // IMPORTANT — schema export wiring (see AGENTS.md):
 // A previous regression caused degoog to lose this plugin's custom
 // `settingsSchema` (Debug mode) when the export wiring wasn't explicit
 // enough (spread syntax, anonymous default export, etc.). The defensive
-// pattern below spells out every field on a named `export const slot = {
-// ... }` object and also re-exports it as `default`, so every loader
-// path in degoog resolves to the same object with `settingsSchema`
-// attached. Do NOT refactor this back into a spread or anonymous default
-// — the settings page will disappear again.
+// pattern below spells out every field on named `export const slot` and
+// `export const command` objects, re-exports the command as `default`,
+// and keeps `settingsSchema: [debugModeSetting]` inline on both so
+// every loader path in degoog resolves to an object with the schema
+// attached. Do NOT refactor this back into a spread or anonymous
+// default — the settings page will disappear again.
 
 async function slotInit(ctx) {
   await loadTemplate(ctx);
@@ -515,4 +516,36 @@ export const slot = {
 
 export const slotPlugin = slot;
 
-export default slot;
+// ── Bang command export ───────────────────────────────────────
+// Makes `!speedtest`, `!speed`, `!speed-test`, `!networkspeed`, and
+// `!internetspeed` render the same card the slot does. Slots don't
+// fire for bang-command queries in degoog, so there's no double-render
+// risk when this command handles a `!speedtest` input.
+export const command = {
+  name: PLUGIN_NAME,
+  description: PLUGIN_DESCRIPTION,
+  trigger: "speedtest",
+  aliases: ["speed", "speed-test", "networkspeed", "internetspeed"],
+  settingsSchema: [debugModeSetting],
+
+  async init(ctx) {
+    await loadTemplate(ctx);
+  },
+
+  configure(settings) {
+    configureSettings(settings);
+  },
+
+  async execute() {
+    return {
+      title: PLUGIN_NAME,
+      html: renderCardHtml(),
+    };
+  },
+};
+
+// Default export must be a single concrete capability so degoog registers
+// it correctly. The command is chosen here (matching currency-slot) so
+// the bang behaviour is the primary entry point; `export const slot`
+// above still registers the slot capability by its named export.
+export default command;
