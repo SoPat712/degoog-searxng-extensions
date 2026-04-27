@@ -409,8 +409,16 @@ const _buildCastStrip = (cast) => {
         : "";
       const initial = _esc((c.name || "").trim().charAt(0).toUpperCase());
       const fallback = `<span class="tmdb-cast-initial"${imgHtml ? ' style="display:none"' : ""}>${initial}</span>`;
+      // Clickable when we have a TMDB person id — script.js handles the nav.
+      const clickable = typeof c.id === "number" && c.id > 0;
+      const navAttrs = clickable
+        ? ` data-tmdb-nav="person" data-tmdb-id="${c.id}" data-tmdb-name="${name}" role="button" tabindex="0"`
+        : "";
+      const cls = clickable
+        ? "tmdb-cast-card tmdb-cast-card--clickable"
+        : "tmdb-cast-card";
       return (
-        `<div class="tmdb-cast-card">` +
+        `<div class="${cls}"${navAttrs}>` +
         `<div class="tmdb-cast-photo-wrap">${imgHtml}${fallback}</div>` +
         `<span class="tmdb-cast-name">${name}</span>` +
         (character ? `<span class="tmdb-cast-char">${character}</span>` : "") +
@@ -610,7 +618,19 @@ const _renderPerson = (details, images, credits) => {
   if (filmographyPanel)
     tabs.push({ label: "Films & TV", panel: filmographyPanel });
 
-  return _wrapTabs(tabs);
+  const nameHeader =
+    `<div class="tmdb-panel-header">` +
+    `<a href="${tmdbHref}" target="_blank" rel="noopener" class="tmdb-title-link">` +
+    `<h3 class="tmdb-title">${name}</h3>` +
+    `</a>` +
+    `</div>`;
+
+  return (
+    `<div class="tmdb-panel" data-tmdb-label="${name}">` +
+    nameHeader +
+    _wrapTabs(tabs) +
+    `</div>`
+  );
 };
 
 const _renderMovie = (details, credits, images, jellyfinItem) => {
@@ -658,18 +678,24 @@ const _renderMovie = (details, credits, images, jellyfinItem) => {
   const castAccordion = _buildCastAccordion(cast, "Cast");
   const jellyfinCard = _buildJellyfinCard(jellyfinItem);
 
+  const labelText = `${title}${year ? ` (${year})` : ""}`;
+
   return (
+    `<div class="tmdb-panel" data-tmdb-label="${labelText}">` +
     `<div class="tmdb-overview">` +
     imageCombo +
     `<div class="tmdb-info-block">` +
+    `<a href="${tmdbHref}" target="_blank" rel="noopener" class="tmdb-title-link">` +
     `<h3 class="tmdb-title">${title}${year ? ` <span class="tmdb-year">(${year})</span>` : ""}</h3>` +
+    `</a>` +
     metaGrid +
     plotHtml +
     `<a href="${tmdbHref}" target="_blank" rel="noopener" class="tmdb-ext-link">View on TMDB \u2192</a>` +
     `</div>` +
     `</div>` +
     castAccordion +
-    (jellyfinCard ? `<div class="tmdb-jf-wrap">${jellyfinCard}</div>` : "")
+    (jellyfinCard ? `<div class="tmdb-jf-wrap">${jellyfinCard}</div>` : "") +
+    `</div>`
   );
 };
 
@@ -718,11 +744,16 @@ const _renderTv = (details, credits, images, jellyfinItem) => {
   const castAccordion = _buildCastAccordion(cast, "Distribution");
   const jellyfinCard = _buildJellyfinCard(jellyfinItem);
 
+  const labelText = `${name}${year ? ` (${year})` : ""}`;
+
   return (
+    `<div class="tmdb-panel" data-tmdb-label="${labelText}">` +
     `<div class="tmdb-overview">` +
     imageCombo +
     `<div class="tmdb-info-block">` +
+    `<a href="${tmdbHref}" target="_blank" rel="noopener" class="tmdb-title-link">` +
     `<h3 class="tmdb-title">${name}${year ? ` <span class="tmdb-year">(${year})</span>` : ""}</h3>` +
+    `</a>` +
     metaGrid +
     plotHtml +
     `<a href="${tmdbHref}" target="_blank" rel="noopener" class="tmdb-ext-link">View on TMDB \u2192</a>` +
@@ -730,9 +761,137 @@ const _renderTv = (details, credits, images, jellyfinItem) => {
     `</div>` +
     seasonsAccordion +
     castAccordion +
-    (jellyfinCard ? `<div class="tmdb-jf-wrap">${jellyfinCard}</div>` : "")
+    (jellyfinCard ? `<div class="tmdb-jf-wrap">${jellyfinCard}</div>` : "") +
+    `</div>`
   );
 };
+
+// ── Panel Builders (shared between slot execute() and plugin routes) ──────────
+const _buildMoviePanel = async (id, ctx) => {
+  const details = await _tmdb(`movie/${id}`, ctx);
+  if (!details) return null;
+  const [credits, images, jellyfinItem] = await Promise.all([
+    _tmdb(`movie/${id}/credits`, ctx),
+    _tmdb(`movie/${id}/images?include_image_language=en,null`, ctx),
+    jellyfinUrl && jellyfinApiKey
+      ? _jellyfinSearch(details.title || details.original_title || "", ctx)
+      : Promise.resolve(null),
+  ]);
+  return {
+    title: details.title || "Movie",
+    html: _renderMovie(details, credits, images, jellyfinItem),
+  };
+};
+
+const _buildTvPanel = async (id, ctx) => {
+  const details = await _tmdb(`tv/${id}`, ctx);
+  if (!details) return null;
+  const [credits, images, jellyfinItem] = await Promise.all([
+    _tmdb(`tv/${id}/credits`, ctx),
+    _tmdb(`tv/${id}/images?include_image_language=en,null`, ctx),
+    jellyfinUrl && jellyfinApiKey
+      ? _jellyfinSearch(details.name || details.original_name || "", ctx)
+      : Promise.resolve(null),
+  ]);
+  return {
+    title: details.name || "TV Show",
+    html: _renderTv(details, credits, images, jellyfinItem),
+  };
+};
+
+const _buildPersonPanel = async (id, ctx) => {
+  const [details, images, credits] = await Promise.all([
+    _tmdb(`person/${id}`, ctx),
+    _tmdb(`person/${id}/images`, ctx),
+    _tmdb(`person/${id}/combined_credits`, ctx),
+  ]);
+  if (!details) return null;
+  return {
+    title: details.name || "Actor",
+    html: _renderPerson(details, images, credits),
+  };
+};
+
+// ── Plugin Routes ─────────────────────────────────────────────────────────────
+// Client-side navigation (cast card → person, etc.) fetches these routes to
+// swap the slot contents without a full page reload. See script.js.
+const _entityHandler = (builder) => async (request) => {
+  try {
+    const url = new URL(request.url);
+    const idRaw = url.searchParams.get("id") || "";
+    const id = parseInt(idRaw, 10);
+    if (!id || Number.isNaN(id)) {
+      return new Response(JSON.stringify({ error: "Missing or invalid id" }), {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+    if (!tmdbApiKey) {
+      return new Response(
+        JSON.stringify({ error: "TMDB API key not configured" }),
+        {
+          status: 503,
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store",
+          },
+        },
+      );
+    }
+    const panel = await builder(id);
+    if (!panel) {
+      return new Response(JSON.stringify({ error: "Not found" }), {
+        status: 404,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+    return new Response(JSON.stringify(panel), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({
+        error: "Internal error",
+        detail: String(err && err.message),
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  }
+};
+
+export const routes = [
+  {
+    path: "movie",
+    method: "get",
+    handler: _entityHandler((id) => _buildMoviePanel(id)),
+  },
+  {
+    path: "tv",
+    method: "get",
+    handler: _entityHandler((id) => _buildTvPanel(id)),
+  },
+  {
+    path: "person",
+    method: "get",
+    handler: _entityHandler((id) => _buildPersonPanel(id)),
+  },
+];
 
 // ── Slot Export ───────────────────────────────────────────────────────────────
 export const slot = {
@@ -823,49 +982,17 @@ export const slot = {
 
       const { type, id } = entity;
 
-      if (type === "person") {
-        const [details, images, credits] = await Promise.all([
-          _tmdb(`person/${id}`, ctx),
-          _tmdb(`person/${id}/images`, ctx),
-          _tmdb(`person/${id}/combined_credits`, ctx),
-        ]);
-        if (!details) return { html: "" };
-        const content = _renderPerson(details, images, credits);
-        return { title: details.name || "Actor", html: _render({ content }) };
-      }
+      let panel = null;
+      if (type === "person") panel = await _buildPersonPanel(id, ctx);
+      else if (type === "movie") panel = await _buildMoviePanel(id, ctx);
+      else if (type === "tv") panel = await _buildTvPanel(id, ctx);
 
-      if (type === "movie") {
-        const details = await _tmdb(`movie/${id}`, ctx);
-        if (!details) return { html: "" };
-        const [credits, images, jellyfinItem] = await Promise.all([
-          _tmdb(`movie/${id}/credits`, ctx),
-          _tmdb(`movie/${id}/images?include_image_language=en,null`, ctx),
-          jellyfinUrl && jellyfinApiKey
-            ? _jellyfinSearch(
-                details.title || details.original_title || "",
-                ctx,
-              )
-            : Promise.resolve(null),
-        ]);
-        const content = _renderMovie(details, credits, images, jellyfinItem);
-        return { title: details.title || "Movie", html: _render({ content }) };
-      }
+      if (!panel) return { html: "" };
 
-      if (type === "tv") {
-        const details = await _tmdb(`tv/${id}`, ctx);
-        if (!details) return { html: "" };
-        const [credits, images, jellyfinItem] = await Promise.all([
-          _tmdb(`tv/${id}/credits`, ctx),
-          _tmdb(`tv/${id}/images?include_image_language=en,null`, ctx),
-          jellyfinUrl && jellyfinApiKey
-            ? _jellyfinSearch(details.name || details.original_name || "", ctx)
-            : Promise.resolve(null),
-        ]);
-        const content = _renderTv(details, credits, images, jellyfinItem);
-        return { title: details.name || "TV Show", html: _render({ content }) };
-      }
-
-      return { html: "" };
+      return {
+        title: panel.title,
+        html: _render({ content: panel.html }),
+      };
     } catch {
       return { html: "" };
     }
