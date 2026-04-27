@@ -305,12 +305,26 @@
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    padding: 0.25rem 0;
-    scrollbar-width: none;
+    padding: 0.25rem 0 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-light) transparent;
 }
 
 .tmdb-cast-scroll::-webkit-scrollbar {
-    display: none;
+    height: 8px;
+}
+
+.tmdb-cast-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tmdb-cast-scroll::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 999px;
+}
+
+.tmdb-cast-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--border);
 }
 
 .tmdb-cast-strip {
@@ -416,13 +430,27 @@
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    padding: 0.25rem 0 0.5rem;
+    padding: 0.25rem 0 0.75rem;
     margin-bottom: 0.75rem;
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-light) transparent;
 }
 
 .tmdb-filmography-scroll::-webkit-scrollbar {
-    display: none;
+    height: 8px;
+}
+
+.tmdb-filmography-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tmdb-filmography-scroll::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 999px;
+}
+
+.tmdb-filmography-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--border);
 }
 
 .tmdb-filmography-strip {
