@@ -5,7 +5,7 @@ let customServerProfiles = [];
 let debugMode = false;
 
 const PLUGIN_NAME = "Speedtest";
-const PLUGIN_VERSION = "1.5.1";
+const PLUGIN_VERSION = "1.5.2";
 const PLUGIN_DESCRIPTION =
   "Minimal internet speed test with selectable servers, latency, download-first flow, and a circular gauge.";
 
@@ -104,6 +104,23 @@ const debugModeSetting = {
   default: false,
   description:
     "Show Speedtest debug details for troubleshooting server behavior and measurement output.",
+};
+
+// Manually declared Natural language toggle so we fully control the
+// default (ON). degoog would otherwise auto-inject its own toggle
+// because the command below declares `naturalLanguagePhrases`, and we
+// cannot set that auto-injected toggle's default. By shipping a field
+// with the same `key: "naturalLanguage"` here, first-load honours
+// `default: true` — if degoog's `schemaWithNaturalLanguage` wrapping
+// dedupes by key we get a single field; worst case a duplicate field
+// appears and we iterate.
+const naturalLanguageSetting = {
+  key: "naturalLanguage",
+  label: "Natural language triggering",
+  type: "toggle",
+  default: true,
+  description:
+    "Trigger on phrases like 'speed test', 'run a speedtest', or 'how fast is internet' without the !speed prefix. Bang commands (!speed) always work regardless of this setting.",
 };
 
 // Single-capability plugin: only the bang command is exported, so degoog
@@ -270,13 +287,12 @@ function parseCustomServerProfiles(rawValue) {
 
 function configureSettings(settings) {
   debugMode = settings?.debugMode === true || settings?.debugMode === "true";
-  // Note: degoog auto-injects a `naturalLanguage` toggle on the command
-  // below (because it declares a non-empty `naturalLanguagePhrases`
-  // array). That toggle is evaluated CLIENT-SIDE by degoog — if it's off
-  // the plugin's `execute` simply never runs on bare phrases, so we do
-  // not need to mirror the value into any server-side state here. Any
-  // unrecognised keys in `settings` (including `naturalLanguage`) are
-  // safely ignored.
+  // `naturalLanguage` is declared manually in settingsSchema (default
+  // true) and is ALSO evaluated client-side by degoog's natural-
+  // language matcher. We don't need server-side state for it — bare
+  // phrase queries either get routed to `execute` (toggle on) or
+  // don't (toggle off) before they reach us. The field is read here
+  // only so that an explicit save doesn't look unrecognised in logs.
   customServerProfiles = parseCustomServerProfiles(settings?.customServersJson);
 }
 
@@ -418,56 +434,50 @@ function renderCardHtml() {
 
 export const routes = [];
 
-// Command-only plugin. An earlier version of this file also exported a
-// `slot` so trailing-keyword queries like "my internet speed" would
-// render the card, but degoog's Settings → Plugins UI renders one row
-// per exported capability (even for a slot with no `settingsSchema` —
-// it falls back to a default Position row). That produced a duplicate
-// "Speedtest" entry on the settings page with no way to collapse. To
-// guarantee a single Configure row we removed the slot export entirely.
+// Command-only plugin. An earlier version also exported a `slot`, but
+// degoog renders one Settings row per exported capability, which
+// produced a duplicate "Speedtest" entry. Collapsing to command-only
+// keeps Settings to one row.
 //
-// Trade-offs to be aware of if editing this file:
-//   • Trailing / mid-query natural phrases ("my internet speed",
-//     "how fast is my connection today") no longer fire — the command's
-//     `naturalLanguagePhrases` are matched CLIENT-SIDE, prefix-only,
-//     word-boundary (see AGENTS.md › "Natural language matching").
-//     Leading-keyword phrases like "speed test", "internet speed test",
-//     "check my internet speed" still work.
-//   • `!speedtest` is NOT claimed here because it collides with degoog
-//     core's built-in `speedtest` command; the loader keeps the first
-//     match and silently drops later duplicates (aliases included). We
-//     use `trigger: "speed"` instead, which is collision-free and shows
-//     up in the `!`-autobang list. Users who have disabled the core
-//     built-in can still type `!speedtest`, but only the built-in path
-//     serves it — this plugin responds to `!speed` and its aliases.
+// Trigger choice — `speed`, NOT `speedtest`:
+// degoog core ships a built-in `speedtest` bang command. The command
+// loader keeps the FIRST registration and silently drops later
+// duplicates — and "drops" takes the WHOLE plugin command record
+// (including its settingsSchema, so the Configure row disappears
+// entirely). A previous version using `trigger: "speedtest"` hit
+// exactly that: zero Configure rows. We use `trigger: "speed"` here
+// so registration is guaranteed. `!speedtest` is deliberately NOT in
+// the aliases for the same collision reason.
 //
-// `naturalLanguagePhrases` being non-empty also causes degoog to
-// auto-inject the per-command "Natural language" toggle into this
-// plugin's Configure screen. Do NOT add a manual toggle for that — it
-// would produce a duplicate field. The toggle is evaluated client-side,
-// so `execute()` simply never runs when it's off.
+// Natural language:
+//   • `naturalLanguagePhrases` below drives CLIENT-SIDE prefix matching
+//     ("speed test", "run a speedtest", "how fast is internet", ...).
+//     The matched phrase is stripped before `execute()` runs.
+//   • A manual `naturalLanguage` toggle is declared in `settingsSchema`
+//     (default: true) so first-load defaults to ON. If degoog's
+//     `schemaWithNaturalLanguage` wrapping dedupes by key we get one
+//     toggle; if it doesn't dedupe a visual duplicate may appear, in
+//     which case iterate.
+//   • Trailing / mid-query phrases ("my internet speed", "how fast is
+//     my connection today") do NOT fire — those would require a slot,
+//     which would re-introduce the duplicate-row problem.
 //
-// IMPORTANT — schema export wiring (see AGENTS.md): a previous
-// regression caused degoog to lose the custom `settingsSchema` when
-// the export wiring used spread syntax or an anonymous default. The
-// defensive pattern here spells out every field on a named
-// `export const command = { ... }` and re-exports it as `default`, so
-// every loader path resolves to the same object with `settingsSchema`
-// attached. Do NOT refactor this back into a spread or anonymous
-// default — the Configure screen will regress to the Position
-// fallback again.
+// IMPORTANT — schema export wiring (see AGENTS.md): spell out every
+// field on a named `export const command = { ... }` and re-export as
+// `default`. Do NOT refactor into a spread or anonymous default — the
+// Configure row has already regressed once because of that.
 export const command = {
   name: PLUGIN_NAME,
   description: PLUGIN_DESCRIPTION,
-  trigger: "speedtest",
-  aliases: ["speed", "speed-test", "networkspeed", "internetspeed"],
-  // NOTE: `trigger: "speedtest"` collides with degoog core's built-in
-  // `speedtest` command. The command loader keeps the FIRST registered
-  // match and silently drops the later one (plus its aliases). For this
-  // plugin to handle any of its bangs, the operator MUST disable the
-  // core built-in "Speed Test" entry under Settings → Plugins → Built-in
-  // commands. If that's not acceptable, swap `trigger` back to "speed"
-  // and demote "speedtest" out of the claim (collision-free fallback).
+  trigger: "speed",
+  aliases: ["speed-test", "networkspeed", "internetspeed"],
+  // NOTE on trigger: deliberately NOT "speedtest" — that collides with
+  // degoog core's built-in `speedtest` command and the loader would
+  // silently drop this whole command record (settingsSchema too, so the
+  // Configure row disappears). `"speed"` is collision-free. `!speedtest`
+  // intentionally routes to the core built-in; users wanting this
+  // plugin via `!speedtest` must disable the built-in AND add
+  // "speedtest" back to aliases here.
   naturalLanguagePhrases: [
     "speedtest",
     "speed test",
@@ -496,7 +506,7 @@ export const command = {
     "measure my internet",
     "measure internet speed",
   ],
-  settingsSchema: [debugModeSetting],
+  settingsSchema: [debugModeSetting, naturalLanguageSetting],
 
   async init(ctx) {
     await loadTemplate(ctx);

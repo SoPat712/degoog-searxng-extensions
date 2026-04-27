@@ -358,17 +358,19 @@ const POPULAR_PAIRS = [
 // ── Shared module-level settings ──────────────────────────────
 // Both the slot and the bang command read from this single state
 // so that configuring one settings panel applies to both code paths.
+// Slot-only plugin: natural-language triggering IS the plugin (plus a
+// `!cur` bang prefix handled inside the slot's `trigger`). There's no
+// companion command export, so a user-facing "Natural language" toggle
+// would only ever mean "disable the plugin entirely" — not useful.
+// Removed accordingly.
 const _settings = {
   defaultTo: "USD",
-  naturalLanguage: false,
 };
 
 function _applySettings(settings) {
   const to =
     typeof settings?.defaultTo === "string" ? settings.defaultTo.trim() : "";
   _settings.defaultTo = to || "USD";
-  const nl = settings?.naturalLanguage;
-  _settings.naturalLanguage = nl === true || nl === "true";
 }
 
 const COMMAND_PREFIX_RE =
@@ -424,13 +426,6 @@ export const slot = {
       options: CODES.filter((c) => c !== "BTC" && c !== "ETH"),
       description: "Currency to convert to when not specified in the query.",
     },
-    {
-      key: "naturalLanguage",
-      label: "Natural language triggering",
-      type: "toggle",
-      description:
-        "Trigger on queries like '100 USD to EUR' without the !cur command.",
-    },
   ],
 
   init(ctx) {
@@ -445,7 +440,6 @@ export const slot = {
     const q = query.trim();
     if (q.length < 3) return false;
     if (COMMAND_PREFIX_RE.test(q)) return true;
-    if (!_settings.naturalLanguage) return false;
     const codes = q.toUpperCase().match(CODE_REGEX) || [];
     if (codes.length >= 2) return true;
     return false;
@@ -457,12 +451,6 @@ export const slot = {
     const rawQuery = (query || "").trim();
     const isCommand = COMMAND_PREFIX_RE.test(rawQuery);
     const viaCommand = context?._currencyViaCommand === true;
-
-    // Defensive: refuse to render for natural-language queries when the
-    // user has that triggering disabled, even if trigger() was bypassed.
-    if (!isCommand && !viaCommand && !_settings.naturalLanguage) {
-      return { html: "" };
-    }
 
     try {
       const clean = query.replace(

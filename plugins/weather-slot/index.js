@@ -9,12 +9,6 @@ const settings = {
   pressureUnit: "mmHg",
   precipUnit: "inch",
   timeFormat: "auto",
-  // Mirrors the "Natural language" toggle degoog auto-injects when a
-  // command declares `naturalLanguagePhrases`. Defaults on to match the
-  // auto-toggle's default. The companion slot consults this before firing
-  // its trailing-keyword regex so disabling the toggle disables ALL
-  // no-`!` triggering, not just the prefix-matched cases.
-  naturalLanguage: true,
 };
 
 const WMO_DESC = {
@@ -152,29 +146,35 @@ const slotDef = {
       key: "units",
       label: "Temperature units",
       type: "select",
-      options: ["celsius", "fahrenheit"],
+      // Imperial first so the selector's first option matches the
+      // module-level default (`units: "fahrenheit"`).
+      options: ["fahrenheit", "celsius"],
       description: "Unit for temperature display.",
     },
     {
       key: "windUnit",
       label: "Wind speed units",
       type: "select",
-      options: ["kmh", "mph", "ms", "kn"],
+      // Imperial first to match the default (`windUnit: "mph"`).
+      options: ["mph", "kmh", "ms", "kn"],
       description:
-        "Unit for wind speed. kmh = km/h, mph = miles/hour, ms = m/s, kn = knots.",
+        "Unit for wind speed. mph = miles/hour, kmh = km/h, ms = m/s, kn = knots.",
     },
     {
       key: "pressureUnit",
       label: "Pressure units",
       type: "select",
-      options: ["hPa", "kPa", "mmHg", "inHg"],
+      // Default first (`pressureUnit: "mmHg"`), then the other imperial
+      // option (inHg), then metric.
+      options: ["mmHg", "inHg", "hPa", "kPa"],
       description: "Unit for atmospheric pressure.",
     },
     {
       key: "precipUnit",
       label: "Precipitation units",
       type: "select",
-      options: ["mm", "inch"],
+      // Imperial first to match the default (`precipUnit: "inch"`).
+      options: ["inch", "mm"],
       description: "Unit for precipitation amounts.",
     },
     {
@@ -199,10 +199,12 @@ const slotDef = {
     // has no matching command registered for these triggers.
     if (BANG_PREFIX_RX.test(q)) return true;
 
-    // Everything below is natural-language matching. Respect the
-    // auto-injected Natural language toggle: when the user turns it off,
-    // only bang-prefixed queries should fire the plugin.
-    if (!settings.naturalLanguage) return false;
+    // Slot-only plugin: natural-language triggering IS the plugin
+    // (there's no companion command export). A user-facing "Natural
+    // language" toggle would only ever mean "disable the plugin
+    // entirely", which duplicates degoog's own plugin-enable toggle —
+    // so no gating is applied here. Bangs are handled above; the rest
+    // of this function is unconditional NL matching.
 
     const lower = q.toLowerCase();
 
@@ -258,15 +260,6 @@ const slotDef = {
     settings.timeFormat = ["auto", "24h", "12h"].includes(s?.timeFormat)
       ? s.timeFormat
       : "auto";
-    // degoog auto-injects a `naturalLanguage` toggle because this command
-    // declares `naturalLanguagePhrases`. Treat unset/null/empty as the
-    // default (true); only an explicit false value disables the companion
-    // slot's trailing-keyword matching.
-    const raw = s?.naturalLanguage;
-    settings.naturalLanguage =
-      raw === undefined || raw === null || raw === ""
-        ? true
-        : raw === true || raw === "true";
   },
 
   async execute(args, context) {

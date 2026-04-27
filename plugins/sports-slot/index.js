@@ -3110,6 +3110,12 @@ export const slot = {
   settingsSchema: sharedSettingsSchema,
   configure: configureSharedSettings,
   trigger(query) {
+    // Slot-only plugin: natural-language triggering IS the plugin
+    // (there's no bang-command capability). A user-facing "Natural
+    // language" toggle would only ever mean "disable the plugin
+    // entirely", which duplicates the plugin-enable toggle degoog
+    // already ships — so no toggle is declared in settingsSchema and
+    // no gating runs here.
     return Boolean(parseQuery(query));
   },
   async execute(query, context) {
