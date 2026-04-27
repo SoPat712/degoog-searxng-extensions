@@ -20,8 +20,8 @@
     {
       "path": "plugins/tmdb",
       "name": "TMDB",
-      "description": "Shows rich info panels for movies, TV shows, and actors when TMDB, IMDB, or Allocine links appear in search results.",
-      "version": "1.0.1",
+      "description": "Shows rich info panels for movies, TV shows, and actors. Activates on natural-language queries (e.g. 'la la land', 'emma stone') and on TMDB, IMDB, or Allocine links in search results.",
+      "version": "1.1.0",
       "type": "slot"
     },
     {

@@ -19,6 +19,65 @@ const ALLOCINE_SERIES_PATTERN =
   /allocine\.fr\/series\/ficheerie[^?]*\?.*?cserie=(\d+)|allocine\.fr\/series\/ficheerie_gen_cserie=(\d+)/;
 const ALLOCINE_PERSON_PATTERN = /allocine\.fr\/personne\//;
 
+// ── Natural Language Activation ───────────────────────────────────────────────
+// Media-intent keywords boost confidence when the query also looks like a title.
+const MEDIA_KEYWORDS =
+  /\b(movie|film|show|series|cast|actor|actress|director|season|episode|trailer|anime|manga|tv|imdb|tmdb|netflix|hulu|streaming|watch|rating|review|screenplay|box\s?office|filmography|remake|sequel|prequel|dubbed|subbed|ost|soundtrack)\b/i;
+
+// Natural query of the form "<title> cast" → treat as a cast lookup for <title>.
+const CAST_PATTERN = /^(.+?)\s+cast\s*$/i;
+
+// Queries that clearly aren't about a movie/TV/person. Short-circuit early.
+const NON_MEDIA_PATTERN =
+  /^(how\s|what\s(is|are|does|do)\s(a|an|the)?\s?(best\s)?(way|method|difference|meaning|purpose|reason)|why\s|where\s(can|do|is)|when\s(did|does|is|was)|can\si|should\si|how\sto|define\s|weather|recipe|price\sof|buy\s|download\s|install\s|code\s|error\s|fix\s|debug\s|www\.|https?:)/i;
+
+const _hasMediaIntent = (query) => {
+  if (MEDIA_KEYWORDS.test(query)) return true;
+  if (CAST_PATTERN.test(query)) return true;
+  return false;
+};
+
+// Similarity between user query and a candidate title (0..1).
+const _titleSimilarity = (query, title) => {
+  const q = (query || "").toLowerCase().trim();
+  const t = (title || "").toLowerCase().trim();
+  if (!q || !t) return 0;
+  if (t === q) return 1;
+  if (t.startsWith(q) || q.startsWith(t)) return 0.9;
+  const qWords = q.split(/\s+/);
+  const tWords = t.split(/\s+/);
+  const matches = qWords.filter((w) => tWords.includes(w)).length;
+  return matches / Math.max(qWords.length, tWords.length);
+};
+
+// Confidence gate so we don't show random stuff for ambiguous queries.
+const _isConfidentMatch = (query, result, mediaIntent) => {
+  if (!result) return false;
+  const sim = _titleSimilarity(query, result.title || result.name);
+  const pop = result.popularity || 0;
+
+  if (sim >= 1 && pop >= 5) return true;
+  if (sim >= 0.9 && pop >= 15) return true;
+  if (sim >= 0.7 && pop >= 40) return true;
+  if (mediaIntent && sim >= 0.9) return true;
+  if (mediaIntent && sim >= 0.7 && pop >= 10) return true;
+  return false;
+};
+
+const _stripMediaKeywords = (query) => {
+  return query
+    .replace(MEDIA_KEYWORDS, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+};
+
+const _parseQuery = (query) => {
+  const q = (query || "").trim();
+  const castMatch = q.match(CAST_PATTERN);
+  if (castMatch) return { intent: "cast", term: castMatch[1].trim() };
+  return { intent: "search", term: q };
+};
+
 // ── Utilities ─────────────────────────────────────────────────────────────────
 const _esc = (s) => {
   if (typeof s !== "string") return "";
@@ -211,6 +270,59 @@ const _resolveEntity = async (detected, query, ctx) => {
     const first = person || media;
     if (!first) return null;
     return { type: first.media_type, id: first.id };
+  } catch {
+    return null;
+  }
+};
+
+// Fallback: resolve an entity directly from the natural-language query by
+// querying TMDB's multi-search and applying a confidence gate.
+const _resolveFromQuery = async (query, ctx) => {
+  const { intent, term } = _parseQuery(query);
+  if (!term) return null;
+
+  const searchTerm = _stripMediaKeywords(term) || term;
+  const mediaIntent = _hasMediaIntent(query);
+
+  try {
+    const multi = await _tmdb(
+      `search/multi?query=${encodeURIComponent(searchTerm)}`,
+      ctx,
+    );
+    const results = (multi?.results || []).filter(
+      (r) =>
+        r &&
+        (r.media_type === "movie" ||
+          r.media_type === "tv" ||
+          r.media_type === "person"),
+    );
+    if (results.length === 0) return null;
+
+    // "X cast" → prefer a movie/tv match for X.
+    if (intent === "cast") {
+      const item = results.find(
+        (r) => r.media_type === "movie" || r.media_type === "tv",
+      );
+      if (item && _isConfidentMatch(searchTerm, item, true)) {
+        return { type: item.media_type, id: item.id };
+      }
+    }
+
+    // Person match (e.g. "emma stone").
+    const person = results.find((r) => r.media_type === "person");
+    if (person && _isConfidentMatch(searchTerm, person, mediaIntent)) {
+      return { type: "person", id: person.id };
+    }
+
+    // Movie / TV match (e.g. "la la land").
+    const media = results.find(
+      (r) => r.media_type === "movie" || r.media_type === "tv",
+    );
+    if (media && _isConfidentMatch(searchTerm, media, mediaIntent)) {
+      return { type: media.media_type, id: media.id };
+    }
+
+    return null;
   } catch {
     return null;
   }
@@ -627,9 +739,13 @@ export const slot = {
   id: "tmdb-trankil",
   name: "TMDB",
   description:
-    "Shows rich info panels for movies, TV shows, and actors when TMDB, IMDB, or Allocine links appear in search results.",
+    'Shows rich info panels for movies, TV shows, and actors. Activates on natural-language queries (e.g. "la la land", "emma stone") and on TMDB, IMDB, or Allocine links in search results.',
   position: "above-results",
   slotPositions: ["above-results", "below-results"],
+  // Needed so ctx.results is populated for URL-based detection (TMDB/IMDB/Allocine
+  // links in the organic search results). Natural-language activation still works
+  // without results, but this lets the URL shortcut fire when available.
+  waitForResults: true,
 
   settingsSchema: [
     {
@@ -678,20 +794,32 @@ export const slot = {
   },
 
   trigger(query) {
-    const q = query.trim();
-    return q.length >= 2 && q.length <= 150;
+    const q = (query || "").trim();
+    if (q.length < 2 || q.length > 150) return false;
+    if (NON_MEDIA_PATTERN.test(q)) return false;
+    return true;
   },
 
   async execute(query, ctx) {
-    if (query.length < 6 || query.length > 150) return { html: "" };
+    const q = (query || "").trim();
+    if (q.length < 2 || q.length > 150) return { html: "" };
     if (!tmdbApiKey) return { html: "" };
-
-    const results = ctx?.results;
-    const detected = _detectFromResults(results);
-    if (!detected) return { html: "" };
+    if (NON_MEDIA_PATTERN.test(q)) return { html: "" };
 
     try {
-      const entity = await _resolveEntity(detected, query.trim(), ctx);
+      // 1) Fast path: detect a TMDB/IMDB/Allocine URL in the organic results.
+      let entity = null;
+      const detected = _detectFromResults(ctx?.results);
+      if (detected) {
+        entity = await _resolveEntity(detected, q, ctx);
+      }
+
+      // 2) Fallback: natural-language match against TMDB search with a
+      //    confidence gate so we don't show noise for ambiguous queries.
+      if (!entity) {
+        entity = await _resolveFromQuery(q, ctx);
+      }
+
       if (!entity) return { html: "" };
 
       const { type, id } = entity;
