@@ -1,72 +1,25 @@
 let template = "";
+let _pluginDir = null;
 
-const CURRENCIES = {
-  USD:"US Dollar",EUR:"Euro",GBP:"British Pound",JPY:"Japanese Yen",
-  UAH:"Ukrainian Hryvnia",PLN:"Polish Zloty",CHF:"Swiss Franc",
-  CAD:"Canadian Dollar",AUD:"Australian Dollar",CNY:"Chinese Yuan",
-  SEK:"Swedish Krona",NOK:"Norwegian Krone",DKK:"Danish Krone",
-  CZK:"Czech Koruna",HUF:"Hungarian Forint",RON:"Romanian Leu",
-  TRY:"Turkish Lira",BRL:"Brazilian Real",INR:"Indian Rupee",
-  KRW:"South Korean Won",SGD:"Singapore Dollar",HKD:"Hong Kong Dollar",
-  MXN:"Mexican Peso",ZAR:"South African Rand",RUB:"Russian Ruble",
-  BTC:"Bitcoin",ETH:"Ethereum",
-};
+// ── Hardcoded fallback (last resort when cache + API both fail) ─
+const FALLBACK_CODES = [
+  "USD","EUR","GBP","JPY","UAH","PLN","CHF","CAD","AUD","CNY",
+  "SEK","NOK","DKK","CZK","HUF","RON","TRY","BRL","INR","KRW",
+  "SGD","HKD","MXN","ZAR","RUB","BTC","ETH",
+];
+const FALLBACK_REGEX = new RegExp("\\b(" + FALLBACK_CODES.join("|") + ")\\b", "g");
 
-// SVG флаги — компактные, но узнаваемые
-const FLAGS = {
-  USD: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">$</text></svg>`,
-  
-  EUR: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">€</text></svg>`,
-  
-  GBP: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">£</text></svg>`,
-  
-  JPY: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">¥</text></svg>`,
-  
-  UAH: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">₴</text></svg>`,
-  
-  PLN: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="8" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">zł</text></svg>`,
-  
-  CHF: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">CH</text></svg>`,
-  
-  CAD: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">CA</text></svg>`,
-  
-  AUD: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">AU</text></svg>`,
-  
-  CNY: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">¥</text></svg>`,
-  
-  SEK: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">SE</text></svg>`,
-  
-  NOK: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">NO</text></svg>`,
-  
-  DKK: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">DK</text></svg>`,
-  
-  CZK: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">CZ</text></svg>`,
-  
-  HUF: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">HU</text></svg>`,
-  
-  RON: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">RO</text></svg>`,
-  
-  TRY: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">₺</text></svg>`,
-  
-  BRL: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">R$</text></svg>`,
-  
-  INR: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">₹</text></svg>`,
-  
-  KRW: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">₩</text></svg>`,
-  
-  SGD: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">SG</text></svg>`,
-  
-  HKD: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">HK</text></svg>`,
-  
-  MXN: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="9" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">MX</text></svg>`,
-  
-  ZAR: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">R</text></svg>`,
-  
-  RUB: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">₽</text></svg>`,
-  
-  BTC: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">₿</text></svg>`,
-  
-  ETH: `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="11" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">Ξ</text></svg>`,
+// ── Mutable state populated from cache or API ─────────────────
+let currencies = {};   // { USD: "US Dollar", ... }
+let symbols = {};      // { USD: "$", ... }
+let codeRegex = FALLBACK_REGEX;
+const CACHE_FILE = "currencies-cache.json";
+
+// Known symbols for fallback flag generation
+const KNOWN_SYMBOLS = {
+  USD:"$",EUR:"€",GBP:"£",JPY:"¥",CNY:"¥",INR:"₹",KRW:"₩",
+  TRY:"₺",RUB:"₽",UAH:"₴",BRL:"R$",PLN:"zł",ZAR:"R",
+  CHF:"Fr",CAD:"C$",AUD:"A$",BTC:"₿",ETH:"Ξ",
 };
 
 const POPULAR_PAIRS = [
@@ -75,6 +28,63 @@ const POPULAR_PAIRS = [
   ["AUD","USD"],["EUR","GBP"],
 ];
 
+// ── Flag SVG generator ────────────────────────────────────────
+function _makeFlag(code) {
+  const sym = symbols[code] || KNOWN_SYMBOLS[code] || code.slice(0, 2);
+  const display = sym.length > 3 ? sym.slice(0, 3) : sym;
+  const len = display.length;
+  const fs = len <= 1 ? 11 : len <= 2 ? 9 : 8;
+  return `<svg viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="5" fill="#525252"/><text x="10" y="14" font-size="${fs}" font-weight="600" fill="#e0e0e0" text-anchor="middle" font-family="sans-serif">${_esc(display)}</text></svg>`;
+}
+
+// ── Apply currency data (shared by cache + API paths) ─────────
+function _applyCurrencyData(data) {
+  currencies = {};
+  symbols = { ...KNOWN_SYMBOLS };
+  for (const cur of data) {
+    currencies[cur.iso_code] = cur.name;
+    if (cur.symbol) symbols[cur.iso_code] = cur.symbol;
+  }
+  // Add crypto (not in Frankfurter)
+  currencies.BTC = "Bitcoin";
+  currencies.ETH = "Ethereum";
+  // Rebuild regex from all known codes
+  const codes = Object.keys(currencies).sort((a, b) => b.length - a.length);
+  codeRegex = new RegExp("\\b(" + codes.join("|") + ")\\b", "g");
+}
+
+// ── Persist cache to plugin directory ─────────────────────────
+async function _writeCache(data) {
+  if (!_pluginDir) return;
+  try {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(_pluginDir + CACHE_FILE, JSON.stringify(data));
+  } catch (e) { /* non-critical */ }
+}
+
+// ── Load currencies from v2 API (one-shot) ────────────────────
+let _loadPromise = null;
+function _loadCurrencies() {
+  if (_loadPromise) return _loadPromise;
+  _loadPromise = (async () => {
+    try {
+      const res = await fetch("https://api.frankfurter.dev/v2/currencies");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) return;
+      _applyCurrencyData(data);
+      await _writeCache(data);
+    } catch (e) {
+      // If cache already populated state, keep it; otherwise use hardcoded
+      if (Object.keys(currencies).length === 0) {
+        for (const code of FALLBACK_CODES) currencies[code] = code;
+      }
+    }
+  })();
+  return _loadPromise;
+}
+
+// ── Query parser ──────────────────────────────────────────────
 function parseQuery(query) {
   const q = query.trim().toLowerCase();
   const clean = q
@@ -82,12 +92,12 @@ function parseQuery(query) {
     .replace(/\b(to|in|у|в|до|into|=)\b/g, " TO ")
     .trim();
 
-  const amountMatch = clean.match(/(\d[\d\s,.']*)/);
+  const amountMatch = clean.match(/(\d[\d\s,.']*)/)
   const amount = amountMatch
     ? parseFloat(amountMatch[1].replace(/[\s,]/g, "").replace(/'/g, ""))
     : 1;
 
-  const codes = clean.toUpperCase().match(/\b(USD|EUR|GBP|JPY|UAH|PLN|CHF|CAD|AUD|CNY|SEK|NOK|DKK|CZK|HUF|RON|TRY|BRL|INR|KRW|SGD|HKD|MXN|ZAR|RUB|BTC|ETH)\b/g) || [];
+  const codes = clean.toUpperCase().match(codeRegex) || [];
 
   return {
     amount: amount || 1,
@@ -96,6 +106,7 @@ function parseQuery(query) {
   };
 }
 
+// ── Slot export ───────────────────────────────────────────────
 export const slot = {
   id: "currency-slot",
   name: "Currency",
@@ -107,19 +118,31 @@ export const slot = {
       key: "defaultFrom",
       label: "Default source currency",
       type: "select",
-      options: Object.keys(CURRENCIES),
+      options: FALLBACK_CODES.filter(c => c !== "BTC" && c !== "ETH"),
       description: "Currency to convert from by default.",
     },
     {
       key: "defaultTo",
       label: "Default target currency",
       type: "select",
-      options: Object.keys(CURRENCIES),
+      options: FALLBACK_CODES.filter(c => c !== "BTC" && c !== "ETH"),
       description: "Currency to convert to by default.",
     },
   ],
 
-  init(ctx) { template = ctx.template; },
+  init(ctx) {
+    template = ctx.template;
+    // Derive plugin directory for cache writes
+    try { _pluginDir = new URL(".", import.meta.url).pathname; } catch (e) {}
+    // Load cached currency list (instant, no network)
+    try {
+      const cached = ctx.readFile(CACHE_FILE);
+      if (cached) {
+        const data = JSON.parse(cached);
+        if (Array.isArray(data) && data.length > 0) _applyCurrencyData(data);
+      }
+    } catch (e) { /* no cache yet, will fetch on first execute */ }
+  },
 
   configure(settings) {
     this._defaultFrom = settings?.defaultFrom || "USD";
@@ -130,7 +153,7 @@ export const slot = {
     const q = query.trim();
     if (q.length < 3) return false;
     if (/^!(currency|convert|cur|курс|валюта)/i.test(q)) return true;
-    const codes = q.toUpperCase().match(/\b(USD|EUR|GBP|JPY|UAH|PLN|CHF|CAD|AUD|CNY|SEK|NOK|DKK|CZK|HUF|RON|TRY|BRL|INR|KRW|SGD|HKD|MXN|ZAR|RUB|BTC|ETH)\b/g) || [];
+    const codes = q.toUpperCase().match(codeRegex) || [];
     if (codes.length >= 1 && /\b(to|in|у|в|convert|курс|rate|=)\b/i.test(q)) return true;
     if (codes.length >= 2) return true;
     return false;
@@ -139,6 +162,8 @@ export const slot = {
   async execute(query, context) {
     if (context?.tab && context.tab !== "all") return { html: "" };
 
+    await _loadCurrencies();
+
     try {
       const clean = query.replace(/^!(currency|convert|cur|курс|валюта)\s*/i, "");
       const parsed = parseQuery(clean);
@@ -146,7 +171,7 @@ export const slot = {
       const to   = parsed.to   || this._defaultTo   || "EUR";
       const amount = parsed.amount || 1;
 
-      const symbols = [...new Set([
+      const quotes = [...new Set([
         to,
         ...POPULAR_PAIRS.flat(),
       ])].filter(c => c !== from && c !== "BTC" && c !== "ETH").join(",");
@@ -159,11 +184,14 @@ export const slot = {
 
       if (!fromIsCrypto && !toIsCrypto) {
         const res = await fetch(
-          `https://api.frankfurter.app/latest?from=${from}&symbols=${symbols},${to}`,
+          `https://api.frankfurter.dev/v2/rates?base=${from}&quotes=${quotes},${to}`,
         );
         if (res.ok) {
           const data = await res.json();
-          rates = data.rates || {};
+          // v2 returns an array of { base, quote, rate } objects — build our rates map
+          for (const entry of data) {
+            if (entry.quote && entry.rate != null) rates[entry.quote] = entry.rate;
+          }
           result = rates[to] != null ? (amount * rates[to]) : null;
         }
       } else {
@@ -185,10 +213,6 @@ export const slot = {
       if (result === null) return { html: "" };
 
       const pairsHtml = POPULAR_PAIRS.map(([a, b]) => {
-        // rates are relative to `from`. To get rate a→b:
-        // if a === from: rates[b] directly
-        // if b === from: 1 / rates[a]
-        // otherwise cross-rate: rates[b] / rates[a]
         let pairRate = null;
         if (a === from) {
           pairRate = rates[b] ?? null;
@@ -197,9 +221,8 @@ export const slot = {
         } else {
           pairRate = (rates[a] && rates[b]) ? (rates[b] / rates[a]) : null;
         }
-        const rate = pairRate;
-        if (!rate) return "";
-        const rateStr = rate >= 1000 ? _fmt(rate, 0) : rate >= 1 ? _fmt(rate, 4) : _fmt(rate, 6);
+        if (!pairRate) return "";
+        const rateStr = pairRate >= 1000 ? _fmt(pairRate, 0) : pairRate >= 1 ? _fmt(pairRate, 4) : _fmt(pairRate, 6);
         return `<div class="cxs-pair" data-from="${a}" data-to="${b}">
           <div class="cxs-pair-name">${a} / ${b}</div>
           <div class="cxs-pair-rate">${rateStr}</div>
@@ -210,24 +233,26 @@ export const slot = {
       const rateStr   = rates[to] >= 1000 ? _fmt(rates[to], 2) : rates[to] >= 1 ? _fmt(rates[to], 4) : _fmt(rates[to], 6);
       const amountStr = _fmt(amount, amount % 1 === 0 ? 0 : 2);
 
-      const curListObj = Object.entries(CURRENCIES).map(([code,name]) => ({code,name,flag:FLAGS[code]||''}));
+      const curListObj = Object.entries(currencies).map(([code, name]) => ({
+        code, name, flag: _makeFlag(code),
+      }));
 
       const html = template
-        .split("{{from_flag}}").join(FLAGS[from] || "")
+        .split("{{from_flag}}").join(_makeFlag(from))
         .split("{{from_code}}").join(from)
-        .split("{{from_name}}").join(_esc(CURRENCIES[from] || from))
-        .split("{{to_flag}}").join(FLAGS[to] || "")
+        .split("{{from_name}}").join(_esc(currencies[from] || from))
+        .split("{{to_flag}}").join(_makeFlag(to))
         .split("{{to_code}}").join(to)
-        .split("{{to_name}}").join(_esc(CURRENCIES[to] || to))
+        .split("{{to_name}}").join(_esc(currencies[to] || to))
+        .split("{{amount_for_js}}").join(amount)
+        .split("{{rate_for_js}}").join(rates[to] || 0)
+        .split("{{from_for_js}}").join(from)
+        .split("{{to_for_js}}").join(to)
         .split("{{amount}}").join(amountStr)
         .split("{{result}}").join(resultStr)
         .split("{{rate}}").join(rateStr)
         .split("{{pairs_html}}").join(pairsHtml)
-        .split("{{cur_list_json}}").join(JSON.stringify(curListObj))
-        .split("{{from_for_js}}").join(from)
-        .split("{{to_for_js}}").join(to)
-        .split("{{amount_for_js}}").join(amount)
-        .split("{{rate_for_js}}").join(rates[to] || 0);
+        .split("{{cur_list_json}}").join(JSON.stringify(curListObj));
 
       return { html };
     } catch(e) {

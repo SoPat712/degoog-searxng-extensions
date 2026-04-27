@@ -9,10 +9,27 @@
 
   async function fetchRate(from, to) {
     try {
-      const res = await fetch(`https://api.frankfurter.app/latest?from=${from}&symbols=${to}`);
+      const fromIsCrypto = from === "BTC" || from === "ETH";
+      const toIsCrypto   = to === "BTC" || to === "ETH";
+      
+      if (!fromIsCrypto && !toIsCrypto) {
+        const res = await fetch(`https://api.frankfurter.dev/v2/rate/${from}/${to}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.rate ?? null;
+      }
+      
+      // Crypto path via CoinGecko
+      const coinId = (fromIsCrypto ? from : to) === "BTC" ? "bitcoin" : "ethereum";
+      const vsCurrency = (fromIsCrypto ? to : from).toLowerCase();
+      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=${vsCurrency}`);
       if (!res.ok) return null;
       const data = await res.json();
-      return data.rates?.[to] ?? null;
+      const price = data[coinId]?.[vsCurrency];
+      if (!price) return null;
+      // If converting FROM crypto, the price IS the rate (e.g. BTC→USD = 60000)
+      // If converting TO crypto, invert (e.g. USD→BTC = 1/60000)
+      return fromIsCrypto ? price : (1 / price);
     } catch(e) { return null; }
   }
 
@@ -51,8 +68,7 @@
     let fromCode = wrap.querySelector("#cxs-from-code")?.textContent?.trim() || "USD";
     let toCode   = wrap.querySelector("#cxs-to-code")?.textContent?.trim()   || "EUR";
     const rateValEl  = wrap.querySelector("#cxs-rate-val");
-    const rateText   = rateValEl?.textContent || "1";
-    let rate = parseFloat(rateText.replace(/[^0-9.]/g, "")) || 1;
+    let rate = parseFloat(wrap.dataset.rate) || 1;
 
     const amountEl    = wrap.querySelector("#cxs-amount");
     const resultEl    = wrap.querySelector("#cxs-result");
@@ -158,22 +174,16 @@
         updateCurUI("from", fromCode);
         updateCurUI("to", toCode);
         
-        const oldResult = previousResult;
+        // Invert the current rate as an immediate fallback
+        rate = rate !== 0 ? (1 / rate) : 1;
+        updateResult(true);
         
+        // Then fetch the live rate and update again if it differs
         const newRate = await fetchRate(fromCode, toCode);
-        if (newRate !== null) {
+        if (newRate !== null && newRate !== rate) {
           rate = newRate;
-        } else {
-          // Invert the current rate as fallback when fetch fails
-          rate = rate !== 0 ? (1 / rate) : 1;
+          updateResult(true);
         }
-        
-        const newResult = (parseFloat(amountEl.value) || 0) * rate;
-        animateNumber(resultEl, oldResult, newResult);
-        previousResult = newResult;
-        
-        if (rateFromEl) rateFromEl.textContent = fromCode;
-        if (rateValEl) rateValEl.textContent = fmt(rate) + " " + toCode;
       });
     }
 
@@ -284,19 +294,13 @@
         
         closePicker();
         
-        const oldResult = previousResult;
         updateCurUI("from", fromCode);
         updateCurUI("to", toCode);
         
+        // Fetch the live rate for the new currency pair
         const newRate = await fetchRate(fromCode, toCode);
         if (newRate !== null) rate = newRate;
-        
-        const newResult = (parseFloat(amountEl.value) || 0) * rate;
-        animateNumber(resultEl, oldResult, newResult);
-        previousResult = newResult;
-        
-        if (rateFromEl) rateFromEl.textContent = fromCode;
-        if (rateValEl) rateValEl.textContent = fmt(rate) + " " + toCode;
+        updateResult(true);
       });
     }
 
@@ -315,19 +319,24 @@
         // Reset amount to 1
         amountEl.value = "1";
         
-        const oldResult = previousResult;
         updateCurUI("from", fromCode);
         updateCurUI("to", toCode);
         
+        // Use the rate displayed on the pair card as an immediate fallback
+        const pairRateEl = pair.querySelector(".cxs-pair-rate");
+        const cardRate = pairRateEl ? parseFloat(pairRateEl.textContent.replace(/[^0-9.]/g, "")) : null;
+        if (cardRate && cardRate > 0) {
+          rate = cardRate;
+        }
+        // Show immediate result with the card rate
+        updateResult(true);
+        
+        // Then fetch the live rate and update again if it differs
         const newRate = await fetchRate(fromCode, toCode);
-        if (newRate !== null) rate = newRate;
-        
-        const newResult = 1 * rate;
-        animateNumber(resultEl, oldResult, newResult);
-        previousResult = newResult;
-        
-        if (rateFromEl) rateFromEl.textContent = fromCode;
-        if (rateValEl) rateValEl.textContent = fmt(rate) + " " + toCode;
+        if (newRate !== null && newRate !== rate) {
+          rate = newRate;
+          updateResult(true);
+        }
       });
     }
 
