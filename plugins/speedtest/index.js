@@ -3,11 +3,14 @@ import bundledServerCatalog from "./servers-data.mjs";
 let templateHtml = "";
 let customServerProfiles = [];
 let debugMode = false;
+let naturalLanguageEnabled = true;
 
 const PLUGIN_NAME = "Speedtest";
-const PLUGIN_VERSION = "1.0.13";
+const PLUGIN_VERSION = "1.1.0";
 const PLUGIN_DESCRIPTION =
   "Minimal internet speed test with selectable servers, latency, download-first flow, and a circular gauge.";
+
+const SHARED_SETTINGS_ID = "plugin-speedtest";
 
 const AUTO_SERVER_PROFILE = {
   id: "auto",
@@ -106,7 +109,16 @@ const debugModeSetting = {
     "Show Speedtest debug details for troubleshooting server behavior and measurement output.",
 };
 
-const sharedSettingsSchema = [debugModeSetting];
+const naturalLanguageSetting = {
+  key: "naturalLanguage",
+  label: "Natural language",
+  type: "toggle",
+  default: true,
+  description:
+    "When on, typing the trigger or phrase without ! runs the command and shows search results below.",
+};
+
+const sharedSettingsSchema = [naturalLanguageSetting, debugModeSetting];
 
 function escapeHtml(value) {
   return String(value)
@@ -240,7 +252,7 @@ function isEnabledServerProfile(profile) {
 const BUNDLED_SERVER_PROFILES = dedupeProfiles(
   (Array.isArray(bundledServerCatalog) ? bundledServerCatalog : [])
     .map(normalizeServerProfile)
-    .filter(Boolean)
+    .filter(Boolean),
 );
 
 function parseCustomServerProfiles(rawValue) {
@@ -262,6 +274,17 @@ function parseCustomServerProfiles(rawValue) {
 
 function configureSharedSettings(settings) {
   debugMode = settings?.debugMode === true || settings?.debugMode === "true";
+  const rawNaturalLanguage = settings?.naturalLanguage;
+  if (
+    rawNaturalLanguage === undefined ||
+    rawNaturalLanguage === null ||
+    rawNaturalLanguage === ""
+  ) {
+    naturalLanguageEnabled = true;
+  } else {
+    naturalLanguageEnabled =
+      rawNaturalLanguage === true || rawNaturalLanguage === "true";
+  }
   customServerProfiles = parseCustomServerProfiles(settings?.customServersJson);
 }
 
@@ -323,7 +346,7 @@ function replaceTemplateToken(template, tokenName, value) {
     .replace(/\\-/g, "-");
   const tokenPattern = new RegExp(
     `__\\s*${escapedTokenName.replace(/-/g, "[-_ ]?")}\\s*__`,
-    "gi"
+    "gi",
   );
   return safeTemplate.replace(tokenPattern, replacement);
 }
@@ -336,24 +359,28 @@ function forceInjectServerPayload(template, serverPayload) {
   if (/data-speedtest-servers\s*=/.test(rendered)) {
     rendered = rendered.replace(
       /data-speedtest-servers\s*=\s*"[^"]*"/i,
-      `data-speedtest-servers="${safeB64}"`
+      `data-speedtest-servers="${safeB64}"`,
     );
   } else {
     rendered = rendered.replace(
       /<div\s+class="speedtest-card"/i,
-      `<div class="speedtest-card" data-speedtest-servers="${safeB64}"`
+      `<div class="speedtest-card" data-speedtest-servers="${safeB64}"`,
     );
   }
 
-  if (/<template\s+data-speedtest-servers-json>[\s\S]*?<\/template>/i.test(rendered)) {
+  if (
+    /<template\s+data-speedtest-servers-json>[\s\S]*?<\/template>/i.test(
+      rendered,
+    )
+  ) {
     rendered = rendered.replace(
       /<template\s+data-speedtest-servers-json>[\s\S]*?<\/template>/i,
-      `<template data-speedtest-servers-json>${safeJson}</template>`
+      `<template data-speedtest-servers-json>${safeJson}</template>`,
     );
   } else {
     rendered = rendered.replace(
       /<\/div>\s*$/,
-      `  <template data-speedtest-servers-json>${safeJson}</template>\n</div>`
+      `  <template data-speedtest-servers-json>${safeJson}</template>\n</div>`,
     );
   }
 
@@ -368,13 +395,17 @@ async function loadTemplate(ctx) {
 }
 
 function shouldTrigger(query) {
+  if (!naturalLanguageEnabled) {
+    return false;
+  }
+
   const value = String(query ?? "").trim();
   if (!value) {
     return false;
   }
 
   return /\b(speed\s*test|speedtest|internet speed|network speed|wifi speed|connection speed|bandwidth test)\b/i.test(
-    value
+    value,
   );
 }
 
@@ -388,22 +419,22 @@ function renderCardHtml() {
   rendered = replaceTemplateToken(
     rendered,
     "SERVER_DATA_JSON",
-    escapeHtml(JSON.stringify(serverPayload))
+    escapeHtml(JSON.stringify(serverPayload)),
   );
   rendered = replaceTemplateToken(
     rendered,
     "SERVER_DATA_B64",
-    escapeHtml(encodeServerData(serverPayload))
+    escapeHtml(encodeServerData(serverPayload)),
   );
   rendered = replaceTemplateToken(
     rendered,
     "PLUGIN_VERSION",
-    escapeHtml(PLUGIN_VERSION)
+    escapeHtml(PLUGIN_VERSION),
   );
   rendered = replaceTemplateToken(
     rendered,
     "DEBUG_HIDDEN",
-    debugMode ? "" : "hidden"
+    debugMode ? "" : "hidden",
   );
   return forceInjectServerPayload(rendered, serverPayload);
 }
@@ -415,6 +446,7 @@ export const slot = {
   name: PLUGIN_NAME,
   description: PLUGIN_DESCRIPTION,
   position: "at-a-glance",
+  settingsId: SHARED_SETTINGS_ID,
   settingsSchema: sharedSettingsSchema,
 
   async init(ctx) {
@@ -450,11 +482,18 @@ export const command = {
   description: PLUGIN_DESCRIPTION,
   trigger: "speed",
   aliases: ["speed-test", "networkspeed", "internetspeed"],
+  // Share the single Speedtest settings entry with the slot via
+  // `settingsId: "plugin-speedtest"` (the command's default id). Both the
+  // command and the slot declare the same `settingsSchema` so the settings
+  // UI renders the plugin's custom controls (Natural language, Debug mode)
+  // instead of the fallback slot `Position` control. `configureSharedSettings`
+  // writes the module-level state that both entry points read at render time.
+  settingsId: SHARED_SETTINGS_ID,
   settingsSchema: sharedSettingsSchema,
+  configure: configureSharedSettings,
   async init(ctx) {
     await loadTemplate(ctx);
   },
-  configure: configureSharedSettings,
   async execute() {
     return {
       title: PLUGIN_NAME,
@@ -463,5 +502,8 @@ export const command = {
   },
 };
 
-// Keep the default export as a concrete capability so degoog sees the custom schema.
+// Default export is the bang command so degoog registers the `!speed` trigger.
+// Both the slot and the command declare the shared `settingsSchema` under the
+// same `settingsId` (`plugin-speedtest`) so degoog surfaces one settings entry
+// for the whole Speedtest extension.
 export default command;
