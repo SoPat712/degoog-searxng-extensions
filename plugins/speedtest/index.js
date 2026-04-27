@@ -5,7 +5,7 @@ let customServerProfiles = [];
 let debugMode = false;
 
 const PLUGIN_NAME = "Speedtest";
-const PLUGIN_VERSION = "1.2.1";
+const PLUGIN_VERSION = "1.2.2";
 const PLUGIN_DESCRIPTION =
   "Minimal internet speed test with selectable servers, latency, download-first flow, and a circular gauge.";
 
@@ -110,7 +110,11 @@ const debugModeSetting = {
 // surfaces exactly one Configure entry for Speedtest. Natural-language
 // triggering is handled by degoog's native `naturalLanguagePhrases` feature
 // and the built-in global "Natural language" toggle in Settings.
-const settingsSchema = [debugModeSetting];
+//
+// NOTE: the settingsSchema array is spelled out inline on `export const
+// command` below rather than aliased through a module-level constant.
+// Per AGENTS.md this is the defensive wiring that keeps the Configure
+// entry (Debug mode) from disappearing in degoog's plugin loader.
 
 function escapeHtml(value) {
   return String(value)
@@ -407,43 +411,63 @@ function renderCardHtml() {
 
 export const routes = [];
 
-// Single-capability plugin, modeled after `weather-slot`: one `export default`
-// bang command with `naturalLanguagePhrases` for no-`!` triggering. degoog's
-// global "Natural language" toggle in Settings controls whether those phrases
-// activate. Only one `settingsSchema` is declared, so Settings -> Plugins
-// surfaces exactly one Configure entry for Speedtest.
-export default {
+// Single-capability plugin: one bang command with `naturalLanguagePhrases`
+// for no-`!` triggering. degoog's global "Natural language" toggle in
+// Settings controls whether those phrases activate.
+//
+// IMPORTANT — schema export wiring (see AGENTS.md):
+// A previous regression caused degoog to lose this plugin's custom
+// `settingsSchema` (Debug mode) and fall back to nothing / default slot
+// fields when the export wiring wasn't explicit enough (spread syntax,
+// anonymous default export, etc.). The defensive pattern below spells out
+// every field on a named `export const command = { ... }` object and also
+// re-exports it as `default`, so every loader path in degoog resolves to
+// the same object with `settingsSchema` attached. Do NOT refactor this
+// back into a spread or anonymous default — the settings page will
+// disappear again.
+//
+// NOTE — trigger collision: degoog core ships a built-in `speedtest` bang
+// command. If the built-in is enabled, the loader silently skips this
+// plugin command and its settings entry vanishes. This repo assumes the
+// built-in is disabled in Settings -> Commands so this plugin can own
+// `!speedtest`. If the Configure entry disappears, first check that the
+// core speedtest command is still disabled.
+
+async function commandInit(ctx) {
+  await loadTemplate(ctx);
+}
+
+async function commandExecute() {
+  return {
+    title: PLUGIN_NAME,
+    html: renderCardHtml(),
+  };
+}
+
+const naturalLanguagePhrases = [
+  "speed test",
+  "speedtest",
+  "internet speed",
+  "network speed",
+  "wifi speed",
+  "connection speed",
+  "bandwidth test",
+  "check my speed",
+  "test my internet",
+  "how fast is my internet",
+  "how fast is my connection",
+];
+
+export const command = {
   name: PLUGIN_NAME,
   description: PLUGIN_DESCRIPTION,
   trigger: "speedtest",
   aliases: ["speed", "speed-test", "networkspeed", "internetspeed"],
-
-  naturalLanguagePhrases: [
-    "speed test",
-    "speedtest",
-    "internet speed",
-    "network speed",
-    "wifi speed",
-    "connection speed",
-    "bandwidth test",
-    "check my speed",
-    "test my internet",
-    "how fast is my internet",
-    "how fast is my connection",
-  ],
-
-  settingsSchema,
-
-  async init(ctx) {
-    await loadTemplate(ctx);
-  },
-
+  naturalLanguagePhrases: naturalLanguagePhrases,
+  settingsSchema: [debugModeSetting],
+  init: commandInit,
   configure: configureSettings,
-
-  async execute() {
-    return {
-      title: PLUGIN_NAME,
-      html: renderCardHtml(),
-    };
-  },
+  execute: commandExecute,
 };
+
+export default command;
