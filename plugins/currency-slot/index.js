@@ -384,8 +384,8 @@ function parseQuery(query) {
 
   return {
     amount: amount || 1,
-    from: codes[0] || "USD",
-    to: codes[1] || "EUR",
+    from: codes[0] || null,
+    to: codes[1] || null,
   };
 }
 
@@ -412,6 +412,13 @@ export const slot = {
       options: CODES.filter((c) => c !== "BTC" && c !== "ETH"),
       description: "Currency to convert to by default.",
     },
+    {
+      key: "naturalLanguage",
+      label: "Natural language triggering",
+      type: "toggle",
+      description:
+        "Trigger on queries like '100 USD to EUR' without the !cur command.",
+    },
   ],
 
   init(ctx) {
@@ -421,6 +428,7 @@ export const slot = {
   configure(settings) {
     this._defaultFrom = settings?.defaultFrom || "USD";
     this._defaultTo = settings?.defaultTo || "EUR";
+    this._naturalLanguage = settings?.naturalLanguage !== false;
   },
 
   trigger(query) {
@@ -432,6 +440,7 @@ export const slot = {
       )
     )
       return true;
+    if (!this._naturalLanguage) return false;
     const codes = q.toUpperCase().match(CODE_REGEX) || [];
     if (codes.length >= 2) return true;
     return false;
@@ -571,12 +580,6 @@ export const command = {
   description: "Convert currencies. Usage: !cur 100 USD to EUR",
   trigger: "cur",
   aliases: ["currency", "convert"],
-  naturalLanguagePhrases: [
-    "convert currency",
-    "exchange rate",
-    "currency converter",
-  ],
-
   settingsSchema: [
     {
       key: "defaultFrom",
@@ -592,6 +595,13 @@ export const command = {
       options: CODES.filter((c) => c !== "BTC" && c !== "ETH"),
       description: "Currency to convert to by default.",
     },
+    {
+      key: "naturalLanguage",
+      label: "Natural language triggering",
+      type: "toggle",
+      description:
+        "Trigger on queries like '100 USD to EUR' without the !cur command.",
+    },
   ],
 
   init(ctx) {
@@ -601,6 +611,7 @@ export const command = {
   configure(settings) {
     this._defaultFrom = settings?.defaultFrom || "USD";
     this._defaultTo = settings?.defaultTo || "EUR";
+    this._naturalLanguage = settings?.naturalLanguage !== false;
   },
 
   async execute(args) {
