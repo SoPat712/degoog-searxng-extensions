@@ -11,13 +11,17 @@
   const LOADING_CLASS = "tmdb-loading";
 
   function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    }[c]));
+    return String(s == null ? "" : s).replace(
+      /[&<>"']/g,
+      (c) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[c],
+    );
   }
 
   function findRoot(el) {
@@ -120,6 +124,67 @@
       // ignore
     }
   }
+
+  // ── Season accordion: lazy-load episodes when opened ────────────────────────
+  // The season accordion body contains an empty [data-tmdb-episodes] slot
+  // that gets filled the first time the user opens the accordion. We listen
+  // for the native <details> "toggle" event in the capture phase because
+  // "toggle" does not bubble.
+
+  async function loadSeasonEpisodes(detailsEl) {
+    const body = detailsEl.querySelector("[data-tmdb-episodes]");
+    if (!body) return;
+    if (body.dataset.tmdbLoaded === "1") return;
+    if (body.dataset.tmdbLoading === "1") return;
+
+    const tvId = detailsEl.getAttribute("data-tmdb-season-tv");
+    const seasonNumber = detailsEl.getAttribute("data-tmdb-season-number");
+    if (!tvId || seasonNumber == null || seasonNumber === "") return;
+
+    body.dataset.tmdbLoading = "1";
+    body.innerHTML =
+      '<div class="tmdb-episodes-loading">Loading episodes\u2026</div>';
+
+    try {
+      const url =
+        `/api/plugin/tmdb/season` +
+        `?tv=${encodeURIComponent(tvId)}` +
+        `&season=${encodeURIComponent(seasonNumber)}`;
+      const res = await fetch(url, {
+        headers: { Accept: "application/json" },
+        credentials: "same-origin",
+      });
+      if (!res.ok) throw new Error(`season fetch failed: ${res.status}`);
+      const data = await res.json();
+      if (!data || typeof data.html !== "string") {
+        throw new Error("season response missing html");
+      }
+      body.innerHTML = data.html;
+      body.dataset.tmdbLoaded = "1";
+    } catch (err) {
+      body.innerHTML =
+        '<div class="tmdb-episodes-error">' +
+        "Couldn\u2019t load episodes. Try again later." +
+        "</div>";
+      if (window && window.console) {
+        console.warn("[tmdb] season fetch failed:", err);
+      }
+    } finally {
+      body.dataset.tmdbLoading = "";
+    }
+  }
+
+  document.addEventListener(
+    "toggle",
+    function (e) {
+      const el = e.target;
+      if (!el || !el.matches) return;
+      if (!el.matches(".tmdb-season-accordion")) return;
+      if (!el.open) return;
+      loadSeasonEpisodes(el);
+    },
+    true, // capture phase — "toggle" does not bubble
+  );
 
   // Click delegation: works for cast cards, back button, and any future
   // element with [data-tmdb-nav="..."] + [data-tmdb-id="..."].

@@ -579,6 +579,131 @@
     padding: 0 0 0.5rem 0.4rem;
 }
 
+/* ── Episode list (lazy-loaded inside a season accordion) ────────────────── */
+
+.tmdb-episodes {
+    margin-top: 0.75rem;
+}
+
+.tmdb-episodes:empty {
+    margin-top: 0;
+}
+
+.tmdb-episodes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-light);
+}
+
+.tmdb-episode {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 10px;
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+}
+
+.tmdb-episode-thumb {
+    flex-shrink: 0;
+    width: 120px;
+    aspect-ratio: 16 / 9;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--border-light);
+}
+
+.tmdb-episode-still {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.tmdb-episode-still--empty {
+    width: 100%;
+    height: 100%;
+    opacity: 0.25;
+}
+
+.tmdb-episode-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.tmdb-episode-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.tmdb-episode-num {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.tmdb-episode-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.tmdb-episode-meta {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+
+.tmdb-episode-overview {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--text-primary);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.tmdb-episodes-loading,
+.tmdb-episodes-error,
+.tmdb-episodes-empty {
+    padding: 0.75rem;
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    text-align: center;
+    border-top: 1px solid var(--border-light);
+}
+
+.tmdb-episodes-error {
+    color: var(--danger, #d33);
+}
+
+/* Narrow containers: stack the still on top of the body. */
+@container (max-width: 480px) {
+    .tmdb-episode {
+        flex-direction: column;
+    }
+    .tmdb-episode-thumb {
+        width: 100%;
+    }
+}
+
 /* ── Season detail row ────────────────────────────────────────────────────── */
 
 .tmdb-season-row {

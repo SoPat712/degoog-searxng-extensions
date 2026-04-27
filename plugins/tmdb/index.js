@@ -458,20 +458,70 @@ const _buildSeasonAccordion = (season, tvId) => {
   const href = _esc(
     `https://www.themoviedb.org/tv/${tvId}/season/${season.season_number}`,
   );
+  // Episodes are lazy-loaded client-side when the accordion opens. See
+  // script.js (toggle handler) + the `season` plugin route below.
   return (
-    `<details class="tmdb-accordion">` +
+    `<details class="tmdb-accordion tmdb-season-accordion" ` +
+    `data-tmdb-season-tv="${tvId}" ` +
+    `data-tmdb-season-number="${season.season_number}">` +
     `<summary class="tmdb-accordion-summary">${name}<span class="tmdb-accordion-meta">${meta}</span></summary>` +
     `<div class="tmdb-accordion-body">` +
     `<div class="tmdb-season-row">` +
     posterHtml +
     `<div class="tmdb-season-info">` +
     (overview ? `<p class="tmdb-season-overview">${overview}</p>` : "") +
-    `<a href="${href}" target="_blank" rel="noopener" class="tmdb-ext-link">View episodes on TMDB →</a>` +
+    `<a href="${href}" target="_blank" rel="noopener" class="tmdb-ext-link">Open season on TMDB →</a>` +
     `</div>` +
     `</div>` +
+    `<div class="tmdb-episodes" data-tmdb-episodes aria-live="polite"></div>` +
     `</div>` +
     `</details>`
   );
+};
+
+// Renders the episode list for a season. Returned by the `season` route and
+// injected into the `[data-tmdb-episodes]` slot of the matching accordion.
+const _renderEpisodes = (seasonData) => {
+  const episodes = Array.isArray(seasonData?.episodes)
+    ? seasonData.episodes
+    : [];
+  if (episodes.length === 0) {
+    return `<p class="tmdb-episodes-empty">No episodes listed.</p>`;
+  }
+  const items = episodes
+    .map((ep) => {
+      const num = ep.episode_number;
+      const name = _esc(
+        ep.name || (num != null ? `Episode ${num}` : "Episode"),
+      );
+      const air = ep.air_date || "";
+      const runtime = ep.runtime ? _formatRuntime(ep.runtime) : "";
+      const rating = ep.vote_average ? _ratingStr(ep.vote_average) : "";
+      const stillUrl = _imgUrl(ep.still_path, "w300");
+      const stillHtml = stillUrl
+        ? `<img src="${_esc(stillUrl)}" alt="" loading="lazy" class="tmdb-episode-still">`
+        : `<div class="tmdb-episode-still tmdb-episode-still--empty"></div>`;
+      const overview = ep.overview ? _esc(ep.overview) : "";
+      const meta = [air, runtime, rating].filter(Boolean).join(" \u00B7 ");
+      const numLabel = num != null ? `E${num}` : "";
+      return (
+        `<div class="tmdb-episode">` +
+        `<div class="tmdb-episode-thumb">${stillHtml}</div>` +
+        `<div class="tmdb-episode-body">` +
+        `<div class="tmdb-episode-header">` +
+        (numLabel
+          ? `<span class="tmdb-episode-num">${_esc(numLabel)}</span>`
+          : "") +
+        `<span class="tmdb-episode-title">${name}</span>` +
+        `</div>` +
+        (meta ? `<div class="tmdb-episode-meta">${_esc(meta)}</div>` : "") +
+        (overview ? `<p class="tmdb-episode-overview">${overview}</p>` : "") +
+        `</div>` +
+        `</div>`
+      );
+    })
+    .join("");
+  return `<div class="tmdb-episodes-list">${items}</div>`;
 };
 
 const _buildSeasonsAccordion = (details) => {
@@ -741,7 +791,7 @@ const _renderTv = (details, credits, images, jellyfinItem) => {
   const plotHtml = overview ? `<p class="tmdb-plot">${_esc(overview)}</p>` : "";
   const seasonsAccordion = _buildSeasonsAccordion(details);
   const cast = credits?.cast || [];
-  const castAccordion = _buildCastAccordion(cast, "Distribution");
+  const castAccordion = _buildCastAccordion(cast, "Cast");
   const jellyfinCard = _buildJellyfinCard(jellyfinItem);
 
   const labelText = `${name}${year ? ` (${year})` : ""}`;
@@ -812,6 +862,17 @@ const _buildPersonPanel = async (id, ctx) => {
   };
 };
 
+// Fetches a single TV season's episode list and renders it. Powers the
+// lazy-load inside the season accordion on the TV panel.
+const _buildSeasonPanel = async (tvId, seasonNumber, ctx) => {
+  const data = await _tmdb(`tv/${tvId}/season/${seasonNumber}`, ctx);
+  if (!data) return null;
+  return {
+    title: data.name || `Season ${seasonNumber}`,
+    html: _renderEpisodes(data),
+  };
+};
+
 // ── Plugin Routes ─────────────────────────────────────────────────────────────
 // Client-side navigation (cast card → person, etc.) fetches these routes to
 // swap the slot contents without a full page reload. See script.js.
@@ -875,6 +936,53 @@ const _entityHandler = (builder) => async (request) => {
   }
 };
 
+// Dedicated handler for the season route — it takes two query params (tv, season)
+// rather than a single id, so it doesn't fit the generic _entityHandler shape.
+const _seasonHandler = async (request) => {
+  const jsonHeaders = {
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store",
+  };
+  try {
+    const url = new URL(request.url);
+    const tvRaw = url.searchParams.get("tv") || "";
+    const seasonRaw = url.searchParams.get("season") || "";
+    const tvId = parseInt(tvRaw, 10);
+    const seasonNumber = parseInt(seasonRaw, 10);
+    if (!tvId || Number.isNaN(tvId) || Number.isNaN(seasonNumber)) {
+      return new Response(
+        JSON.stringify({ error: "Missing or invalid tv/season" }),
+        { status: 400, headers: jsonHeaders },
+      );
+    }
+    if (!tmdbApiKey) {
+      return new Response(
+        JSON.stringify({ error: "TMDB API key not configured" }),
+        { status: 503, headers: jsonHeaders },
+      );
+    }
+    const panel = await _buildSeasonPanel(tvId, seasonNumber);
+    if (!panel) {
+      return new Response(JSON.stringify({ error: "Not found" }), {
+        status: 404,
+        headers: jsonHeaders,
+      });
+    }
+    return new Response(JSON.stringify(panel), {
+      status: 200,
+      headers: jsonHeaders,
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({
+        error: "Internal error",
+        detail: String(err && err.message),
+      }),
+      { status: 500, headers: jsonHeaders },
+    );
+  }
+};
+
 export const routes = [
   {
     path: "movie",
@@ -890,6 +998,11 @@ export const routes = [
     path: "person",
     method: "get",
     handler: _entityHandler((id) => _buildPersonPanel(id)),
+  },
+  {
+    path: "season",
+    method: "get",
+    handler: _seasonHandler,
   },
 ];
 
