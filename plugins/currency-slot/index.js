@@ -252,7 +252,7 @@ export const slot = {
         .split("{{result}}").join(resultStr)
         .split("{{rate}}").join(rateStr)
         .split("{{pairs_html}}").join(pairsHtml)
-        .split("{{cur_list_json}}").join(JSON.stringify(curListObj));
+        .split("{{cur_list_json}}").join(JSON.stringify(curListObj).replace(/'/g, "&#39;"));
 
       return { html };
     } catch(e) {

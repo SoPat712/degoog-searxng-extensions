@@ -191,8 +191,8 @@
 /* Rate bar */
 .cxs-rate-bar {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: space-between;
   padding: 10px 18px;
   border-top: 1px solid var(--border-light);
   font-size: 0.88rem;
@@ -213,16 +213,16 @@
 }
 
 .cxs-pulse {
-  width: 4px;
-  height: 1px;
-  background: var(--text-secondary);
-  border-radius: 1px;
-  animation: cxs-pulse-animate 1.4s ease-in-out infinite;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success, #4ade80);
+  animation: cxs-pulse-animate 2s ease-in-out infinite;
 }
 
 @keyframes cxs-pulse-animate {
-  0%, 100% { width: 4px; opacity: 0.6; }
-  50% { width: 2px; opacity: 1; }
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
 }
 
 /* Quick amounts */
@@ -232,12 +232,6 @@
   flex-wrap: wrap;
   align-items: center;
   margin-bottom: 14px;
-}
-
-.cxs-ql {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin-right: 4px;
 }
 
 .cxs-q {
