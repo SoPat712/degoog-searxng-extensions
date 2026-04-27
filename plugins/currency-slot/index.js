@@ -355,6 +355,25 @@ const POPULAR_PAIRS = [
   ["EUR", "GBP"],
 ];
 
+// ── Shared module-level settings ──────────────────────────────
+// Both the slot and the bang command read from this single state
+// so that configuring one settings panel applies to both code paths.
+const _settings = {
+  defaultTo: "USD",
+  naturalLanguage: false,
+};
+
+function _applySettings(settings) {
+  const to =
+    typeof settings?.defaultTo === "string" ? settings.defaultTo.trim() : "";
+  _settings.defaultTo = to || "USD";
+  const nl = settings?.naturalLanguage;
+  _settings.naturalLanguage = nl === true || nl === "true";
+}
+
+const COMMAND_PREFIX_RE =
+  /^!(currency|convert|cur|\u043a\u0443\u0440\u0441|\u0432\u0430\u043b\u044e\u0442\u0430)\b/i;
+
 // ── Flag SVG generator ────────────────────────────────────────
 function _makeFlag(code) {
   const sym = KNOWN_SYMBOLS[code] || code.slice(0, 2);
@@ -399,18 +418,11 @@ export const slot = {
 
   settingsSchema: [
     {
-      key: "defaultFrom",
-      label: "Default source currency",
-      type: "select",
-      options: CODES.filter((c) => c !== "BTC" && c !== "ETH"),
-      description: "Currency to convert from by default.",
-    },
-    {
       key: "defaultTo",
       label: "Default target currency",
       type: "select",
       options: CODES.filter((c) => c !== "BTC" && c !== "ETH"),
-      description: "Currency to convert to by default.",
+      description: "Currency to convert to when not specified in the query.",
     },
     {
       key: "naturalLanguage",
@@ -426,21 +438,14 @@ export const slot = {
   },
 
   configure(settings) {
-    this._defaultFrom = settings?.defaultFrom || "USD";
-    this._defaultTo = settings?.defaultTo || "EUR";
-    this._naturalLanguage = settings?.naturalLanguage === true;
+    _applySettings(settings);
   },
 
   trigger(query) {
     const q = query.trim();
     if (q.length < 3) return false;
-    if (
-      /^!(currency|convert|cur|\u043a\u0443\u0440\u0441|\u0432\u0430\u043b\u044e\u0442\u0430)/i.test(
-        q,
-      )
-    )
-      return true;
-    if (!this._naturalLanguage) return false;
+    if (COMMAND_PREFIX_RE.test(q)) return true;
+    if (!_settings.naturalLanguage) return false;
     const codes = q.toUpperCase().match(CODE_REGEX) || [];
     if (codes.length >= 2) return true;
     return false;
@@ -449,14 +454,24 @@ export const slot = {
   async execute(query, context) {
     if (context?.tab && context.tab !== "all") return { html: "" };
 
+    const rawQuery = (query || "").trim();
+    const isCommand = COMMAND_PREFIX_RE.test(rawQuery);
+    const viaCommand = context?._currencyViaCommand === true;
+
+    // Defensive: refuse to render for natural-language queries when the
+    // user has that triggering disabled, even if trigger() was bypassed.
+    if (!isCommand && !viaCommand && !_settings.naturalLanguage) {
+      return { html: "" };
+    }
+
     try {
       const clean = query.replace(
         /^!(currency|convert|cur|\u043a\u0443\u0440\u0441|\u0432\u0430\u043b\u044e\u0442\u0430)\s*/i,
         "",
       );
       const parsed = parseQuery(clean);
-      const from = parsed.from || this._defaultFrom || "USD";
-      const to = parsed.to || this._defaultTo || "EUR";
+      const from = parsed.from || "USD";
+      const to = parsed.to || _settings.defaultTo;
       const amount = parsed.amount || 1;
 
       const quotes = [...new Set([to, ...POPULAR_PAIRS.flat()])]
@@ -582,18 +597,11 @@ export const command = {
   aliases: ["currency", "convert"],
   settingsSchema: [
     {
-      key: "defaultFrom",
-      label: "Default source currency",
-      type: "select",
-      options: CODES.filter((c) => c !== "BTC" && c !== "ETH"),
-      description: "Currency to convert from by default.",
-    },
-    {
       key: "defaultTo",
       label: "Default target currency",
       type: "select",
       options: CODES.filter((c) => c !== "BTC" && c !== "ETH"),
-      description: "Currency to convert to by default.",
+      description: "Currency to convert to when not specified in the query.",
     },
     {
       key: "naturalLanguage",
@@ -609,20 +617,13 @@ export const command = {
   },
 
   configure(settings) {
-    this._defaultFrom = settings?.defaultFrom || "USD";
-    this._defaultTo = settings?.defaultTo || "EUR";
-    this._naturalLanguage = settings?.naturalLanguage === true;
+    _applySettings(settings);
   },
 
   async execute(args) {
-    const result = await slot.execute.call(
-      {
-        _defaultFrom: this._defaultFrom || slot._defaultFrom || "USD",
-        _defaultTo: this._defaultTo || slot._defaultTo || "EUR",
-      },
-      args || "",
-      null,
-    );
+    const result = await slot.execute(args || "", {
+      _currencyViaCommand: true,
+    });
     if (!result?.html) {
       return {
         title: "Currency",
