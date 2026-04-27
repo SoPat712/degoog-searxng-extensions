@@ -447,9 +447,6 @@ const _buildSeasonAccordion = (season, tvId) => {
   const epCount = season.episode_count || 0;
   const airYear = (season.air_date || "").slice(0, 4);
   const overview = season.overview ? _esc(season.overview) : "";
-  const posterHtml = season.poster_path
-    ? `<img src="${_esc(_imgUrl(season.poster_path, "w92"))}" alt="" loading="lazy" class="tmdb-season-poster">`
-    : "";
   const meta = _esc(
     [airYear, `${epCount} episode${epCount !== 1 ? "s" : ""}`]
       .filter(Boolean)
@@ -457,15 +454,11 @@ const _buildSeasonAccordion = (season, tvId) => {
   );
   // Episodes are lazy-loaded client-side when the accordion opens. See
   // script.js (toggle handler) + the `season` plugin route below.
-  const hasSeasonRow = Boolean(posterHtml || overview);
-  const seasonRowHtml = hasSeasonRow
+  const seasonRowHtml = overview
     ? `<div class="tmdb-season-row">` +
-      posterHtml +
-      (overview
-        ? `<div class="tmdb-season-info">` +
-          `<p class="tmdb-season-overview">${overview}</p>` +
-          `</div>`
-        : "") +
+      `<div class="tmdb-season-info">` +
+      `<p class="tmdb-season-overview">${overview}</p>` +
+      `</div>` +
       `</div>`
     : "";
   return (
