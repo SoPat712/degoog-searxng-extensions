@@ -2,6 +2,10 @@
 
 [degoog](https://github.com/fccview/degoog) store repository for SearXNG engines and a growing set of plugins.
 
+## AI Usage Awareness
+
+Before I started this repository, I forked it from https://github.com/SiaoZeng/degoog-searxng-extensions, which was coded alongside Claude, and as such, Claude is a contributor on this repo. I myself don't "vibe code", but AI was used in the making of these extensions, with a combination of Github Copilot used for autocompletions, and a local llm running on my own machine for longer completions.
+
 ## Included Engines
 
 This repo exposes SearXNG as multiple degoog search engines so each degoog tab can hit the matching SearXNG category:
