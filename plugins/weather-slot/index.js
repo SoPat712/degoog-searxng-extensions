@@ -310,11 +310,11 @@ const slotDef = {
           },
         },
       );
-      if (!geoRes.ok) return { title: "Weather", html: "" };
+      if (!geoRes.ok) return { html: "" };
 
       const geoData = await geoRes.json();
       if (!geoData?.length) {
-        return { title: "Weather", html: "<p>City not found.</p>" };
+        return { html: "<p>City not found.</p>" };
       }
 
       const loc =
@@ -411,7 +411,7 @@ const slotDef = {
         `&timezone=auto&forecast_days=7`;
 
       const wxRes = await fetch(url);
-      if (!wxRes.ok) return { title: "Weather", html: "" };
+      if (!wxRes.ok) return { html: "" };
       const wx = await wxRes.json();
 
       const cur = wx.current || {};
@@ -674,9 +674,9 @@ const slotDef = {
         .replaceAll("{{is_day}}", isDay ? "1" : "0")
         .replaceAll("{{payload}}", payloadJson);
 
-      return { title: `Weather — ${displayName}`, html };
+      return { html };
     } catch (e) {
-      return { title: "Weather", html: "" };
+      return { html: "" };
     }
   },
 };
