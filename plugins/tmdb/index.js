@@ -387,10 +387,12 @@ const _buildImageCombo = (poster, bd1, bd2) => {
   const imgHtml = (src, cls) => {
     if (!src) return `<div class="tmdb-combo-placeholder"></div>`;
     // data-tmdb-modal-src for the modal to pick up
+    // onerror: replace broken image with placeholder so no empty cell shows
     return (
       `<img src="${_esc(src)}" alt="" loading="lazy" ` +
       `class="tmdb-combo-img ${cls}" data-tmdb-modal-src="${_esc(src)}" ` +
-      `role="button" tabindex="0" aria-label="View image">`
+      `role="button" tabindex="0" aria-label="View image" ` +
+      `onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'tmdb-combo-placeholder'}))">`
     );
   };
 
@@ -656,22 +658,20 @@ const _renderPerson = (details, images, credits) => {
   const birthday = _esc(details.birthday || "");
   const birthplace = _esc(details.place_of_birth || "");
 
-  // 3 portrait profile photos — pad with nulls if fewer than 3
-  const profiles = [...(images?.profiles || [])].slice(0, 3);
-  while (profiles.length < 3) profiles.push(null);
+  // Only use photos that exist — don't pad with empty slots
+  const profiles = (images?.profiles || []).slice(0, 3);
   const photoGrid = profiles
+    .filter((img) => img && img.file_path)
     .map((img) => {
-      if (img && img.file_path) {
-        const src = _esc(_imgUrl(img.file_path, "w185"));
-        const fullSrc = _esc(_imgUrl(img.file_path, "original"));
-        return (
-          `<div class="tmdb-person-photo">` +
-          `<img src="${src}" alt="" loading="lazy" class="tmdb-person-photo-img" ` +
-          `data-tmdb-modal-src="${fullSrc}" role="button" tabindex="0" aria-label="View image">` +
-          `</div>`
-        );
-      }
-      return `<div class="tmdb-person-photo tmdb-person-photo--empty"></div>`;
+      const src = _esc(_imgUrl(img.file_path, "w185"));
+      const fullSrc = _esc(_imgUrl(img.file_path, "original"));
+      return (
+        `<div class="tmdb-person-photo">` +
+        `<img src="${src}" alt="" loading="lazy" class="tmdb-person-photo-img" ` +
+        `data-tmdb-modal-src="${fullSrc}" role="button" tabindex="0" aria-label="View image" ` +
+        `onerror="this.closest('.tmdb-person-photo').style.display='none'">` +
+        `</div>`
+      );
     })
     .join("");
 
