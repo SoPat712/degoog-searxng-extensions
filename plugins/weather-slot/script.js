@@ -359,7 +359,7 @@
     }
 
     const W = 640;
-    const H = 170;
+    const H = chartEl.offsetHeight > 0 ? chartEl.offsetHeight : 140;
     const padL = 16;
     const padR = 16;
     const padT = 14;

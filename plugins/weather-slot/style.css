@@ -16,7 +16,7 @@
 /* ── Eyebrow / header ─────────────────────────── */
 
 .wxs-header {
-    margin-bottom: 16px;
+    margin-bottom: 10px;
 }
 
 .wxs-eyebrow {
@@ -53,9 +53,9 @@
     grid-template-columns: 1.3fr 1fr;
     gap: 24px;
     align-items: start;
-    padding-bottom: 10px;
+    padding-bottom: 6px;
     border-bottom: 1px solid var(--border-light);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .wxs-hero-left {
@@ -65,14 +65,14 @@
         "icon temp meta"
         "icon temp meta";
     align-items: center;
-    gap: 14px 18px;
+    gap: 8px 14px;
     min-width: 0;
 }
 
 .wxs-hero-icon {
     grid-area: icon;
-    width: 88px;
-    height: 88px;
+    width: 68px;
+    height: 68px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -88,7 +88,7 @@
 }
 
 .wxs-num {
-    font-size: clamp(3.2rem, 8vw, 4.4rem);
+    font-size: clamp(2.6rem, 6vw, 3.6rem);
     font-weight: 300;
     color: var(--text-primary);
     letter-spacing: -0.04em;
@@ -97,7 +97,7 @@
 }
 
 .wxs-deg {
-    font-size: clamp(1.4rem, 3.5vw, 1.8rem);
+    font-size: clamp(1.1rem, 2.8vw, 1.5rem);
     font-weight: 300;
     color: var(--text-secondary);
     margin-top: 0.35em;
@@ -228,9 +228,9 @@
 .wxs-chart-wrap {
     border: 1px solid var(--border-light);
     border-radius: 14px;
-    padding: 16px 16px 12px;
+    padding: 10px 12px 8px;
     background: var(--bg-light, transparent);
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 .wxs-chart-head {
@@ -238,7 +238,7 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 .wxs-chart-title {
@@ -257,7 +257,7 @@
 .wxs-chart {
     position: relative;
     width: 100%;
-    height: 170px;
+    height: 140px;
 }
 
 .wxs-chart-scroll {
@@ -448,15 +448,15 @@
 .wxs-days {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 22px;
+    gap: 6px;
+    margin-bottom: 12px;
 }
 
 .wxs-day {
     background: var(--bg-light, transparent);
     border: 1px solid var(--border-light);
     border-radius: 12px;
-    padding: 12px 6px 10px;
+    padding: 8px 4px 8px;
     text-align: center;
     cursor: pointer;
     transition:
@@ -486,8 +486,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 36px;
-    margin-bottom: 6px;
+    height: 28px;
+    margin-bottom: 4px;
 }
 
 .wxs-day-hi {
@@ -532,7 +532,7 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-secondary);
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 .wxs-details {
@@ -543,12 +543,12 @@
     border: 1px solid var(--border-light);
     border-radius: 12px;
     overflow: hidden;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .wxs-detail {
     background: var(--bg-light, var(--bg));
-    padding: 14px 16px;
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -585,8 +585,8 @@
     align-items: center;
     border: 1px solid var(--border-light);
     border-radius: 14px;
-    padding: 14px 18px;
-    margin-bottom: 16px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
     background: var(--bg-light, transparent);
 }
 
@@ -616,7 +616,7 @@
 
 .wxs-sun-track {
     position: relative;
-    height: 60px;
+    height: 48px;
 }
 
 .wxs-sun-arc {
