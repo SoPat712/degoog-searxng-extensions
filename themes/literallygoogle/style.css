@@ -325,62 +325,68 @@ body {
 
 /* ══════════════════════════════════════════════════════════════════════════
    STICKY HEADER
-   The #results-header skeleton div receives the search-header template
-   (logo + search bar + settings). Pinning it keeps it visible on scroll.
+   Desktop only — on mobile the header scrolls normally.
    ══════════════════════════════════════════════════════════════════════════ */
 
-#results-header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background-color: var(--bg);
-    padding-bottom: 5px;
-}
+@media (min-width: 768px) {
+    #results-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: var(--bg);
+        padding-bottom: 5px;
+    }
 
-/* Align tabs and meta with the results layout left edge */
-#results-tabs,
-#results-meta {
-    margin-left: 0 !important;
-    padding-left: 4rem !important;
+    /* Align tabs and meta with the results layout left edge */
+    #results-tabs,
+    #results-meta {
+        margin-left: 0 !important;
+        padding-left: 4rem !important;
+    }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
    FULL-WIDTH PLUGIN SLOTS
-   The custom search.html skeleton pulls #slot-above-results out of
-   #results-main so it sits at the #results-layout grid level, allowing
-   it to span the full width across results + sidebar.
+   Desktop: grid with sidebar. Mobile: single stacked column.
    ══════════════════════════════════════════════════════════════════════════ */
 
-#results-layout {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 1rem;
-    max-width: 70rem;
-    margin-top: 1rem;
-    margin-left: 2.5rem;
-    margin-right: auto;
-    padding: 0 1.5rem;
+@media (min-width: 768px) {
+    #results-layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1rem;
+        max-width: 70rem;
+        margin-top: 1rem;
+        margin-left: 2.5rem;
+        margin-right: auto;
+        padding: 0 1.5rem;
+    }
+
+    /* Plugin slot spans full width above results + sidebar */
+    #slot-above-results {
+        grid-column: 1 / -1;
+    }
+
+    /* Results in left column */
+    #results-main {
+        grid-column: 1;
+    }
+
+    /* Sidebar in right column */
+    #sidebar-col {
+        grid-column: 2;
+    }
 }
 
-/* Plugin slot spans full width above results + sidebar */
-#slot-above-results {
-    grid-column: 1 / -1;
+/* Mobile: single column, no custom offsets */
+@media (max-width: 767px) {
+    #results-layout {
+        padding: 0 0.75rem;
+    }
 }
 
 #slot-above-results:empty {
     display: none;
-}
-
-/* Results in left column */
-#results-main {
-    grid-column: 1;
-    min-width: 0;
-}
-
-/* Sidebar in right column */
-#sidebar-col {
-    grid-column: 2;
-    min-width: 0;
 }
 
 #sidebar-col > div:empty {
@@ -408,7 +414,11 @@ body {
     text-decoration: none;
     white-space: nowrap;
     color: var(--text-primary);
-    padding-left: 2.5rem;
+}
+@media (min-width: 768px) {
+    .results-logo {
+        padding-left: 2.5rem;
+    }
 }
 .results-logo:visited {
     color: var(--text-primary);
