@@ -324,126 +324,67 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   STICKY HEADER (trankil-style)
-   Pins the search bar / logo row to the top of the viewport as the user
-   scrolls through results. Literallygoogle uses <div id="header"> as the
-   wrapper (see layout.html / search-templates/header.html), so we target
-   both the id and the .header class exposed by the base degoog theme.
+   STICKY HEADER
+   The #results-header skeleton div receives the search-header template
+   (logo + search bar + settings). Pinning it keeps it visible on scroll.
    ══════════════════════════════════════════════════════════════════════════ */
 
-#header,
-.header {
+#results-header {
     position: sticky;
     top: 0;
     z-index: 10;
     background-color: var(--bg);
-    width: 100%;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   FULL-WIDTH PLUGIN SLOTS (trankil-style)
-   Enables plugins like TMDB, Weather, Currency, Speedtest to span the full
-   width of the search results area, sitting above the results list and
-   across the sidebar column. Plugins that use CSS container queries
-   (e.g. @container (min-width: 640px)) will automatically switch to their
-   wide layout when given enough space.
+   FULL-WIDTH PLUGIN SLOTS
+   The custom search.html skeleton pulls #slot-above-results out of
+   #results-main so it sits at the #results-layout grid level, allowing
+   it to span the full width across results + sidebar.
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Override the default grid layout to give .plugins full width */
-main {
-    margin-top: 1rem;
+#results-layout {
     display: grid;
-    grid-template-columns: 3fr 1fr 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: 2fr 1fr;
     gap: 1rem;
     max-width: 70rem;
+    margin-top: 1rem;
     margin-left: clamp(1.5rem, 10vw, 180px);
     margin-right: auto;
     padding: 0 1.5rem;
 }
 
-/* Plugins container spans across results + first sidebar column */
-.plugins {
-    grid-column: 1 / 3;
-}
-
-/* Divider below plugins */
-.plugins hr {
-    margin: 1rem 0 0 0;
-}
-
-/* Results in first column only */
-.results {
-    grid-column: 1 / 2;
-    min-width: 0;
-}
-
-/* Sidebar in second column */
-aside {
-    grid-column: 2 / 3;
-    display: flex;
-    gap: 1rem;
-    flex-direction: column;
-}
-
-aside > div:empty {
-    display: none;
-}
-
-/* Related searches and pagination span both columns */
-#results-sidebar,
-#pagination {
-    grid-column: 1 / 3;
-}
-
-/* Below-results slot spans everything */
-#slot-below-results {
+/* Plugin slot spans full width above results + sidebar */
+#slot-above-results {
     grid-column: 1 / -1;
 }
 
-/* Ensure minimum width for all major layout elements */
-.plugins,
-.results,
-aside,
-#results-sidebar,
-#pagination,
-#slot-below-results {
+#slot-above-results:empty {
+    display: none;
+}
+
+/* Results in left column */
+#results-main {
+    grid-column: 1;
     min-width: 0;
 }
 
-/* Hide plugins container when #slot-above-results is empty */
-.plugins:has(#slot-above-results:empty) {
+/* Sidebar in right column */
+#sidebar-col {
+    grid-column: 2;
+    min-width: 0;
+}
+
+#sidebar-col > div:empty {
     display: none;
 }
 
-/* Media mode: hide plugins and sidebar when viewing images/videos */
-main.media-mode {
-    max-width: 100%;
-    grid-template-columns: repeat(7, 1fr);
-}
-
-main.media-mode .results {
-    grid-column: 1 / 9;
-}
-
-main.media-mode:has(.media-preview-panel.open) .results {
-    grid-column: 1 / 6;
-}
-
-main.media-mode:not(:has(.media-preview-panel)) .media {
-    grid-column: none;
-}
-
-main.media-mode .media {
-    grid-column: 6 / 8;
-}
-
-main.media-mode .plugins {
-    display: none;
-}
-
-main.media-mode aside {
-    display: none;
+#results-main,
+#sidebar-col,
+#slot-above-results,
+#slot-below-results,
+#pagination {
+    min-width: 0;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -466,25 +407,6 @@ main.media-mode aside {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   HEADER CONTENT LAYOUT
-   Flex row inside the sticky <header id="header">: logo + search bar.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-.header-content {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    padding: 0.75rem 1.5rem;
-    max-width: 70rem;
-    margin: 0 auto;
-}
-
-.header-content .results-search-bar {
-    flex: 1;
-    min-width: 0;
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
    CONTAINER
    Generic page-width wrapper for the results layout.
    ══════════════════════════════════════════════════════════════════════════ */
@@ -494,226 +416,6 @@ main.media-mode aside {
     max-width: 70rem;
     margin: 0 auto;
     padding: 0 2.5rem;
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   MEDIA PANEL
-   Sticky sidebar panel for image / video preview on media-mode pages.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-.media {
-    position: sticky;
-    top: calc(58px + 3rem);
-    grid-column: 3 / 4;
-    grid-row: 1 / -1;
-    align-self: start;
-    max-height: calc(100vh - 4rem - 56px - 32px);
-    overflow: auto;
-}
-
-.media.is-pinned {
-    max-height: calc(100vh - 3rem - 57px);
-}
-
-.media-preview-panel {
-    display: none;
-    flex-direction: column;
-}
-
-.media-preview-panel.open {
-    display: flex;
-}
-
-.media-preview-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem;
-    gap: 0.5rem;
-}
-
-.media-preview-img-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: var(--bg-light);
-    border-radius: 12px;
-    min-height: 200px;
-}
-
-.media-preview-img-wrap img {
-    max-width: 100%;
-    max-height: 60vh;
-    object-fit: contain;
-    border-radius: 8px;
-}
-
-.media-preview-info {
-    padding: 1rem;
-}
-
-.media-preview-title {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
-
-.media-preview-link,
-.media-preview-visit {
-    color: var(--text-link);
-}
-
-.media-preview-visit {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text-link);
-    text-decoration: none;
-    margin-top: 0.5rem;
-}
-
-.media-preview-visit:hover {
-    background: var(--bg-light);
-}
-
-.media-preview-close {
-    font-size: 1.25rem;
-}
-
-.button-group {
-    display: flex;
-}
-
-.button-group button {
-    border-radius: 0;
-}
-
-.button-group button:first-child {
-    border-radius: 8px 0 0 8px;
-}
-
-.button-group button:last-child {
-    border-radius: 0 8px 8px 0;
-}
-
-button.variant--icon {
-    background: var(--bg-light);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    padding: 0.4rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-button.variant--icon:hover {
-    background: var(--bg-hover);
-}
-
-button.variant--ghost {
-    background: none;
-    border: none;
-    color: var(--text-primary);
-    cursor: pointer;
-    padding: 0.4rem;
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   IMAGE / VIDEO GRID
-   Masonry-like image grid and video card grid for media-mode results.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-.image-grid {
-    display: columns;
-    columns: 3;
-    gap: 0.5rem;
-}
-
-.image-card.selected > .image-thumb-wrap {
-    outline: 3px solid var(--primary);
-    border-radius: 8px;
-}
-
-.image-thumb-wrap {
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.image-info,
-.video-info {
-    padding: 0.25rem 0;
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-.image-source,
-.video-source {
-    font-size: 11px;
-    color: var(--text-secondary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.image-title,
-.video-title {
-    font-size: 13px;
-    color: var(--text-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.image-grid img {
-    width: 100%;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-.video-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
-}
-
-.video-card {
-    cursor: pointer;
-}
-
-.video-card.selected {
-    outline: 3px solid var(--primary);
-    border-radius: 8px;
-}
-
-.video-thumb-wrap {
-    position: relative;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.video-thumb-wrap img {
-    width: 100%;
-    display: block;
-}
-
-.video-play-icon {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
