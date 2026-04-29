@@ -353,11 +353,11 @@ body {
 main {
     margin-top: 1rem;
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: 3fr 1fr 1fr;
     grid-template-rows: auto 1fr;
     gap: 1rem;
     max-width: 70rem;
-    margin-left: auto;
+    margin-left: clamp(1.5rem, 10vw, 180px);
     margin-right: auto;
     padding: 0 1.5rem;
 }
@@ -459,6 +459,7 @@ main.media-mode aside {
     text-decoration: none;
     white-space: nowrap;
     color: var(--text-primary);
+    padding-left: 0.75rem;
 }
 .results-logo:visited {
     color: var(--text-primary);
@@ -493,176 +494,6 @@ main.media-mode aside {
     max-width: 70rem;
     margin: 0 auto;
     padding: 0 2.5rem;
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   RESULTS TABS / NAVBAR
-   Horizontal tab bar (All, Images, Videos, News, Maps …) below the header.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-.results-tabs {
-    display: flex;
-    gap: 1rem;
-    border-bottom: 1px solid var(--border);
-    padding: 0 1.5rem;
-    max-width: 70rem;
-    margin: 0 auto;
-    justify-content: space-between;
-}
-
-.tabs-wrap {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.results-tab {
-    padding: 0.5rem 1rem;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    position: relative;
-    border-bottom: 3px solid transparent;
-    font-family: "Google Sans";
-    user-select: none;
-}
-
-.results-tab.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
-}
-
-.results-tab:hover:not(.active) {
-    color: var(--text-primary);
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   TOOLS DROPDOWN
-   Time-range / language / safe-search filter menus in the tab bar.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-.tools-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.tools-toggle {
-    color: var(--text-secondary);
-    font-size: 14px;
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 0.5rem;
-    font-family: "Google Sans";
-}
-
-.tools-dropdown,
-.tools-submenu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    width: 220px;
-    background-color: var(--bg-light);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0.5rem 0;
-    z-index: 20;
-}
-
-.tools-submenu {
-    right: 224px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    font-size: 14px;
-}
-
-#tools-submenu-lang {
-    max-height: 370px;
-    overflow: auto;
-}
-
-button.tools-option,
-button.tools-menu-item {
-    padding: 0.5rem 1.5rem;
-    text-align: left;
-    width: 100%;
-    border-radius: 0;
-    background: none;
-    border: none;
-    color: var(--text-primary);
-    cursor: pointer;
-    font-family: "Google Sans";
-    font-size: 14px;
-}
-
-button.tools-option:hover,
-button.tools-menu-item:hover {
-    background-color: var(--bg-hover);
-}
-
-button.tools-option.active::before {
-    content: "✓";
-    padding-right: 8px;
-    font-size: 12px;
-}
-
-button.tools-menu-item {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.tools-menu-value-wrap {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    color: var(--text-secondary);
-}
-
-.tools-custom-date {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.5rem 1.5rem;
-}
-
-.tools-lang-list {
-    width: 100%;
-}
-
-.tools-lang-option {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.tools-lang-code {
-    color: var(--text-secondary);
-    font-size: 12px;
-}
-
-.tools-lang-filter {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    padding: 0.5rem;
-    margin: 0.5rem 1rem;
-    border-radius: 5px;
-    outline: none;
-    width: calc(100% - 2rem);
-    font-family: "Google Sans";
-    font-size: 14px;
-}
-
-input[type="date"] {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    padding: 0.5rem;
-    border-radius: 5px;
-    font-family: "Google Sans";
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
