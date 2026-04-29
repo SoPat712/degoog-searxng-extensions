@@ -337,6 +337,11 @@ body {
     padding-bottom: 5px;
 }
 
+/* Align tabs with the results layout left edge */
+#results-tabs {
+    padding-left: clamp(1.5rem, 10vw, 180px);
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    FULL-WIDTH PLUGIN SLOTS
    The custom search.html skeleton pulls #slot-above-results out of
@@ -401,7 +406,7 @@ body {
     text-decoration: none;
     white-space: nowrap;
     color: var(--text-primary);
-    padding-left: 1.5rem;
+    padding-left: 3.5rem;
 }
 .results-logo:visited {
     color: var(--text-primary);
