@@ -337,9 +337,10 @@ body {
     padding-bottom: 5px;
 }
 
-/* Align tabs with the results layout left edge */
-#results-tabs {
-    padding-left: calc(3.5rem + 0.5px);
+/* Align tabs and meta with the results layout left edge */
+#results-tabs,
+#results-meta {
+    margin-left: 5rem;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
