@@ -341,7 +341,7 @@ body {
 #results-tabs,
 #results-meta {
     margin-left: 0 !important;
-    padding-left: 5rem !important;
+    padding-left: 4rem !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -357,7 +357,7 @@ body {
     gap: 1rem;
     max-width: 70rem;
     margin-top: 1rem;
-    margin-left: 3.5rem;
+    margin-left: 2.5rem;
     margin-right: auto;
     padding: 0 1.5rem;
 }
