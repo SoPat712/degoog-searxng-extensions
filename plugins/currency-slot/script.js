@@ -783,11 +783,11 @@
 
     /* ── layout ── */
     var W = container.clientWidth || 400;
-    var H = 200;
+    var H = 212;
     var padL = 60,
       padR = 10,
       padT = 15,
-      padB = 30;
+      padB = 40;
     var chartW = W - padL - padR;
     var chartH = H - padT - padB;
     var range = max - min || 1;
