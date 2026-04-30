@@ -392,6 +392,8 @@
           rate = newRate;
           updateResult(true);
         }
+
+        if (chartBody) loadChart(currentDays);
       });
     }
 
@@ -515,6 +517,8 @@
         const newRate = await fetchRate(fromCode, toCode);
         if (newRate !== null) rate = newRate;
         updateResult(true);
+
+        if (chartBody) loadChart(currentDays);
       });
     }
 
@@ -553,6 +557,8 @@
           rate = newRate;
           updateResult(true);
         }
+
+        if (chartBody) loadChart(currentDays);
       });
     }
 
@@ -566,6 +572,149 @@
         }
       }
     });
+
+    /* ── Chart ── */
+    const chartBody = wrap.querySelector("#cxs-chart-body");
+    const chartStats = wrap.querySelector("#cxs-chart-stats");
+    const chartTitle = wrap.querySelector("#cxs-chart-title");
+    let currentDays = 30;
+
+    async function loadChart(days) {
+      currentDays = days;
+      if (chartTitle) chartTitle.textContent = fromCode + " / " + toCode;
+      const data = await fetchHistory(fromCode, toCode, days);
+      renderChart(chartBody, chartStats, data, fromCode, toCode);
+    }
+
+    wrap.querySelectorAll(".cxs-period").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        wrap
+          .querySelectorAll(".cxs-period")
+          .forEach((b) => b.classList.remove("cxs-period--active"));
+        btn.classList.add("cxs-period--active");
+        loadChart(
+          btn.dataset.days === "max" ? "max" : parseInt(btn.dataset.days, 10),
+        );
+      });
+    });
+
+    if (chartBody) loadChart(30);
+  }
+
+  async function fetchHistory(from, to, days) {
+    try {
+      if (from === "BTC" || from === "ETH" || to === "BTC" || to === "ETH")
+        return null;
+      let sd;
+      if (days === "max") {
+        sd = "1999-01-04";
+      } else {
+        const numDays = parseInt(days, 10) || 30;
+        const startDate = new Date(Date.now() - numDays * 86400000);
+        sd = startDate.toISOString().slice(0, 10);
+      }
+      // For large ranges, use monthly grouping to keep responses small
+      const numericDays = days === "max" ? 10000 : parseInt(days, 10) || 30;
+      const group =
+        numericDays > 365
+          ? "&group=month"
+          : numericDays > 90
+            ? "&group=week"
+            : "";
+      const res = await fetch(
+        `https://api.frankfurter.dev/v2/rates?from=${sd}&quotes=${to}&base=${from}${group}`,
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!Array.isArray(data)) return null;
+      return data.map((d) => ({ date: d.date, rate: d.rate }));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function renderChart(container, statsContainer, data, fromCode, toCode) {
+    if (!container) return;
+    if (!data || data.length < 2) {
+      container.innerHTML =
+        '<div style="padding:1rem;text-align:center;color:var(--text-secondary);font-size:0.85rem;">No chart data available for this pair</div>';
+      if (statsContainer) statsContainer.innerHTML = "";
+      return;
+    }
+
+    const rates = data.map((d) => d.rate);
+    const min = Math.min(...rates);
+    const max = Math.max(...rates);
+    const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
+    const change = rates[rates.length - 1] - rates[0];
+    const changePercent = (change / rates[0]) * 100;
+
+    const W = 400;
+    const H = 180;
+    const range = max - min || 1;
+
+    const points = rates.map((r, i) => {
+      const x = i * (W / (rates.length - 1));
+      const y = H - (((r - min) / range) * 160 + 10);
+      return x + "," + y;
+    });
+
+    const polylineStr = points.join(" ");
+    const polygonStr = "0," + H + " " + polylineStr + " " + W + "," + H;
+
+    container.innerHTML =
+      '<svg viewBox="0 0 ' +
+      W +
+      " " +
+      H +
+      '" preserveAspectRatio="none" class="cxs-chart-svg">' +
+      "<defs>" +
+      '<linearGradient id="cxs-grad" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="var(--primary, #6c8cff)" stop-opacity="0.3"/>' +
+      '<stop offset="100%" stop-color="var(--primary, #6c8cff)" stop-opacity="0"/>' +
+      "</linearGradient>" +
+      "</defs>" +
+      '<polygon points="' +
+      polygonStr +
+      '" class="cxs-chart-fill" fill="url(#cxs-grad)"/>' +
+      '<polyline points="' +
+      polylineStr +
+      '" class="cxs-chart-line"/>' +
+      "</svg>";
+
+    if (statsContainer) {
+      const sign = change >= 0 ? "+" : "";
+      const dirClass =
+        change >= 0 ? "cxs-stat-value--up" : "cxs-stat-value--down";
+      statsContainer.innerHTML =
+        '<div class="cxs-stat">' +
+        '<span class="cxs-stat-label">Low</span>' +
+        '<span class="cxs-stat-value">' +
+        fmt(min) +
+        "</span>" +
+        "</div>" +
+        '<div class="cxs-stat">' +
+        '<span class="cxs-stat-label">High</span>' +
+        '<span class="cxs-stat-value">' +
+        fmt(max) +
+        "</span>" +
+        "</div>" +
+        '<div class="cxs-stat">' +
+        '<span class="cxs-stat-label">Average</span>' +
+        '<span class="cxs-stat-value">' +
+        fmt(avg) +
+        "</span>" +
+        "</div>" +
+        '<div class="cxs-stat">' +
+        '<span class="cxs-stat-label">Change</span>' +
+        '<span class="cxs-stat-value ' +
+        dirClass +
+        '">' +
+        sign +
+        changePercent.toFixed(2) +
+        "%</span>" +
+        "</div>";
+    }
   }
 
   function scan() {
