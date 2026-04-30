@@ -552,19 +552,7 @@ body {
 
 .settings-fieldset,
 .ext-cards {
-    gap: 2px;
-}
-
-.settings-toggle-wrap:first-child,
-.ext-cards > div:first-child {
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-}
-
-.settings-toggle-wrap:last-child,
-.ext-cards > div:last-child {
-    border-bottom-left-radius: 20px;
-    border-bottom-right-radius: 20px;
+    gap: 12px;
 }
 
 .settings-toggle-wrap:not(:has(+ .settings-toggle-wrap)):not(
@@ -584,6 +572,18 @@ body {
     border: none;
     border-radius: 4px;
     background: #37393b;
+}
+
+.settings-toggle-wrap:first-child,
+.ext-cards > div:first-child {
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+}
+
+.settings-toggle-wrap:last-child,
+.ext-cards > div:last-child {
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
 }
 
 [data-theme="light"] .settings-toggle-wrap,

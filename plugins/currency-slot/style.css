@@ -635,3 +635,80 @@
     z-index: 5;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
+
+/* ── Chart grid & axes ─────────────────────────────────────── */
+
+.cxs-chart-grid-line {
+    stroke: var(--border-light);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+}
+
+.cxs-chart-y-label {
+    font-size: 10px;
+    fill: var(--text-secondary);
+    font-family: var(--font-sans, sans-serif);
+    dominant-baseline: middle;
+}
+
+.cxs-chart-x-label {
+    font-size: 10px;
+    fill: var(--text-secondary);
+    font-family: var(--font-sans, sans-serif);
+    dominant-baseline: hanging;
+}
+
+/* ── Chart hover interaction ───────────────────────────────── */
+
+.cxs-chart-hit {
+    fill: transparent;
+    pointer-events: all;
+    cursor: crosshair;
+}
+
+.cxs-chart-guide {
+    stroke: var(--text-secondary);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    stroke-opacity: 0.5;
+    pointer-events: none;
+}
+
+.cxs-chart-dot {
+    fill: var(--primary, #4285f4);
+    stroke: var(--bg, #1f1f1f);
+    stroke-width: 2;
+    pointer-events: none;
+}
+
+.cxs-chart-tooltip {
+    position: absolute;
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    transform: translateX(-50%);
+    top: 0;
+}
+
+.cxs-chart-tooltip--visible {
+    opacity: 1;
+}
+
+.cxs-tt-date {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.cxs-tt-rate {
+    font-weight: 600;
+    color: var(--text-primary);
+}

@@ -1,4 +1,33 @@
 (function () {
+  const HISTORY_PERIODS = [1, 5, 30, 365, 1825, "max"];
+  const historyCache = new Map();
+  const historyInFlight = new Map();
+
+  function historyKey(from, to, days) {
+    return `${from}|${to}|${days}`;
+  }
+
+  function getGroupForDays(days) {
+    const numericDays = days === "max" ? 10000 : parseInt(days, 10) || 30;
+    if (numericDays > 365) return "month";
+    if (numericDays > 90) return "week";
+    return "";
+  }
+
+  function buildHistoryUrl(from, to, days) {
+    let startDate;
+    if (days === "max") {
+      startDate = "1999-01-04";
+    } else {
+      const numDays = parseInt(days, 10) || 30;
+      const dt = new Date(Date.now() - numDays * 86400000);
+      startDate = dt.toISOString().slice(0, 10);
+    }
+    const group = getGroupForDays(days);
+    const groupParam = group ? `&group=${group}` : "";
+    return `https://api.frankfurter.dev/v2/rates?from=${startDate}&quotes=${to}&base=${from}${groupParam}`;
+  }
+
   function fmt(n) {
     n = parseFloat(n);
     if (isNaN(n)) return "0";
@@ -578,12 +607,28 @@
     const chartStats = wrap.querySelector("#cxs-chart-stats");
     const chartTitle = wrap.querySelector("#cxs-chart-title");
     let currentDays = 30;
+    let prefetchTimer = null;
+
+    function prefetchHistory(from, to, activeDays) {
+      const periods = HISTORY_PERIODS.filter((p) => p !== activeDays);
+      for (const period of periods) {
+        fetchHistory(from, to, period);
+      }
+    }
+
+    function schedulePrefetch() {
+      if (prefetchTimer) clearTimeout(prefetchTimer);
+      prefetchTimer = setTimeout(() => {
+        prefetchHistory(fromCode, toCode, currentDays);
+      }, 60);
+    }
 
     async function loadChart(days) {
       currentDays = days;
       if (chartTitle) chartTitle.textContent = fromCode + " / " + toCode;
       const data = await fetchHistory(fromCode, toCode, days);
-      renderChart(chartBody, chartStats, data, fromCode, toCode);
+      renderChart(chartBody, chartStats, data, fromCode, toCode, days);
+      schedulePrefetch();
     }
 
     wrap.querySelectorAll(".cxs-period").forEach((btn) => {
@@ -605,35 +650,39 @@
     try {
       if (from === "BTC" || from === "ETH" || to === "BTC" || to === "ETH")
         return null;
-      let sd;
-      if (days === "max") {
-        sd = "1999-01-04";
-      } else {
-        const numDays = parseInt(days, 10) || 30;
-        const startDate = new Date(Date.now() - numDays * 86400000);
-        sd = startDate.toISOString().slice(0, 10);
+      const key = historyKey(from, to, days);
+      if (historyCache.has(key)) return historyCache.get(key);
+      if (historyInFlight.has(key)) return historyInFlight.get(key);
+
+      const req = (async () => {
+        const res = await fetch(buildHistoryUrl(from, to, days));
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!Array.isArray(data)) return null;
+        const normalized = data.map((d) => ({ date: d.date, rate: d.rate }));
+        historyCache.set(key, normalized);
+        return normalized;
+      })();
+
+      historyInFlight.set(key, req);
+      try {
+        return await req;
+      } finally {
+        historyInFlight.delete(key);
       }
-      // For large ranges, use monthly grouping to keep responses small
-      const numericDays = days === "max" ? 10000 : parseInt(days, 10) || 30;
-      const group =
-        numericDays > 365
-          ? "&group=month"
-          : numericDays > 90
-            ? "&group=week"
-            : "";
-      const res = await fetch(
-        `https://api.frankfurter.dev/v2/rates?from=${sd}&quotes=${to}&base=${from}${group}`,
-      );
-      if (!res.ok) return null;
-      const data = await res.json();
-      if (!Array.isArray(data)) return null;
-      return data.map((d) => ({ date: d.date, rate: d.rate }));
     } catch (e) {
       return null;
     }
   }
 
-  function renderChart(container, statsContainer, data, fromCode, toCode) {
+  function renderChart(
+    container,
+    statsContainer,
+    data,
+    fromCode,
+    toCode,
+    days,
+  ) {
     if (!container) return;
     if (!data || data.length < 2) {
       container.innerHTML =
@@ -642,67 +691,349 @@
       return;
     }
 
-    const rates = data.map((d) => d.rate);
-    const min = Math.min(...rates);
-    const max = Math.max(...rates);
-    const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
-    const change = rates[rates.length - 1] - rates[0];
-    const changePercent = (change / rates[0]) * 100;
+    /* ── helpers ── */
+    function fmtRate(n) {
+      return n >= 100 ? n.toFixed(2) : n >= 1 ? n.toFixed(4) : n.toFixed(6);
+    }
 
-    const W = 400;
-    const H = 180;
-    const range = max - min || 1;
+    var numericDays = days === "max" ? 10000 : parseInt(days, 10) || 30;
 
-    const points = rates.map((r, i) => {
-      const x = i * (W / (rates.length - 1));
-      const y = H - (((r - min) / range) * 160 + 10);
-      return x + "," + y;
+    function fmtDate(dateStr) {
+      var d = new Date(dateStr);
+      var months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      if (numericDays <= 5) return months[d.getMonth()] + " " + d.getDate();
+      if (numericDays <= 365) return months[d.getMonth()] + " " + d.getDate();
+      return months[d.getMonth()] + " " + d.getFullYear().toString().slice(2);
+    }
+
+    function buildPath(points) {
+      if (!points.length) return "";
+      var d = "M " + points[0].x.toFixed(2) + " " + points[0].y.toFixed(2);
+      for (var i = 1; i < points.length; i++) {
+        var p0 = points[i - 1];
+        var p1 = points[i];
+        var cx = (p0.x + p1.x) / 2;
+        d +=
+          " C " +
+          cx.toFixed(2) +
+          " " +
+          p0.y.toFixed(2) +
+          ", " +
+          cx.toFixed(2) +
+          " " +
+          p1.y.toFixed(2) +
+          ", " +
+          p1.x.toFixed(2) +
+          " " +
+          p1.y.toFixed(2);
+      }
+      return d;
+    }
+
+    var svgNS = "http://www.w3.org/2000/svg";
+    function svgEl(tag) {
+      return document.createElementNS(svgNS, tag);
+    }
+    function setAttrs(el, attrs) {
+      for (var k in attrs)
+        if (attrs.hasOwnProperty(k)) el.setAttribute(k, attrs[k]);
+      return el;
+    }
+
+    /* ── data stats ── */
+    var rates = data.map(function (d) {
+      return d.rate;
+    });
+    var min = Math.min.apply(null, rates);
+    var max = Math.max.apply(null, rates);
+    var avg =
+      rates.reduce(function (a, b) {
+        return a + b;
+      }, 0) / rates.length;
+    var change = rates[rates.length - 1] - rates[0];
+    var changePercent = (change / rates[0]) * 100;
+
+    /* ── layout ── */
+    var W = container.clientWidth || 400;
+    var H = 200;
+    var padL = 60,
+      padR = 10,
+      padT = 15,
+      padB = 30;
+    var chartW = W - padL - padR;
+    var chartH = H - padT - padB;
+    var range = max - min || 1;
+
+    /* ── compute point coords ── */
+    var pts = rates.map(function (r, i) {
+      return {
+        x: padL + (i / (rates.length - 1)) * chartW,
+        y: padT + chartH - ((r - min) / range) * chartH,
+      };
     });
 
-    const polylineStr = points.join(" ");
-    const polygonStr = "0," + H + " " + polylineStr + " " + W + "," + H;
+    /* ── clear container, set up relative positioning for tooltip ── */
+    container.innerHTML = "";
+    container.style.position = "relative";
 
-    container.innerHTML =
-      '<svg viewBox="0 0 ' +
-      W +
+    /* ── SVG ── */
+    var svg = svgEl("svg");
+    setAttrs(svg, {
+      viewBox: "0 0 " + W + " " + H,
+      preserveAspectRatio: "xMidYMid meet",
+      class: "cxs-chart-svg",
+      width: "100%",
+      height: "100%",
+    });
+
+    /* gradient def */
+    var defs = svgEl("defs");
+    var grad = svgEl("linearGradient");
+    setAttrs(grad, { id: "cxs-grad", x1: "0", y1: "0", x2: "0", y2: "1" });
+    var stop1 = svgEl("stop");
+    setAttrs(stop1, {
+      offset: "0%",
+      "stop-color": "var(--primary, #6c8cff)",
+      "stop-opacity": "0.3",
+    });
+    var stop2 = svgEl("stop");
+    setAttrs(stop2, {
+      offset: "100%",
+      "stop-color": "var(--primary, #6c8cff)",
+      "stop-opacity": "0",
+    });
+    grad.appendChild(stop1);
+    grad.appendChild(stop2);
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+
+    /* ── 1. Horizontal grid lines + Y-axis labels (4 lines) ── */
+    for (var gi = 0; gi < 4; gi++) {
+      var frac = gi / 3;
+      var yVal = min + frac * range;
+      var yPx = padT + chartH - frac * chartH;
+
+      var gridLine = svgEl("line");
+      setAttrs(gridLine, {
+        x1: padL,
+        y1: yPx.toFixed(2),
+        x2: W - padR,
+        y2: yPx.toFixed(2),
+        class: "cxs-chart-grid-line",
+      });
+      svg.appendChild(gridLine);
+
+      var yLabel = svgEl("text");
+      setAttrs(yLabel, {
+        x: padL - 8,
+        y: (yPx + 4).toFixed(2),
+        class: "cxs-chart-y-label",
+        "text-anchor": "end",
+      });
+      yLabel.textContent = fmtRate(yVal);
+      svg.appendChild(yLabel);
+    }
+
+    /* ── 2. X-axis date labels ── */
+    var xStep = Math.max(1, Math.floor(data.length / 6));
+    for (var xi = 0; xi < data.length; xi += xStep) {
+      var xLabel = svgEl("text");
+      setAttrs(xLabel, {
+        x: pts[xi].x.toFixed(2),
+        y: (H - 6).toFixed(2),
+        class: "cxs-chart-x-label",
+        "text-anchor": "middle",
+      });
+      xLabel.textContent = fmtDate(data[xi].date);
+      svg.appendChild(xLabel);
+    }
+    /* always show last label if not already included */
+    var lastIdx = data.length - 1;
+    if (lastIdx % xStep !== 0) {
+      var lastLabel = svgEl("text");
+      setAttrs(lastLabel, {
+        x: pts[lastIdx].x.toFixed(2),
+        y: (H - 6).toFixed(2),
+        class: "cxs-chart-x-label",
+        "text-anchor": "middle",
+      });
+      lastLabel.textContent = fmtDate(data[lastIdx].date);
+      svg.appendChild(lastLabel);
+    }
+
+    /* ── 3. Smooth line + area fill ── */
+    var linePath = buildPath(pts);
+
+    /* area fill: close path down to baseline */
+    var areaPath =
+      linePath +
+      " L " +
+      pts[pts.length - 1].x.toFixed(2) +
       " " +
-      H +
-      '" preserveAspectRatio="none" class="cxs-chart-svg">' +
-      "<defs>" +
-      '<linearGradient id="cxs-grad" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="var(--primary, #6c8cff)" stop-opacity="0.3"/>' +
-      '<stop offset="100%" stop-color="var(--primary, #6c8cff)" stop-opacity="0"/>' +
-      "</linearGradient>" +
-      "</defs>" +
-      '<polygon points="' +
-      polygonStr +
-      '" class="cxs-chart-fill" fill="url(#cxs-grad)"/>' +
-      '<polyline points="' +
-      polylineStr +
-      '" class="cxs-chart-line"/>' +
-      "</svg>";
+      (padT + chartH).toFixed(2) +
+      " L " +
+      pts[0].x.toFixed(2) +
+      " " +
+      (padT + chartH).toFixed(2) +
+      " Z";
 
+    var fillEl = svgEl("path");
+    setAttrs(fillEl, {
+      d: areaPath,
+      class: "cxs-chart-fill",
+      fill: "url(#cxs-grad)",
+    });
+    svg.appendChild(fillEl);
+
+    var lineEl = svgEl("path");
+    setAttrs(lineEl, { d: linePath, class: "cxs-chart-line" });
+    svg.appendChild(lineEl);
+
+    /* ── 5. Hover highlight group (guide line + dot) ── */
+    var hlGroup = svgEl("g");
+    hlGroup.setAttribute("class", "cxs-chart-hl");
+    hlGroup.style.display = "none";
+
+    var hlLine = svgEl("line");
+    setAttrs(hlLine, {
+      x1: 0,
+      y1: padT,
+      x2: 0,
+      y2: padT + chartH,
+      class: "cxs-chart-hl-line",
+    });
+    hlGroup.appendChild(hlLine);
+
+    var hlDot = svgEl("circle");
+    setAttrs(hlDot, { cx: 0, cy: 0, r: 4, class: "cxs-chart-hl-dot" });
+    hlGroup.appendChild(hlDot);
+
+    svg.appendChild(hlGroup);
+
+    /* ── 4. Invisible hit zones for hover ── */
+    var hitW = chartW / data.length;
+    for (var hi = 0; hi < data.length; hi++) {
+      var hitRect = svgEl("rect");
+      setAttrs(hitRect, {
+        x: (pts[hi].x - hitW / 2).toFixed(2),
+        y: padT,
+        width: hitW.toFixed(2),
+        height: chartH,
+        class: "cxs-chart-hit",
+        "data-i": hi,
+      });
+      svg.appendChild(hitRect);
+    }
+
+    container.appendChild(svg);
+
+    /* ── 6. HTML tooltip ── */
+    var tooltip = container.querySelector(".cxs-chart-tooltip");
+    if (!tooltip) {
+      tooltip = document.createElement("div");
+      tooltip.className = "cxs-chart-tooltip";
+      container.appendChild(tooltip);
+    }
+    tooltip.style.display = "none";
+
+    function drawHighlight(i) {
+      hlGroup.style.display = "";
+      hlLine.setAttribute("x1", pts[i].x.toFixed(2));
+      hlLine.setAttribute("x2", pts[i].x.toFixed(2));
+      hlDot.setAttribute("cx", pts[i].x.toFixed(2));
+      hlDot.setAttribute("cy", pts[i].y.toFixed(2));
+    }
+
+    function clearHighlight() {
+      hlGroup.style.display = "none";
+    }
+
+    function showTooltip(i, evt) {
+      var rate = data[i].rate;
+      tooltip.innerHTML =
+        '<div class="cxs-tt-date">' +
+        fmtDate(data[i].date) +
+        "</div>" +
+        '<div class="cxs-tt-rate">1 ' +
+        fromCode +
+        " = " +
+        fmtRate(rate) +
+        " " +
+        toCode +
+        "</div>";
+      tooltip.style.display = "";
+
+      /* position relative to container */
+      var containerRect = container.getBoundingClientRect();
+      var svgRect = svg.getBoundingClientRect();
+      var scaleX = svgRect.width / W;
+      var pixelX = svgRect.left - containerRect.left + pts[i].x * scaleX;
+      var ttW = tooltip.offsetWidth || 100;
+      var left = pixelX - ttW / 2;
+      /* clamp */
+      if (left < 0) left = 0;
+      if (left + ttW > containerRect.width) left = containerRect.width - ttW;
+      tooltip.style.left = left + "px";
+      tooltip.style.top = "0px";
+    }
+
+    function hideTooltip() {
+      tooltip.style.display = "none";
+    }
+
+    /* attach events to hit zones */
+    svg.querySelectorAll(".cxs-chart-hit").forEach(function (rect) {
+      rect.addEventListener("mouseenter", function (e) {
+        var i = parseInt(rect.getAttribute("data-i"), 10);
+        drawHighlight(i);
+        showTooltip(i, e);
+      });
+      rect.addEventListener("mousemove", function (e) {
+        var i = parseInt(rect.getAttribute("data-i"), 10);
+        showTooltip(i, e);
+      });
+    });
+
+    container.addEventListener("mouseleave", function () {
+      clearHighlight();
+      hideTooltip();
+    });
+
+    /* ── 7. Stats section ── */
     if (statsContainer) {
-      const sign = change >= 0 ? "+" : "";
-      const dirClass =
+      var sign = change >= 0 ? "+" : "";
+      var dirClass =
         change >= 0 ? "cxs-stat-value--up" : "cxs-stat-value--down";
       statsContainer.innerHTML =
         '<div class="cxs-stat">' +
         '<span class="cxs-stat-label">Low</span>' +
         '<span class="cxs-stat-value">' +
-        fmt(min) +
+        fmtRate(min) +
         "</span>" +
         "</div>" +
         '<div class="cxs-stat">' +
         '<span class="cxs-stat-label">High</span>' +
         '<span class="cxs-stat-value">' +
-        fmt(max) +
+        fmtRate(max) +
         "</span>" +
         "</div>" +
         '<div class="cxs-stat">' +
         '<span class="cxs-stat-label">Average</span>' +
         '<span class="cxs-stat-value">' +
-        fmt(avg) +
+        fmtRate(avg) +
         "</span>" +
         "</div>" +
         '<div class="cxs-stat">' +
