@@ -475,9 +475,19 @@
     margin-bottom: 20px;
 }
 
+/* Keep picker aligned to the left converter card only. */
+.cxs-picker {
+    right: auto;
+    width: calc((100% - 1rem) / 2);
+}
+
 @container (max-width: 600px) {
     .cxs-layout {
         flex-direction: column;
+    }
+
+    .cxs-picker {
+        width: 100%;
     }
 }
 
