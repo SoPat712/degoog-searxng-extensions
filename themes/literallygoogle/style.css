@@ -396,6 +396,11 @@ body {
         padding: 0 1.5rem;
     }
 
+    /* Non-opted-in slots stay in the results column */
+    #slot-above-results {
+        grid-column: 1;
+    }
+
     /* Plugin slot spans full width ONLY when the plugin opts in with .slot-full-width */
     #slot-above-results:has(.slot-full-width) {
         grid-column: 1 / -1;
