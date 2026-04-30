@@ -12,9 +12,7 @@ const ALIASES = {
   "sec": "s", "secs": "s", "mins": "min",
 };
 
-const SUPPORTED_MEASURES = [
-  "length", "area", "mass", "volume", "temperature", "time", "speed", "digital"
-];
+const SUPPORTED_MEASURES = convert().measures();
 
 // Pre-compute all unit definitions to embed in the client as well
 const ALL_UNITS = [];
