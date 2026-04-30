@@ -368,8 +368,8 @@ body {
         top: 0;
         z-index: 10;
         background-color: var(--bg);
-        padding-top: 5px;
-        padding-bottom: 5px;
+        padding-top: 10px;
+        padding-bottom: 10px;
     }
 
     /* Align tabs and meta with the results layout left edge */
