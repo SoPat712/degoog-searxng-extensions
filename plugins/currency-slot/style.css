@@ -705,7 +705,7 @@
     font-size: 10px;
     fill: var(--text-secondary);
     font-family: var(--font-sans, sans-serif);
-    dominant-baseline: hanging;
+    dominant-baseline: middle;
 }
 
 /* ── Chart hover interaction ───────────────────────────────── */

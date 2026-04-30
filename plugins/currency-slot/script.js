@@ -868,7 +868,7 @@
       var xLabel = svgEl("text");
       setAttrs(xLabel, {
         x: pts[xi].x.toFixed(2),
-        y: (H - 6).toFixed(2),
+        y: (H - 14).toFixed(2),
         class: "cxs-chart-x-label",
         "text-anchor": "middle",
       });
@@ -881,7 +881,7 @@
       var lastLabel = svgEl("text");
       setAttrs(lastLabel, {
         x: pts[lastIdx].x.toFixed(2),
-        y: (H - 6).toFixed(2),
+        y: (H - 14).toFixed(2),
         class: "cxs-chart-x-label",
         "text-anchor": "middle",
       });

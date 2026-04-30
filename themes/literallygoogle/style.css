@@ -380,6 +380,28 @@ body {
     }
 }
 
+@media (max-width: 767px) {
+    #results-header {
+        position: relative;
+        padding-top: 10px;
+    }
+
+    /* Keep header actions in the top-right instead of flowing into tabs. */
+    #search-bar-actions-results {
+        position: absolute;
+        top: 10px;
+        right: 52px;
+        z-index: 5;
+    }
+
+    #nav-settings-results {
+        position: absolute;
+        top: 10px;
+        right: 16px;
+        z-index: 5;
+    }
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    FULL-WIDTH PLUGIN SLOTS
    Desktop: grid with sidebar. Mobile: single stacked column.
