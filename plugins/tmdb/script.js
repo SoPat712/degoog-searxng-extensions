@@ -172,6 +172,7 @@
       }
       renderStackedHtml(root, data.html);
       initSeasonRails(root);
+      initTvRailHeightSync(root);
       // Scroll the slot into view so the user sees the new panel.
       try {
         root.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -201,11 +202,86 @@
     if (!prev) return;
     root.innerHTML = prev.html;
     initSeasonRails(root);
+    initTvRailHeightSync(root);
     try {
       root.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } catch (_e) {
       // ignore
     }
+  }
+
+  // ── TV layout: cap the episodes rail to the main column height (side-by-side) ─
+  function teardownTvRailSync(body) {
+    const sync = body && body.__tmdbTvRailSync;
+    if (sync) {
+      try {
+        sync.roMain.disconnect();
+      } catch (_e) {
+        /* ignore */
+      }
+      if (sync.roContainer) {
+        try {
+          sync.roContainer.disconnect();
+        } catch (_e) {
+          /* ignore */
+        }
+      }
+      delete body.__tmdbTvRailSync;
+    }
+    if (body && body.style) {
+      body.style.removeProperty("--tmdb-tv-main-height");
+    }
+  }
+
+  function setupTvRailSync(body) {
+    if (!body || !body.querySelector) return;
+    const main = body.querySelector(".tmdb-tv-main");
+    const rail = body.querySelector(".tmdb-tv-rail");
+    if (!main || !rail) return;
+
+    teardownTvRailSync(body);
+
+    const container = body.closest(".tmdb-result") || null;
+    let raf = 0;
+    function apply() {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(function () {
+        raf = 0;
+        if (!body.isConnected) return;
+        const dir = window.getComputedStyle(body).flexDirection;
+        if (dir !== "row") {
+          body.style.removeProperty("--tmdb-tv-main-height");
+          return;
+        }
+        const h = Math.round(main.getBoundingClientRect().height);
+        if (h < 1) return;
+        body.style.setProperty("--tmdb-tv-main-height", h + "px");
+      });
+    }
+
+    const roMain = new ResizeObserver(apply);
+    const roContainer = container
+      ? new ResizeObserver(apply)
+      : null;
+    roMain.observe(main);
+    if (roContainer && container) roContainer.observe(container);
+    body.__tmdbTvRailSync = { roMain, roContainer, apply };
+    apply();
+  }
+
+  function initTvRailHeightSync(scope) {
+    const root =
+      scope && scope.querySelectorAll ? scope : document;
+    const bodies = new Set();
+    if (
+      root.nodeType === 1 &&
+      root.matches &&
+      root.matches(".tmdb-tv-body")
+    ) {
+      bodies.add(root);
+    }
+    root.querySelectorAll(".tmdb-tv-body").forEach((b) => bodies.add(b));
+    bodies.forEach(setupTvRailSync);
   }
 
   // ── TV seasons rail: horizontal tabs + lazy-loaded episodes ─────────────────
@@ -334,9 +410,13 @@
         if (!node || node.nodeType !== 1) return;
         if (node.matches && node.matches("[data-tmdb-seasons-rail]")) {
           initSeasonRail(node);
+          initTvRailHeightSync(node);
           return;
         }
-        if (node.querySelectorAll) initSeasonRails(node);
+        if (node.querySelectorAll) {
+          initSeasonRails(node);
+          initTvRailHeightSync(node);
+        }
       });
     }
   });
@@ -432,6 +512,7 @@
   );
 
   initSeasonRails(document);
+  initTvRailHeightSync(document);
   seasonRailObserver.observe(document.body, {
     childList: true,
     subtree: true,

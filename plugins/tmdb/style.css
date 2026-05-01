@@ -1420,7 +1420,9 @@
 @container (min-width: 560px) {
     .tmdb-tv-body {
         flex-direction: row;
-        align-items: stretch;
+        /* Row height follows the main column; the rail is capped to that height via
+           --tmdb-tv-main-height (set in script.js) so episodes scroll inside the rail. */
+        align-items: flex-start;
         gap: 1rem;
     }
 
@@ -1433,7 +1435,20 @@
         min-width: min(100%, 272px);
         max-width: min(400px, 100%);
         position: relative;
-        align-self: stretch;
+        align-self: flex-start;
+        max-height: var(--tmdb-tv-main-height, min(520px, 65vh));
+        overflow: hidden;
+    }
+
+    .tmdb-tv-rail .tmdb-seasons-rail,
+    .tmdb-tv-rail .tmdb-season-detail,
+    .tmdb-tv-rail .tmdb-episodes {
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    .tmdb-tv-rail .tmdb-episodes-list {
+        max-height: none;
     }
 }
 
@@ -1455,7 +1470,6 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    height: 100%;
 }
 
 .tmdb-seasons-rail {
@@ -1588,6 +1602,10 @@
 }
 
 .tmdb-tv-rail .tmdb-episodes-list {
-    max-height: none;
     flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Stacked (narrow) layout: keep a reasonable cap; wide layout overrides max-height. */
+    max-height: min(280px, 42vh);
 }
