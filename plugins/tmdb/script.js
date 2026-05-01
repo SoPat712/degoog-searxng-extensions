@@ -171,6 +171,7 @@
         throw new Error("TMDB nav response missing html");
       }
       renderStackedHtml(root, data.html);
+      initSeasonRails(root);
       // Scroll the slot into view so the user sees the new panel.
       try {
         root.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -199,6 +200,7 @@
     const prev = stack.pop();
     if (!prev) return;
     root.innerHTML = prev.html;
+    initSeasonRails(root);
     try {
       root.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } catch (_e) {
@@ -206,24 +208,22 @@
     }
   }
 
-  // ── Season accordion: lazy-load episodes when opened ────────────────────────
-  // The season accordion body contains an empty [data-tmdb-episodes] slot
-  // that gets filled the first time the user opens the accordion. We listen
-  // for the native <details> "toggle" event in the capture phase because
-  // "toggle" does not bubble.
+  // ── TV seasons rail: horizontal tabs + lazy-loaded episodes ─────────────────
+  async function loadSeasonEpisodes(episodesEl, tvId, seasonNumber) {
+    if (!episodesEl || !tvId || seasonNumber == null || seasonNumber === "") return;
+    if (!episodesEl.__tmdbSeasonCache) episodesEl.__tmdbSeasonCache = {};
+    const cache = episodesEl.__tmdbSeasonCache;
+    const key = String(seasonNumber);
 
-  async function loadSeasonEpisodes(detailsEl) {
-    const body = detailsEl.querySelector("[data-tmdb-episodes]");
-    if (!body) return;
-    if (body.dataset.tmdbLoaded === "1") return;
-    if (body.dataset.tmdbLoading === "1") return;
+    if (cache[key]) {
+      episodesEl.innerHTML = cache[key];
+      episodesEl.dataset.tmdbSeasonActive = key;
+      return;
+    }
+    if (episodesEl.dataset.tmdbLoading === "1") return;
 
-    const tvId = detailsEl.getAttribute("data-tmdb-season-tv");
-    const seasonNumber = detailsEl.getAttribute("data-tmdb-season-number");
-    if (!tvId || seasonNumber == null || seasonNumber === "") return;
-
-    body.dataset.tmdbLoading = "1";
-    body.innerHTML =
+    episodesEl.dataset.tmdbLoading = "1";
+    episodesEl.innerHTML =
       '<div class="tmdb-episodes-loading">Loading episodes\u2026</div>';
 
     try {
@@ -240,10 +240,11 @@
       if (!data || typeof data.html !== "string") {
         throw new Error("season response missing html");
       }
-      body.innerHTML = data.html;
-      body.dataset.tmdbLoaded = "1";
+      cache[key] = data.html;
+      episodesEl.innerHTML = data.html;
+      episodesEl.dataset.tmdbSeasonActive = key;
     } catch (err) {
-      body.innerHTML =
+      episodesEl.innerHTML =
         '<div class="tmdb-episodes-error">' +
         "Couldn\u2019t load episodes. Try again later." +
         "</div>";
@@ -251,21 +252,74 @@
         console.warn("[tmdb] season fetch failed:", err);
       }
     } finally {
-      body.dataset.tmdbLoading = "";
+      episodesEl.dataset.tmdbLoading = "";
     }
   }
 
-  document.addEventListener(
-    "toggle",
-    function (e) {
-      const el = e.target;
-      if (!el || !el.matches) return;
-      if (!el.matches(".tmdb-season-accordion")) return;
-      if (!el.open) return;
-      loadSeasonEpisodes(el);
-    },
-    true, // capture phase — "toggle" does not bubble
-  );
+  function updateSeasonButtons(rail, activeBtn) {
+    rail.querySelectorAll("[data-tmdb-season-tab]").forEach((btn) => {
+      const isActive = btn === activeBtn;
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+  }
+
+  async function activateSeasonTab(rail, btn) {
+    if (!rail || !btn) return;
+    const tvId = btn.getAttribute("data-tmdb-season-tv") || rail.getAttribute("data-tmdb-season-tv");
+    const seasonNumber = btn.getAttribute("data-tmdb-season-number");
+    const episodesEl = rail.querySelector("[data-tmdb-episodes]");
+    const overviewEl = rail.querySelector("[data-tmdb-season-overview]");
+    if (!tvId || !seasonNumber || !episodesEl) return;
+
+    updateSeasonButtons(rail, btn);
+
+    if (overviewEl) {
+      const overviewText = btn.getAttribute("data-tmdb-season-overview") || "";
+      overviewEl.textContent = overviewText;
+      overviewEl.classList.toggle("tmdb-season-overview--empty", !overviewText);
+    }
+
+    await loadSeasonEpisodes(episodesEl, tvId, seasonNumber);
+  }
+
+  function initSeasonRail(rail) {
+    if (!rail || rail.dataset.tmdbSeasonRailInit === "1") return;
+    rail.dataset.tmdbSeasonRailInit = "1";
+
+    const strip = rail.querySelector("[data-tmdb-seasons-strip]");
+    const leftBtn = rail.querySelector('[data-tmdb-season-scroll="left"]');
+    const rightBtn = rail.querySelector('[data-tmdb-season-scroll="right"]');
+    const tabs = Array.from(rail.querySelectorAll("[data-tmdb-season-tab]"));
+    if (!strip || tabs.length === 0) return;
+
+    const scrollByAmount = () => Math.max(220, Math.floor(strip.clientWidth * 0.72));
+    if (leftBtn) {
+      leftBtn.addEventListener("click", () => {
+        strip.scrollBy({ left: -scrollByAmount(), behavior: "smooth" });
+      });
+    }
+    if (rightBtn) {
+      rightBtn.addEventListener("click", () => {
+        strip.scrollBy({ left: scrollByAmount(), behavior: "smooth" });
+      });
+    }
+
+    tabs.forEach((btn) => {
+      btn.addEventListener("click", () => activateSeasonTab(rail, btn));
+    });
+
+    const initiallyActive =
+      rail.querySelector("[data-tmdb-season-tab].is-active") || tabs[0];
+    activateSeasonTab(rail, initiallyActive);
+  }
+
+  function initSeasonRails(scope) {
+    const root = scope && scope.querySelectorAll ? scope : document;
+    root
+      .querySelectorAll("[data-tmdb-seasons-rail]")
+      .forEach((rail) => initSeasonRail(rail));
+  }
 
   // Click delegation: works for cast cards, back button, image modal, and any
   // future element with [data-tmdb-nav="..."] + [data-tmdb-id="..."].
@@ -356,4 +410,6 @@
     },
     false,
   );
+
+  initSeasonRails(document);
 })();

@@ -572,40 +572,8 @@ const _buildCastAccordion = (cast, label) => {
   );
 };
 
-const _buildSeasonAccordion = (season, tvId) => {
-  const name = _esc(season.name || `Season ${season.season_number}`);
-  const epCount = season.episode_count || 0;
-  const airYear = (season.air_date || "").slice(0, 4);
-  const overview = season.overview ? _esc(season.overview) : "";
-  const meta = _esc(
-    [airYear, `${epCount} episode${epCount !== 1 ? "s" : ""}`]
-      .filter(Boolean)
-      .join("\u00A0·\u00A0"),
-  );
-  // Episodes are lazy-loaded client-side when the accordion opens. See
-  // script.js (toggle handler) + the `season` plugin route below.
-  const seasonRowHtml = overview
-    ? `<div class="tmdb-season-row">` +
-      `<div class="tmdb-season-info">` +
-      `<p class="tmdb-season-overview">${overview}</p>` +
-      `</div>` +
-      `</div>`
-    : "";
-  return (
-    `<details class="tmdb-accordion tmdb-season-accordion" ` +
-    `data-tmdb-season-tv="${tvId}" ` +
-    `data-tmdb-season-number="${season.season_number}">` +
-    `<summary class="tmdb-accordion-summary">${name}<span class="tmdb-accordion-meta">${meta}</span></summary>` +
-    `<div class="tmdb-accordion-body">` +
-    seasonRowHtml +
-    `<div class="tmdb-episodes" data-tmdb-episodes aria-live="polite"></div>` +
-    `</div>` +
-    `</details>`
-  );
-};
-
 // Renders the episode list for a season. Returned by the `season` route and
-// injected into the `[data-tmdb-episodes]` slot of the matching accordion.
+// injected into the right-column TV panel episodes slot.
 // Each episode card is a link to its TMDB page.
 const _renderEpisodes = (seasonData, tvId) => {
   const episodes = Array.isArray(seasonData?.episodes)
@@ -664,18 +632,47 @@ const _renderEpisodes = (seasonData, tvId) => {
   return `<div class="tmdb-episodes-list">${items}</div>`;
 };
 
-const _buildSeasonsAccordion = (details) => {
+const _buildSeasonsRail = (details) => {
   const seasons = details?.seasons;
   if (!Array.isArray(seasons) || seasons.length === 0) return "";
   const relevant = seasons.filter((s) => s.season_number > 0);
-  const seasonHtml = relevant
-    .map((s) => _buildSeasonAccordion(s, details.id))
+  if (relevant.length === 0) return "";
+  const firstSeason = relevant[0];
+  const tabs = relevant
+    .map((season, idx) => {
+      const seasonNum = season.season_number;
+      const label = _esc(season.name || `Season ${seasonNum}`);
+      const epCount = season.episode_count || 0;
+      const meta = _esc(
+        epCount ? `${epCount} episode${epCount !== 1 ? "s" : ""}` : "",
+      );
+      const overview = _esc(season.overview || "");
+      return (
+        `<button type="button" class="tmdb-season-tab${idx === 0 ? " is-active" : ""}" ` +
+        `data-tmdb-season-tab data-tmdb-season-tv="${details.id}" ` +
+        `data-tmdb-season-number="${seasonNum}" data-tmdb-season-overview="${overview}" ` +
+        `aria-selected="${idx === 0 ? "true" : "false"}">` +
+        `<span class="tmdb-season-tab-label">${label}</span>` +
+        (meta ? `<span class="tmdb-season-tab-meta">${meta}</span>` : "") +
+        `</button>`
+      );
+    })
     .join("");
-  if (!seasonHtml) return "";
+  const initialOverview = _esc(firstSeason.overview || "");
   const count = relevant.length;
   return (
-    `<div class="tmdb-seasons-scroll" role="navigation" aria-label="Seasons and episodes, ${count} season${count !== 1 ? "s" : ""}">` +
-    seasonHtml +
+    `<div class="tmdb-seasons-rail" data-tmdb-seasons-rail data-tmdb-season-tv="${details.id}">` +
+    `<div class="tmdb-seasons-nav">` +
+    `<button type="button" class="tmdb-season-scroll-btn" data-tmdb-season-scroll="left" aria-label="Scroll seasons left">\u2039</button>` +
+    `<div class="tmdb-seasons-strip" data-tmdb-seasons-strip role="tablist" aria-label="Seasons and episodes, ${count} season${count !== 1 ? "s" : ""}">` +
+    tabs +
+    `</div>` +
+    `<button type="button" class="tmdb-season-scroll-btn" data-tmdb-season-scroll="right" aria-label="Scroll seasons right">\u203A</button>` +
+    `</div>` +
+    `<div class="tmdb-season-detail">` +
+    `<p class="tmdb-season-overview${initialOverview ? "" : " tmdb-season-overview--empty"}" data-tmdb-season-overview>${initialOverview}</p>` +
+    `<div class="tmdb-episodes" data-tmdb-episodes data-tmdb-season-tv="${details.id}" data-tmdb-season-active="${firstSeason.season_number}" aria-live="polite"></div>` +
+    `</div>` +
     `</div>`
   );
 };
@@ -996,7 +993,6 @@ const _renderTv = (
   images,
   jellyfinItem,
   omdbRatings,
-  trailerKey,
 ) => {
   const name = _esc(details.name || "");
   const year = _esc((details.first_air_date || "").slice(0, 4));
@@ -1043,7 +1039,6 @@ const _renderTv = (
     : "";
 
   const plotHtml = overview ? `<p class="tmdb-plot">${_esc(overview)}</p>` : "";
-  const trailerHtml = _buildTrailerEmbed(trailerKey, details.name || "");
 
   const cast = credits?.cast || [];
   const castStrip = _buildCastStrip(cast);
@@ -1058,7 +1053,7 @@ const _renderTv = (
       `</div>`
     : "";
 
-  const seasonsAccordion = _buildSeasonsAccordion(details);
+  const seasonsAccordion = _buildSeasonsRail(details);
   const seasonCount =
     details?.seasons?.filter((s) => s.season_number > 0).length || 0;
   const jellyfinCard = _buildJellyfinCard(jellyfinItem);
@@ -1080,7 +1075,6 @@ const _renderTv = (
     `<div class="tmdb-hero">` +
     `<div class="tmdb-hero-media">${imageCombo}</div>` +
     `<div class="tmdb-hero-info">` +
-    trailerHtml +
     ratingsHtml +
     creatorHtml +
     plotHtml +
@@ -1141,14 +1135,13 @@ const _buildMoviePanel = async (id, ctx) => {
 const _buildTvPanel = async (id, ctx) => {
   const details = await _tmdb(`tv/${id}`, ctx);
   if (!details) return null;
-  const [credits, images, jellyfinItem, ext, videos] = await Promise.all([
+  const [credits, images, jellyfinItem, ext] = await Promise.all([
     _tmdb(`tv/${id}/credits`, ctx),
     _tmdb(`tv/${id}/images?include_image_language=en,null`, ctx),
     jellyfinUrl && jellyfinApiKey
       ? _jellyfinSearch(details.name || details.original_name || "", ctx)
       : Promise.resolve(null),
     _tmdb(`tv/${id}/external_ids`, ctx),
-    _tmdb(`tv/${id}/videos`, ctx),
   ]);
   let omdbRatings = null;
   if (omdbApiKey && ext?.imdb_id) {
@@ -1163,7 +1156,6 @@ const _buildTvPanel = async (id, ctx) => {
       images,
       jellyfinItem,
       omdbRatings,
-      _pickTrailerKey(videos),
     ),
   };
 };

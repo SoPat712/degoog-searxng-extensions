@@ -3,6 +3,7 @@
 .tmdb-result {
     container-type: inline-size;
     width: 100%;
+    max-width: none;
     color: var(--text-primary);
     padding: 0 0 4px;
     font-family: var(--font-sans, sans-serif);
@@ -1437,70 +1438,132 @@
     border-radius: 12px;
     background: var(--bg-light, rgba(255, 255, 255, 0.04));
     padding: 0.5rem 0.6rem 0.6rem;
-    max-height: min(70vh, 620px);
     display: flex;
     flex-direction: column;
     min-height: 0;
 }
 
-.tmdb-rail-heading {
+.tmdb-seasons-rail {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.35rem 0.75rem;
-    padding-bottom: 0.4rem;
-    margin-bottom: 0.35rem;
-    border-bottom: 1px solid var(--border-light);
-    flex-shrink: 0;
+    flex-direction: column;
+    gap: 0.6rem;
 }
 
-.tmdb-rail-title {
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--text-secondary);
+.tmdb-seasons-nav {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.4rem;
 }
 
-.tmdb-rail-meta {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-}
-
-.tmdb-seasons-scroll {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 0.15rem;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-light) transparent;
-}
-
-.tmdb-seasons-scroll::-webkit-scrollbar {
-    width: 6px;
-}
-
-.tmdb-seasons-scroll::-webkit-scrollbar-thumb {
-    background: var(--border-light);
+.tmdb-season-scroll-btn {
+    width: 1.8rem;
+    height: 1.8rem;
+    border: 1px solid var(--border-light);
     border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    line-height: 1;
+    transition:
+        border-color 0.15s ease,
+        color 0.15s ease,
+        background 0.15s ease;
 }
 
-.tmdb-tv-rail .tmdb-accordion {
-    margin-bottom: 0.1rem;
+.tmdb-season-scroll-btn:hover,
+.tmdb-season-scroll-btn:focus-visible {
+    border-color: var(--primary, #1a73e8);
+    color: var(--text-primary);
+    background: var(--bg-hover, rgba(255, 255, 255, 0.04));
+    outline: none;
 }
 
-.tmdb-tv-rail .tmdb-accordion-summary {
-    padding: 0.42rem 0.1rem;
-    font-size: 0.78rem;
+.tmdb-seasons-strip {
+    display: flex;
+    align-items: stretch;
+    gap: 0.35rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    min-width: 0;
+    padding-bottom: 2px;
 }
 
-.tmdb-tv-rail .tmdb-accordion-body {
-    padding: 0 0 0.35rem 0.3rem;
+.tmdb-seasons-strip::-webkit-scrollbar {
+    display: none;
+}
+
+.tmdb-season-tab {
+    appearance: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem 0.25rem 0.33rem;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.02rem;
+    white-space: nowrap;
+    flex: 0 0 auto;
+    transition:
+        color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.tmdb-season-tab:hover,
+.tmdb-season-tab:focus-visible {
+    color: var(--text-primary);
+    border-bottom-color: var(--border);
+    outline: none;
+}
+
+.tmdb-season-tab.is-active {
+    color: var(--text-primary);
+    border-bottom-color: var(--primary, #1a73e8);
+}
+
+.tmdb-season-tab-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.tmdb-season-tab-meta {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+}
+
+.tmdb-season-detail {
+    min-height: 0;
 }
 
 .tmdb-tv-rail .tmdb-season-overview {
-    -webkit-line-clamp: 4;
-    line-clamp: 4;
+    margin: 0 0 0.5rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.tmdb-season-overview--empty {
+    display: none;
+}
+
+.tmdb-tv-rail .tmdb-episodes {
+    margin-top: 0;
+}
+
+.tmdb-tv-rail .tmdb-episodes-list {
+    max-height: min(48vh, 430px);
 }
