@@ -226,6 +226,13 @@
           /* ignore */
         }
       }
+      if (sync.roCast) {
+        try {
+          sync.roCast.disconnect();
+        } catch (_e) {
+          /* ignore */
+        }
+      }
       delete body.__tmdbTvRailSync;
     }
     if (body && body.querySelector) {
@@ -240,6 +247,22 @@
     if (body && body.style) {
       body.style.removeProperty("--tmdb-tv-main-height");
     }
+  }
+
+  /** Height from top of .tmdb-tv-main to bottom of cast (preferred), so the rail
+   *  matches the hero+cast band instead of the full main box when the hero row is
+   *  taller than the image column (plot vs stills). Falls back to full main height. */
+  function measureTvMainRailHeight(main) {
+    if (!main || !main.getBoundingClientRect) return 0;
+    const mainTop = main.getBoundingClientRect().top;
+    const cast = main.querySelector(".tmdb-section");
+    if (cast && cast.getBoundingClientRect) {
+      const cr = cast.getBoundingClientRect();
+      if (cr.height > 0) {
+        return Math.ceil(cr.bottom - mainTop);
+      }
+    }
+    return Math.ceil(main.getBoundingClientRect().height);
   }
 
   function setupTvRailSync(body) {
@@ -266,7 +289,7 @@
           rail.style.removeProperty("overflow");
           return;
         }
-        const h = Math.ceil(main.getBoundingClientRect().height);
+        const h = measureTvMainRailHeight(main);
         if (h < 1) return;
         body.style.setProperty("--tmdb-tv-main-height", h + "px");
         /* Flex items use min-height:auto by default; episode content can force the rail
@@ -282,9 +305,12 @@
     const roContainer = container
       ? new ResizeObserver(apply)
       : null;
+    const castSection = main.querySelector(".tmdb-section");
+    const roCast = castSection ? new ResizeObserver(apply) : null;
     roMain.observe(main);
     if (roContainer && container) roContainer.observe(container);
-    body.__tmdbTvRailSync = { roMain, roContainer, apply };
+    if (roCast && castSection) roCast.observe(castSection);
+    body.__tmdbTvRailSync = { roMain, roContainer, roCast, apply };
     apply();
   }
 
