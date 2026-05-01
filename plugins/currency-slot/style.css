@@ -69,33 +69,6 @@
     position: relative;
 }
 
-.cxs-input-wrap--editable::after {
-    content: "edit";
-    position: absolute;
-    right: 0;
-    bottom: 6px;
-    padding: 2px 7px;
-    border-radius: 999px;
-    background: var(--bg-hover, rgba(255, 255, 255, 0.06));
-    color: var(--text-secondary);
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    opacity: 0;
-    transform: translateY(2px);
-    pointer-events: none;
-    transition:
-        opacity 160ms ease,
-        transform 160ms ease;
-}
-
-.cxs-input-wrap--editable:hover::after,
-.cxs-input-wrap--editable:focus-within::after {
-    opacity: 1;
-    transform: translateY(0);
-}
-
 .cxs-label {
     font-size: 0.74rem;
     font-weight: 600;
@@ -162,19 +135,37 @@
 
 .cxs-copy {
     flex-shrink: 0;
-    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 1px solid var(--border-light, var(--border));
     border-radius: 999px;
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
-    font: inherit;
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 5px 9px;
     transition:
         background-color 160ms ease,
         border-color 160ms ease,
         color 160ms ease;
+}
+
+.cxs-copy svg {
+    display: block;
+}
+
+.cxs-copy .cxs-copy-done {
+    display: none;
+}
+
+.cxs-copy.copied .cxs-copy-icon {
+    display: none;
+}
+
+.cxs-copy.copied .cxs-copy-done {
+    display: block;
 }
 
 .cxs-copy:hover,
@@ -563,10 +554,6 @@
     .cxs-amount,
     .cxs-result {
         font-size: 1.6rem;
-    }
-
-    .cxs-input-wrap--editable::after {
-        display: none;
     }
 
     .cxs-result-line {

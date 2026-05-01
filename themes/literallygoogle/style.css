@@ -504,6 +504,11 @@ body {
     display: none;
 }
 
+/* Match stacked .results-slot-panel spacing (e.g. At a glance → AI Summary). */
+#slot-above-results:has(.uxs-wrap) {
+    margin-bottom: 1rem;
+}
+
 /* Flatten outer slot chrome for wide plugins except unit converter (needs framed card). */
 #slot-above-results .results-slot-panel:has(.slot-full-width):not(:has(.uxs-wrap)) {
     background: transparent;

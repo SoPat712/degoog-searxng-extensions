@@ -358,11 +358,8 @@
       if (!value) return;
 
       const markCopied = () => {
-        const originalText = copyBtn.textContent;
-        copyBtn.textContent = "Copied";
         copyBtn.classList.add("copied");
         setTimeout(() => {
-          copyBtn.textContent = originalText;
           copyBtn.classList.remove("copied");
         }, 1200);
       };
