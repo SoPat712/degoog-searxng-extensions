@@ -547,6 +547,7 @@
               step = Math.ceil(w * 1.35 + 14);
             }
           }
+          step = Math.max(1, Math.round(step * 1.5));
           scrollEl.scrollBy({
             left: dir === "prev" ? -step : step,
             behavior: "smooth",

@@ -40,6 +40,7 @@
     height: 100%;
 }
 
+.tmdb-img-side > .tmdb-combo-tile-wrap,
 .tmdb-img-side > .tmdb-combo-img,
 .tmdb-img-side > .tmdb-combo-placeholder {
     flex: 1 1 0;
@@ -58,6 +59,27 @@
     overflow: hidden;
     transform-origin: center center;
     backface-visibility: hidden;
+}
+
+/* Per-tile clip (esp. quad columns): some engines don’t clip transformed <img> on the
+   inner horizontal gutter; the wrapper is the reliable overflow box. */
+.tmdb-combo-tile-wrap {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+}
+
+.tmdb-combo-tile-wrap > .tmdb-combo-img {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
 }
 
 /* Hover zoom stays inside each tile (clips black gutters + outer rounded frame). */
@@ -149,8 +171,9 @@
     gap: 2px;
 }
 
-.tmdb-img-combo--double > .tmdb-combo-img {
+.tmdb-img-combo--double > .tmdb-combo-tile-wrap {
     aspect-ratio: 1;
+    min-height: 0;
 }
 
 /* Triple layout: one row, two equal columns — poster | stacked backdrops.
@@ -196,7 +219,11 @@
     gap: 2px;
 }
 
-.tmdb-img-combo--triple-no-poster > .tmdb-combo-img {
+.tmdb-img-combo--triple-no-poster > .tmdb-combo-tile-wrap {
+    min-height: 0;
+}
+
+.tmdb-img-combo--triple-no-poster > .tmdb-combo-tile-wrap > .tmdb-combo-img {
     width: 100%;
     height: 100%;
     min-height: 0;
@@ -225,6 +252,10 @@
 
 .tmdb-quad-col--right {
     grid-template-rows: 2fr 3fr;
+}
+
+.tmdb-img-combo--quad .tmdb-quad-col > .tmdb-combo-tile-wrap {
+    min-height: 0;
 }
 
 .tmdb-img-combo--quad .tmdb-combo-tile {
@@ -537,7 +568,7 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    border: 1px solid transparent;
+    border: 1px solid var(--border-light);
     transition:
         transform 0.15s ease,
         border-color 0.15s ease,
@@ -569,11 +600,14 @@
 .tmdb-cast-photo-wrap {
     width: 100%;
     aspect-ratio: 1;
-    background: var(--border-light);
+    background: rgba(0, 0, 0, 0.55);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
+    overflow: hidden;
+    border-radius: 11px 11px 0 0;
+    box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35);
 }
 
 .tmdb-cast-photo {
@@ -581,6 +615,14 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    transition: transform 0.25s ease;
+    transform-origin: center center;
+    backface-visibility: hidden;
+}
+
+.tmdb-cast-card:hover .tmdb-cast-photo,
+.tmdb-cast-card:focus-within .tmdb-cast-photo {
+    transform: scale(1.08);
 }
 
 .tmdb-cast-initial {
@@ -1658,7 +1700,11 @@
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     min-width: 0;
-    padding-bottom: 2px;
+    padding: 0.45rem 0.55rem;
+    background: var(--bg-light, rgba(255, 255, 255, 0.06));
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    box-sizing: border-box;
 }
 
 .tmdb-seasons-strip::-webkit-scrollbar {
@@ -1667,38 +1713,49 @@
 
 .tmdb-season-tab {
     appearance: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    background: transparent;
-    color: var(--text-secondary);
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.18);
+    color: var(--text-primary);
     cursor: pointer;
-    padding: 0.25rem 0.25rem 0.33rem;
+    padding: 0.38rem 0.55rem 0.42rem;
     display: inline-flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.02rem;
+    gap: 0.08rem;
     white-space: nowrap;
     flex: 0 0 auto;
     transition:
         color 0.15s ease,
-        border-color 0.15s ease;
+        border-color 0.15s ease,
+        background 0.15s ease;
 }
 
 .tmdb-season-tab:hover,
 .tmdb-season-tab:focus-visible {
-    color: var(--text-primary);
-    border-bottom-color: var(--border);
+    border-color: var(--border);
+    background: var(--bg-hover, rgba(255, 255, 255, 0.1));
     outline: none;
 }
 
 .tmdb-season-tab.is-active {
+    border-color: var(--primary, #1a73e8);
+    background: rgba(26, 115, 232, 0.14);
+}
+
+.tmdb-season-tab:not(.is-active) .tmdb-season-tab-label {
+    color: var(--text-secondary);
+}
+
+.tmdb-season-tab.is-active .tmdb-season-tab-label {
     color: var(--text-primary);
-    border-bottom-color: var(--primary, #1a73e8);
 }
 
 .tmdb-season-tab-label {
     font-size: 0.82rem;
     font-weight: 600;
+    line-height: 1.2;
 }
 
 .tmdb-season-tab-meta {
