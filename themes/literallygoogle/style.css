@@ -467,9 +467,14 @@ body {
     display: none;
 }
 
-#slot-above-results .uxs-main {
+#slot-above-results > .results-slot-panel[data-grid] {
+    padding: 0;
     border: none;
-    margin-bottom: 0;
+    background: none;
+}
+
+#slot-above-results > .results-slot-panel[data-grid] > .results-slot-panel-body {
+    padding: 0;
 }
 
 #media-preview-panel,
