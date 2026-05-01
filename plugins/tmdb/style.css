@@ -20,11 +20,12 @@
 /* ── Image Combo (movie / TV): 1 large poster + 2 stacked backdrops ───────── */
 
 .tmdb-img-combo {
-    gap: 1px;
+    gap: 2px;
     background: rgba(0, 0, 0, 0.65);
     margin-bottom: 0;
     border-radius: 12px;
     overflow: hidden;
+    isolation: isolate;
 }
 
 .tmdb-img-main {
@@ -34,7 +35,7 @@
 .tmdb-img-side {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
     min-height: 0;
     height: 100%;
 }
@@ -54,12 +55,15 @@
     background: var(--bg-light);
     cursor: pointer;
     transition: transform 0.25s ease;
+    overflow: hidden;
+    transform-origin: center center;
+    backface-visibility: hidden;
 }
 
-/* Hover zoom effect on images */
+/* Hover zoom stays inside each tile (clips black gutters + outer rounded frame). */
 .tmdb-img-combo .tmdb-combo-img:hover,
 .tmdb-person-photo .tmdb-person-photo-img:hover {
-    transform: scale(1.1);
+    transform: scale(1.08);
 }
 
 /* Ensure overflow hidden clips the zoomed image */
@@ -114,6 +118,9 @@
     display: block;
     cursor: pointer;
     transition: transform 0.25s ease;
+    overflow: hidden;
+    transform-origin: center center;
+    backface-visibility: hidden;
 }
 
 .tmdb-person-photo--empty {
@@ -139,7 +146,7 @@
 .tmdb-img-combo.tmdb-img-combo--double {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1px;
+    gap: 2px;
 }
 
 .tmdb-img-combo--double > .tmdb-combo-img {
@@ -154,7 +161,7 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr;
     align-items: stretch;
-    gap: 1px;
+    gap: 2px;
     min-height: 0;
 }
 
@@ -172,7 +179,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
 }
 
 .tmdb-img-combo--triple > .tmdb-img-main > .tmdb-combo-img,
@@ -186,7 +193,7 @@
 .tmdb-img-combo.tmdb-img-combo--triple-no-poster {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
+    gap: 2px;
 }
 
 .tmdb-img-combo--triple-no-poster > .tmdb-combo-img {
@@ -200,15 +207,16 @@
 .tmdb-img-combo.tmdb-img-combo--quad {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1px;
+    gap: 2px;
     min-height: 0;
     align-items: stretch;
 }
 
 .tmdb-quad-col {
     display: grid;
-    gap: 1px;
+    gap: 2px;
     min-height: 0;
+    overflow: hidden;
 }
 
 .tmdb-quad-col--left {
