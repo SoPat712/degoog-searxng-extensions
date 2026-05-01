@@ -28,8 +28,12 @@ for (const measure of SUPPORTED_MEASURES) {
     const desc = convert().describe(abbr);
     ALL_UNITS.push(desc);
     ALIASES[abbr.toLowerCase()] = abbr;
-    ALIASES[desc.singular.toLowerCase()] = abbr;
-    ALIASES[desc.plural.toLowerCase()] = abbr;
+    const sing = desc.singular.toLowerCase();
+    const plur = desc.plural.toLowerCase();
+    ALIASES[sing] = abbr;
+    ALIASES[plur] = abbr;
+    if (sing.includes("-")) ALIASES[sing.replace(/-/g, " ")] = abbr;
+    if (plur.includes("-")) ALIASES[plur.replace(/-/g, " ")] = abbr;
   }
 }
 
