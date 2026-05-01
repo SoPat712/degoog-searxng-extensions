@@ -1,10 +1,10 @@
-/* ── Unit Converter Slot — Material / Google-style ─────────────── */
+/* ── Unit Converter Slot — LiterallyGoogle Theme ───────────────── */
 
-/* Container query root */
 .uxs-wrap {
     container-type: inline-size;
     margin-bottom: 12px;
     position: relative;
+    color: var(--text-primary);
 }
 
 /* Card */
@@ -13,86 +13,84 @@
     border: 1px solid var(--border-light);
     border-radius: 12px;
     overflow: hidden;
-    background: transparent;
+    background: var(--bg-light, #303134);
     margin-bottom: 20px;
 }
 
-/* ── Shared dropdown chevron ──────────────────────────────────── */
-/* Both category and unit selects use appearance:none, so we draw
-   our own chevron via an encoded SVG background-image.  The SVG
-   uses currentColor encoded as %23 so it inherits --text-secondary. */
-
-.uxs-category-select,
-.uxs-unit-select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-color: transparent;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 10px 6px;
-    border: none;
-    color: var(--text-primary);
-    font-family: var(--font-sans, sans-serif);
-    font-size: 0.94rem;
-    font-weight: 500;
-    outline: none;
-    cursor: pointer;
-    padding-right: 32px; /* room for the chevron */
-}
-
-.uxs-category-select option,
-.uxs-unit-select option {
-    background: var(--bg-light);
-    color: var(--text-primary);
-}
-
-/* ── Top bar / category select ────────────────────────────────── */
+/* ── Category bar ──────────────────────────────────────────────── */
 
 .uxs-top-bar {
     border-bottom: 1px solid var(--border-light);
-    background: var(--bg-hover, rgba(128, 128, 128, 0.04));
+    background: var(--bg-hover, rgba(128, 128, 128, 0.08));
 }
 
 .uxs-category-select {
     width: 100%;
-    padding: 11px 32px 11px 20px;
+    padding: 12px 36px 12px 18px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2380868b' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 10px 6px;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    outline: none;
+    cursor: pointer;
     transition: background-color 0.15s ease;
 }
 
 .uxs-category-select:hover {
-    background-color: var(--bg-hover, rgba(128, 128, 128, 0.06));
+    background-color: var(--bg-hover, rgba(128, 128, 128, 0.12));
 }
 
 .uxs-category-select:focus-visible {
     box-shadow: inset 0 0 0 2px var(--primary, #4285f4);
 }
 
-/* ── Conversion rows ─────────────────────────────────────────── */
+.uxs-category-select option,
+.uxs-unit-select option {
+    background: var(--bg-light, #303134);
+    color: var(--text-primary);
+}
+
+/* ── Conversion rows ───────────────────────────────────────────── */
 
 .uxs-row {
     display: flex;
     align-items: center;
-    padding: 18px 20px;
+    padding: 18px 18px;
     gap: 16px;
     transition: background-color 0.15s ease;
 }
 
 .uxs-row:hover {
-    background: var(--bg-hover, rgba(128, 128, 128, 0.03));
+    background: var(--bg-hover, rgba(128, 128, 128, 0.06));
 }
 
-/* Left side — number input or result */
 .uxs-input-wrap {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
 }
 
-/* ── Number input ─────────────────────────────────────────────── */
+.uxs-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+/* ── Number input ──────────────────────────────────────────────── */
 
 .uxs-amount {
     width: 100%;
@@ -103,7 +101,6 @@
     border: none;
     border-bottom: 2px solid transparent;
     outline: none;
-    font-family: var(--font-sans, sans-serif);
     letter-spacing: -0.02em;
     padding: 0 0 4px;
     font-variant-numeric: tabular-nums;
@@ -114,7 +111,6 @@
     border-bottom-color: var(--primary, #4285f4);
 }
 
-/* Hide number-input spinners */
 .uxs-amount::-webkit-inner-spin-button,
 .uxs-amount::-webkit-outer-spin-button {
     -webkit-appearance: none;
@@ -125,7 +121,7 @@
     -moz-appearance: textfield;
 }
 
-/* ── Result display ───────────────────────────────────────────── */
+/* ── Result display ────────────────────────────────────────────── */
 
 .uxs-result {
     font-size: clamp(1.8rem, 5cqi, 2.1rem);
@@ -139,19 +135,31 @@
     border-bottom: 2px solid transparent;
 }
 
-/* ── Unit select (right side) ─────────────────────────────────── */
+/* ── Unit select (right side) ──────────────────────────────────── */
 
 .uxs-select-wrap {
     flex-shrink: 0;
-    max-width: 50%;
+    max-width: 55%;
 }
 
 .uxs-unit-select {
     width: 100%;
-    color: var(--text-secondary);
-    padding: 8px 32px 8px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border-light);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 10px 36px 10px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2380868b' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 10px 6px;
+    outline: none;
+    cursor: pointer;
     transition:
         border-color 0.15s ease,
         background-color 0.15s ease;
@@ -159,8 +167,8 @@
 }
 
 .uxs-unit-select:hover {
-    border-color: var(--border);
-    background-color: var(--bg-hover, rgba(128, 128, 128, 0.04));
+    border-color: var(--text-secondary);
+    background-color: var(--bg-hover, rgba(128, 128, 128, 0.08));
 }
 
 .uxs-unit-select:focus-visible {
@@ -168,7 +176,7 @@
     box-shadow: 0 0 0 1px var(--primary, #4285f4);
 }
 
-/* ── Divider + swap button ────────────────────────────────────── */
+/* ── Divider + swap button ─────────────────────────────────────── */
 
 .uxs-divider {
     height: 1px;
@@ -185,7 +193,7 @@
     height: 38px;
     border-radius: 50%;
     border: 1px solid var(--border);
-    background: transparent;
+    background: var(--bg-light, #303134);
     color: var(--text-secondary);
     cursor: pointer;
     display: flex;
@@ -201,10 +209,10 @@
 }
 
 .uxs-swap:hover {
-    background: var(--bg-light);
+    background: var(--bg-hover, #3c4043);
     border-color: var(--primary, #4285f4);
     color: var(--primary, #4285f4);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
 }
 
 .uxs-swap:active {
@@ -224,7 +232,20 @@
     transform: rotate(180deg);
 }
 
-/* ── Mobile / narrow container ────────────────────────────────── */
+/* ── Formula bar ───────────────────────────────────────────────── */
+
+.uxs-formula-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border-top: 1px solid var(--border-light);
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.01em;
+}
+
+/* ── Mobile / narrow container ─────────────────────────────────── */
 
 @container (max-width: 480px) {
     .uxs-amount,
@@ -239,11 +260,11 @@
 
     .uxs-category-select {
         padding-left: 14px;
-        font-size: 0.88rem;
+        font-size: 0.84rem;
     }
 
     .uxs-unit-select {
-        font-size: 0.85rem;
-        padding: 6px 28px 6px 10px;
+        font-size: 0.82rem;
+        padding: 8px 32px 8px 12px;
     }
 }

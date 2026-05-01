@@ -1,3 +1,4 @@
+var global = typeof globalThis !== "undefined" ? globalThis : (typeof window !== "undefined" ? window : {});
 var convertUnits = (() => {
   var __getOwnPropNames = Object.getOwnPropertyNames;
   var __commonJS = (cb, mod) =>
@@ -2557,102 +2558,116 @@ var convertUnits = (() => {
 })();
 
 (function () {
-  // Reference the file-level convertUnits variable directly
-  // (window.convertUnits may not exist if degoog loads script.js in a non-global scope)
-  const convert =
+  var convert =
     typeof convertUnits === "function" ? convertUnits : window.convertUnits;
+
+  function fmt(n) {
+    n = parseFloat(n);
+    if (isNaN(n)) return "0";
+    if (n >= 1000)
+      return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (n >= 1)
+      return n.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+    return n.toLocaleString("en-US", { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+  }
 
   function initUnitSlot(card) {
     if (card._uxsInit) return;
-    if (typeof convert !== "function") return; // library not ready yet
+    if (typeof convert !== "function") return;
 
-    let currentMeasure = card.dataset.measure || "length";
+    var currentMeasure = card.dataset.measure || "length";
 
-    const amountInput = card.querySelector("#uxs-amount");
-    const resultDiv = card.querySelector("#uxs-result");
-    const swapBtn = card.querySelector("#uxs-swap");
+    var amountInput = card.querySelector("#uxs-amount");
+    var resultDiv = card.querySelector("#uxs-result");
+    var swapBtn = card.querySelector("#uxs-swap");
+    var formulaBar = card.querySelector("#uxs-formula");
 
-    const categorySelect = card.querySelector("#uxs-category-select");
-    const fromSelect = card.querySelector("#uxs-from-select");
-    const toSelect = card.querySelector("#uxs-to-select");
+    var categorySelect = card.querySelector("#uxs-category-select");
+    var fromSelect = card.querySelector("#uxs-from-select");
+    var toSelect = card.querySelector("#uxs-to-select");
 
-    // Populate Category Select
-    const measures = convert().measures();
+    var measures = convert().measures();
     categorySelect.innerHTML = measures
-      .map((m) => {
-        // Title case for UI
-        const name = m.split(/(?=[A-Z])/).join(" ");
-        const titleName = name.charAt(0).toUpperCase() + name.slice(1);
-        return `<option value="${m}">${titleName}</option>`;
+      .map(function (m) {
+        var name = m.replace(/([A-Z])/g, " $1").trim();
+        var titleName = name.charAt(0).toUpperCase() + name.slice(1);
+        return '<option value="' + m + '">' + titleName + "</option>";
       })
       .join("");
     categorySelect.value = currentMeasure;
 
     function populateUnits(measure) {
-      const units = convert().possibilities(measure);
-      const optionsHtml = units
-        .map((abbr) => {
-          const desc = convert().describe(abbr);
-          return `<option value="${abbr}">${desc.plural}</option>`;
+      var units = convert().possibilities(measure);
+      var html = units
+        .map(function (abbr) {
+          var desc = convert().describe(abbr);
+          return '<option value="' + abbr + '">' + desc.plural + " (" + abbr + ")</option>";
         })
         .join("");
+      fromSelect.innerHTML = html;
+      toSelect.innerHTML = html;
+    }
 
-      fromSelect.innerHTML = optionsHtml;
-      toSelect.innerHTML = optionsHtml;
+    function updateFormula(amount, from, to, result) {
+      if (!formulaBar) return;
+      try {
+        var fromDesc = convert().describe(from);
+        var toDesc = convert().describe(to);
+        var amtLabel = amount === 1 ? fromDesc.singular : fromDesc.plural;
+        var resLabel = result === 1 ? toDesc.singular : toDesc.plural;
+        formulaBar.textContent = fmt(amount) + " " + amtLabel + " = " + fmt(result) + " " + resLabel;
+      } catch (e) {
+        formulaBar.textContent = "";
+      }
     }
 
     function updateResult() {
-      const from = fromSelect.value;
-      const to = toSelect.value;
-      const amount = parseFloat(amountInput.value) || 0;
+      var from = fromSelect.value;
+      var to = toSelect.value;
+      var amount = parseFloat(amountInput.value) || 0;
 
       if (!from || !to) {
         resultDiv.textContent = "";
+        if (formulaBar) formulaBar.textContent = "";
         return;
       }
 
       try {
-        const result = convert(amount).from(from).to(to);
-        const resultStr =
-          result >= 1000
-            ? result.toLocaleString("en-US", { maximumFractionDigits: 2 })
-            : result >= 1
-              ? result.toLocaleString("en-US", { maximumFractionDigits: 4 })
-              : result.toLocaleString("en-US", { maximumFractionDigits: 6 });
-        resultDiv.textContent = resultStr;
+        var result = convert(amount).from(from).to(to);
+        resultDiv.textContent = fmt(result);
+        updateFormula(amount, from, to, result);
       } catch (e) {
-        resultDiv.textContent = "Error";
+        resultDiv.textContent = "—";
+        if (formulaBar) formulaBar.textContent = "";
       }
     }
 
     function swapUnits() {
-      const temp = fromSelect.value;
+      var temp = fromSelect.value;
       fromSelect.value = toSelect.value;
       toSelect.value = temp;
 
       swapBtn.classList.add("spinning");
-      setTimeout(() => swapBtn.classList.remove("spinning"), 400);
+      setTimeout(function () { swapBtn.classList.remove("spinning"); }, 400);
 
       updateResult();
     }
 
-    // Initialize units for current measure
     populateUnits(currentMeasure);
 
-    // Attempt to set initial server values if valid
-    const initialFrom = fromSelect.getAttribute("data-selected");
-    const initialTo = toSelect.getAttribute("data-selected");
+    var initialFrom = fromSelect.getAttribute("data-selected");
+    var initialTo = toSelect.getAttribute("data-selected");
     if (initialFrom) fromSelect.value = initialFrom;
     if (initialTo) toSelect.value = initialTo;
 
-    // If setting initial failed (e.g. invalid measure), default to first two
     if (!fromSelect.value && fromSelect.options.length > 0)
       fromSelect.selectedIndex = 0;
     if (!toSelect.value && toSelect.options.length > 1)
       toSelect.selectedIndex = 1;
 
-    // Listeners
-    categorySelect.addEventListener("change", (e) => {
+    updateResult();
+
+    categorySelect.addEventListener("change", function (e) {
       currentMeasure = e.target.value;
       populateUnits(currentMeasure);
       if (fromSelect.options.length > 0) fromSelect.selectedIndex = 0;
@@ -2665,35 +2680,22 @@ var convertUnits = (() => {
     amountInput.addEventListener("input", updateResult);
     swapBtn.addEventListener("click", swapUnits);
 
-    // Mark as initialized only after everything succeeded
     card._uxsInit = true;
   }
 
-  // Find all unit slot cards and initialize them
   function scan() {
     document.querySelectorAll(".uxs-wrap").forEach(initUnitSlot);
   }
 
-  // Run immediately, on DOMContentLoaded, and watch for dynamically-injected slot HTML
   scan();
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", scan, { once: true });
   }
   if (document.body) {
-    new MutationObserver(scan).observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+    new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
   } else {
-    document.addEventListener(
-      "DOMContentLoaded",
-      () => {
-        new MutationObserver(scan).observe(document.body, {
-          childList: true,
-          subtree: true,
-        });
-      },
-      { once: true },
-    );
+    document.addEventListener("DOMContentLoaded", function () {
+      new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+    }, { once: true });
   }
 })();

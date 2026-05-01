@@ -3,9 +3,10 @@
     <div class="uxs-top-bar">
       <select class="uxs-category-select" id="uxs-category-select" aria-label="Measurement category"></select>
     </div>
-    
+
     <div class="uxs-row" id="uxs-from-row">
       <div class="uxs-input-wrap">
+        <div class="uxs-label">Amount</div>
         <input class="uxs-amount" id="uxs-amount" type="number" value="{{amount_for_js}}" step="any"/>
       </div>
       <div class="uxs-select-wrap">
@@ -25,6 +26,7 @@
 
     <div class="uxs-row">
       <div class="uxs-input-wrap">
+        <div class="uxs-label">Result</div>
         <div class="uxs-result" id="uxs-result">{{result}}</div>
       </div>
       <div class="uxs-select-wrap">
@@ -32,5 +34,8 @@
       </div>
     </div>
 
+    <div class="uxs-formula-bar" id="uxs-formula">
+      {{amount}} {{from_name}} = {{result}} {{to_name}}
+    </div>
   </div>
 </div>
