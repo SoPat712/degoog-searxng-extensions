@@ -21,7 +21,7 @@
       "path": "plugins/tmdb",
       "name": "TMDB",
       "description": "Shows rich info panels for movies, TV shows, and actors. Activates on natural-language queries (e.g. 'la la land', 'emma stone') and on TMDB, IMDB, or Allocine links in search results.",
-      "version": "1.6.12",
+      "version": "1.6.13",
       "type": "slot"
     },
     {
@@ -91,7 +91,7 @@
       "path": "themes/literallygoogle",
       "name": "LiterallyGoogle",
       "description": "A theme replicating Google's design, with a sticky header and full-width plugin slots (trankil-style) for rich plugin layouts like TMDB, Weather, Currency, and Speedtest.",
-      "version": "1.7.8"
+      "version": "1.7.9"
     }
   ]
 }

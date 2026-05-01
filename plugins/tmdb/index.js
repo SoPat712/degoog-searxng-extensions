@@ -167,6 +167,7 @@ const _parseOmdbRatings = (data) => {
 // ── URL Detection ─────────────────────────────────────────────────────────────
 const _detectFromResults = (results) => {
   if (!Array.isArray(results)) return null;
+  const topResults = results.slice(0, 10);
 
   let imdbTitle = null;
   let imdbName = null;
@@ -174,7 +175,7 @@ const _detectFromResults = (results) => {
   let allocineSeries = null;
   let allocinePerson = false;
 
-  for (const r of results) {
+  for (const r of topResults) {
     const url = typeof r.url === "string" ? r.url : "";
 
     // TMDB has highest priority — return immediately on first hit
@@ -646,11 +647,12 @@ const _buildSeasonsRail = (details) => {
       const meta = _esc(
         epCount ? `${epCount} episode${epCount !== 1 ? "s" : ""}` : "",
       );
-      const overview = _esc(season.overview || "");
+      const overviewRaw = String(season.overview || "");
+      const overviewAttr = encodeURIComponent(overviewRaw);
       return (
         `<button type="button" class="tmdb-season-tab${idx === 0 ? " is-active" : ""}" ` +
         `data-tmdb-season-tab data-tmdb-season-tv="${details.id}" ` +
-        `data-tmdb-season-number="${seasonNum}" data-tmdb-season-overview="${overview}" ` +
+        `data-tmdb-season-number="${seasonNum}" data-tmdb-season-overview-uri="${overviewAttr}" ` +
         `aria-selected="${idx === 0 ? "true" : "false"}">` +
         `<span class="tmdb-season-tab-label">${label}</span>` +
         (meta ? `<span class="tmdb-season-tab-meta">${meta}</span>` : "") +
@@ -1134,8 +1136,9 @@ const _buildMoviePanel = async (id, ctx) => {
 const _buildTvPanel = async (id, ctx) => {
   const details = await _tmdb(`tv/${id}`, ctx);
   if (!details) return null;
-  const [credits, images, jellyfinItem, ext] = await Promise.all([
+  const [credits, aggregateCredits, images, jellyfinItem, ext] = await Promise.all([
     _tmdb(`tv/${id}/credits`, ctx),
+    _tmdb(`tv/${id}/aggregate_credits`, ctx),
     _tmdb(`tv/${id}/images?include_image_language=en,null`, ctx),
     jellyfinUrl && jellyfinApiKey
       ? _jellyfinSearch(details.name || details.original_name || "", ctx)
@@ -1147,11 +1150,29 @@ const _buildTvPanel = async (id, ctx) => {
     const raw = await _omdbFetch({ i: ext.imdb_id }, ctx);
     omdbRatings = _parseOmdbRatings(raw);
   }
+  const normalizedCredits = {
+    cast: Array.isArray(aggregateCredits?.cast) && aggregateCredits.cast.length
+      ? aggregateCredits.cast.map((c) => {
+          const roles = Array.isArray(c.roles) ? c.roles : [];
+          const firstRole = roles[0] || {};
+          return {
+            id: c.id,
+            name: c.name,
+            profile_path: c.profile_path,
+            character: firstRole.character || "",
+            total_episode_count: c.total_episode_count || 0,
+            order: c.order,
+          };
+        })
+      : (credits?.cast || []),
+    crew: credits?.crew || [],
+  };
+
   return {
     title: details.name || "TV Show",
     html: _renderTv(
       details,
-      credits,
+      normalizedCredits,
       images,
       jellyfinItem,
       omdbRatings,

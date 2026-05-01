@@ -43,6 +43,7 @@
     object-fit: cover;
     display: block;
     background: var(--bg-light);
+    border: 1px solid rgba(0, 0, 0, 0.55);
     cursor: pointer;
     transition: transform 0.25s ease;
 }

@@ -472,21 +472,31 @@ body {
         grid-row: 1;
     }
 
-    /* Full-width above-results plugin: slot spans both columns; sidebar aligns with results. */
-    #results-layout:has(#slot-above-results .slot-full-width) #slot-above-results {
+    /* Full-width above-results plugin: only when it's the sole panel.
+       Prevent sibling panels (e.g. GitHub slot) from being stretched. */
+    #results-layout:has(
+            #slot-above-results > .results-slot-panel:only-child .slot-full-width
+        )
+        #slot-above-results {
         grid-column: 1 / -1;
         grid-row: 1;
         max-width: none;
         justify-self: stretch;
     }
 
-    #results-layout:has(#slot-above-results .slot-full-width) #results-main {
+    #results-layout:has(
+            #slot-above-results > .results-slot-panel:only-child .slot-full-width
+        )
+        #results-main {
         grid-column: 1;
         grid-row: 2;
         justify-self: start;
     }
 
-    #results-layout:has(#slot-above-results .slot-full-width) #sidebar-col {
+    #results-layout:has(
+            #slot-above-results > .results-slot-panel:only-child .slot-full-width
+        )
+        #sidebar-col {
         grid-column: 2;
         grid-row: 2;
     }
@@ -519,8 +529,10 @@ body {
     margin-bottom: 1rem;
 }
 
-/* Flatten outer slot chrome for wide plugins except unit converter (needs framed card). */
-#slot-above-results .results-slot-panel:has(.slot-full-width):not(:has(.uxs-wrap)) {
+/* Flatten outer slot chrome only when the full-width panel is alone.
+   Keep normal panel framing when multiple above-results plugins are stacked. */
+#slot-above-results
+    > .results-slot-panel:only-child:has(.slot-full-width):not(:has(.uxs-wrap)) {
     background: transparent;
     border: none;
     border-radius: 0;
@@ -530,7 +542,9 @@ body {
     overflow: visible;
 }
 
-#slot-above-results .results-slot-panel-body:has(.slot-full-width):not(:has(.uxs-wrap)) {
+#slot-above-results
+    > .results-slot-panel:only-child:has(.slot-full-width):not(:has(.uxs-wrap))
+    .results-slot-panel-body {
     padding: 0;
 }
 

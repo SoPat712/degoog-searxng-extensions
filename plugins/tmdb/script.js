@@ -275,7 +275,13 @@
     updateSeasonButtons(rail, btn);
 
     if (overviewEl) {
-      const overviewText = btn.getAttribute("data-tmdb-season-overview") || "";
+      const encoded = btn.getAttribute("data-tmdb-season-overview-uri") || "";
+      let overviewText = "";
+      try {
+        overviewText = encoded ? decodeURIComponent(encoded) : "";
+      } catch (_e) {
+        overviewText = "";
+      }
       overviewEl.textContent = overviewText;
       overviewEl.classList.toggle("tmdb-season-overview--empty", !overviewText);
     }
