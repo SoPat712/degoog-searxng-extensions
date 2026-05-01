@@ -26,17 +26,25 @@
     <title>degoog</title>
     <script>
       (function () {
-        var t = localStorage.getItem("theme");
         var r = document.documentElement;
         var m = window.matchMedia("(prefers-color-scheme: dark)");
+        var last = "";
         function apply() {
-          var stored = localStorage.getItem("theme");
-          if (stored === "light") r.setAttribute("data-theme", "light");
-          else if (stored === "dark") r.setAttribute("data-theme", "dark");
-          else r.setAttribute("data-theme", m.matches ? "dark" : "light");
+          var stored = localStorage.getItem("theme") || "";
+          var next = stored === "light" ? "light"
+                   : stored === "dark"  ? "dark"
+                   : m.matches ? "dark" : "light";
+          if (next !== last) {
+            r.setAttribute("data-theme", next);
+            last = next;
+          }
         }
         apply();
         m.addEventListener("change", apply);
+        window.addEventListener("storage", function (e) {
+          if (e.key === "theme") apply();
+        });
+        setInterval(apply, 800);
       })();
     </script>
     <link
