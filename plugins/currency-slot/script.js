@@ -146,6 +146,7 @@
 
     const amountEl = wrap.querySelector("#cxs-amount");
     const resultEl = wrap.querySelector("#cxs-result");
+    const copyBtn = wrap.querySelector("#cxs-copy-result");
     const rateFromEl = wrap.querySelector("#cxs-rate-from");
     const picker = wrap.querySelector("#cxs-picker");
     const pickerList = wrap.querySelector("#cxs-picker-list");
@@ -351,6 +352,41 @@
       if (rateValEl) rateValEl.textContent = fmt(rate) + " " + toCode;
     }
 
+    function copyResult() {
+      if (!copyBtn || !resultEl) return;
+      const value = resultEl.textContent.trim();
+      if (!value) return;
+
+      const markCopied = () => {
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = "Copied";
+        copyBtn.classList.add("copied");
+        setTimeout(() => {
+          copyBtn.textContent = originalText;
+          copyBtn.classList.remove("copied");
+        }, 1200);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(markCopied).catch(() => {});
+        return;
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        if (document.execCommand("copy")) markCopied();
+      } catch (e) {
+        // Ignore copy failures; the button remains available for another try.
+      }
+      document.body.removeChild(textarea);
+    }
+
     function updateCurUI(side, code) {
       const cur = CURRENCIES.find((c) => c.code === code);
       if (!cur) console.warn("[currency-slot] Currency not found:", code);
@@ -399,6 +435,7 @@
         updateResult(true);
       }
     });
+    if (copyBtn) copyBtn.addEventListener("click", copyResult);
 
     wrap.querySelectorAll(".cxs-q").forEach((btn, index) => {
       btn.addEventListener("click", () => {

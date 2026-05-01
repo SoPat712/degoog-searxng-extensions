@@ -2607,6 +2607,7 @@ var convertUnits = (() => {
 
     var amountInput = card.querySelector("#uxs-amount");
     var resultDiv = card.querySelector("#uxs-result");
+    var copyBtn = card.querySelector("#uxs-copy-result");
     var swapBtn = card.querySelector("#uxs-swap");
     var formulaBar = card.querySelector("#uxs-formula");
 
@@ -2670,6 +2671,41 @@ var convertUnits = (() => {
       }
     }
 
+    function copyResult() {
+      if (!copyBtn || !resultDiv) return;
+      var value = resultDiv.textContent.trim();
+      if (!value || value === "—") return;
+
+      function markCopied() {
+        var originalText = copyBtn.textContent;
+        copyBtn.textContent = "Copied";
+        copyBtn.classList.add("copied");
+        setTimeout(function () {
+          copyBtn.textContent = originalText;
+          copyBtn.classList.remove("copied");
+        }, 1200);
+      }
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(markCopied).catch(function () {});
+        return;
+      }
+
+      var textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        if (document.execCommand("copy")) markCopied();
+      } catch (e) {
+        // Ignore copy failures; the button remains available for another try.
+      }
+      document.body.removeChild(textarea);
+    }
+
     function swapUnits() {
       var temp = fromSelect.value;
       fromSelect.value = toSelect.value;
@@ -2706,6 +2742,7 @@ var convertUnits = (() => {
     fromSelect.addEventListener("change", updateResult);
     toSelect.addEventListener("change", updateResult);
     amountInput.addEventListener("input", updateResult);
+    if (copyBtn) copyBtn.addEventListener("click", copyResult);
     swapBtn.addEventListener("click", swapUnits);
 
     card._uxsInit = true;

@@ -66,6 +66,34 @@
     grid-area: input;
     flex: 1;
     min-width: 0;
+    position: relative;
+}
+
+.cxs-input-wrap--editable::after {
+    content: "edit";
+    position: absolute;
+    right: 0;
+    bottom: 6px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0;
+    transform: translateY(2px);
+    pointer-events: none;
+    transition:
+        opacity 160ms ease,
+        transform 160ms ease;
+}
+
+.cxs-input-wrap--editable:hover::after,
+.cxs-input-wrap--editable:focus-within::after {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .cxs-label {
@@ -87,8 +115,19 @@
     outline: none;
     font-family: var(--font-sans, sans-serif);
     letter-spacing: -0.03em;
-    padding: 0;
+    padding: 0 0 4px;
+    border-bottom: 2px solid transparent;
     font-variant-numeric: tabular-nums;
+    cursor: text;
+    transition: border-color 160ms ease;
+}
+
+.cxs-amount:hover {
+    border-bottom-color: color-mix(in srgb, var(--primary, #4285f4) 45%, transparent);
+}
+
+.cxs-amount:focus {
+    border-bottom-color: var(--primary, #4285f4);
 }
 
 .cxs-amount::-webkit-inner-spin-button,
@@ -107,6 +146,48 @@
     letter-spacing: -0.03em;
     min-height: 32px;
     font-variant-numeric: tabular-nums;
+}
+
+.cxs-result-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.cxs-result-line .cxs-result {
+    flex: 1;
+    min-width: 0;
+}
+
+.cxs-copy {
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 5px 9px;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease;
+}
+
+.cxs-copy:hover,
+.cxs-copy:focus-visible {
+    background: var(--bg-hover, rgba(255, 255, 255, 0.04));
+    border-color: var(--primary, #4285f4);
+    color: var(--primary, #4285f4);
+    outline: none;
+}
+
+.cxs-copy.copied {
+    border-color: var(--success, #34a853);
+    color: var(--success, #34a853);
 }
 
 /* Currency buttons */
@@ -482,6 +563,14 @@
     .cxs-amount,
     .cxs-result {
         font-size: 1.6rem;
+    }
+
+    .cxs-input-wrap--editable::after {
+        display: none;
+    }
+
+    .cxs-result-line {
+        align-items: flex-start;
     }
 
     .cxs-row {

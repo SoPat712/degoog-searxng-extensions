@@ -3,7 +3,7 @@
         <div class="cxs-main">
             <div class="cxs-row" id="cxs-from-row">
                 <div class="cxs-flag" id="cxs-from-flag">{{from_flag}}</div>
-                <div class="cxs-input-wrap">
+                <div class="cxs-input-wrap cxs-input-wrap--editable">
                     <div class="cxs-label">Amount</div>
                     <input
                         class="cxs-amount"
@@ -61,9 +61,20 @@
 
             <div class="cxs-row">
                 <div class="cxs-flag" id="cxs-to-flag">{{to_flag}}</div>
-                <div class="cxs-input-wrap">
+                <div class="cxs-input-wrap cxs-input-wrap--result">
                     <div class="cxs-label">Result</div>
-                    <div class="cxs-result" id="cxs-result">{{result}}</div>
+                    <div class="cxs-result-line">
+                        <div class="cxs-result" id="cxs-result">{{result}}</div>
+                        <button
+                            class="cxs-copy"
+                            id="cxs-copy-result"
+                            type="button"
+                            aria-label="Copy result"
+                            title="Copy result"
+                        >
+                            Copy
+                        </button>
+                    </div>
                 </div>
                 <button class="cxs-cur-btn" id="cxs-to-btn">
                     <div class="cxs-cur-display">

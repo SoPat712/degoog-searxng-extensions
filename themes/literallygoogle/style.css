@@ -422,10 +422,8 @@ body {
 
 @media (min-width: 768px) {
     #results-layout {
-        display: grid;
-        grid-template-columns: minmax(0, 692px) minmax(18rem, 22rem);
-        column-gap: 2rem;
-        row-gap: 0;
+        position: relative;
+        display: block;
         max-width: 70rem;
         margin-top: 0.5rem;
         margin-left: 2.5rem;
@@ -440,41 +438,52 @@ body {
      * wider than the normal result cards.
      */
     #slot-above-results {
-        grid-column: 1;
-        grid-row: 1;
         width: 100%;
         max-width: 692px;
         margin: 0;
-        justify-self: start;
+    }
+
+    #results-main {
+        width: 100%;
+        max-width: 692px;
+    }
+
+    /* Keep the sidebar from contributing to left-column row heights. */
+    #sidebar-col {
+        position: absolute;
+        top: 0;
+        right: 1.5rem;
+        width: 100%;
+        max-width: 22rem;
+    }
+
+    #results-layout:has(#slot-above-results .slot-full-width) {
+        display: grid;
+        grid-template-columns: minmax(0, 692px) minmax(18rem, 22rem);
+        column-gap: 2rem;
+        row-gap: 0;
+        align-items: start;
     }
 
     /* Plugin slot spans full width ONLY when the plugin opts in with .slot-full-width */
-    #slot-above-results:has(.slot-full-width) {
+    #results-layout:has(#slot-above-results .slot-full-width) #slot-above-results {
         grid-column: 1 / -1;
+        grid-row: 1;
         max-width: none;
         justify-self: stretch;
     }
 
-    /* Results in left column */
-    #results-main {
+    #results-layout:has(#slot-above-results .slot-full-width) #results-main {
         grid-column: 1;
         grid-row: 2;
-        width: 100%;
-        max-width: 692px;
         justify-self: start;
     }
 
-    /* Sidebar spans the full height of column 2 */
-    #sidebar-col {
+    #results-layout:has(#slot-above-results .slot-full-width) #sidebar-col {
+        position: static;
         grid-column: 2;
-        grid-row: 1 / -1;
-        width: 100%;
-        max-width: 22rem;
-        align-self: start;
-    }
-
-    #slot-above-results:has(.slot-full-width) ~ #sidebar-col {
-        grid-row: 2 / -1;
+        grid-row: 2;
+        justify-self: stretch;
     }
 
     #results-sidebar,
@@ -500,6 +509,7 @@ body {
     background: transparent;
     border: none;
     border-radius: 0;
+    margin: 0;
     padding: 0;
     gap: 0;
     overflow: visible;

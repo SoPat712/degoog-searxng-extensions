@@ -5,7 +5,7 @@
     </div>
 
     <div class="uxs-row" id="uxs-from-row">
-      <div class="uxs-input-wrap">
+      <div class="uxs-input-wrap uxs-input-wrap--editable">
         <div class="uxs-label">Amount</div>
         <input class="uxs-amount" id="uxs-amount" type="number" value="{{amount_for_js}}" step="any"/>
       </div>
@@ -25,9 +25,12 @@
     </div>
 
     <div class="uxs-row">
-      <div class="uxs-input-wrap">
+      <div class="uxs-input-wrap uxs-input-wrap--result">
         <div class="uxs-label">Result</div>
-        <div class="uxs-result" id="uxs-result">{{result}}</div>
+        <div class="uxs-result-line">
+          <div class="uxs-result" id="uxs-result">{{result}}</div>
+          <button class="uxs-copy" id="uxs-copy-result" type="button" aria-label="Copy result" title="Copy result">Copy</button>
+        </div>
       </div>
       <div class="uxs-select-wrap">
         <select class="uxs-unit-select" id="uxs-to-select" data-selected="{{to_code}}" aria-label="To unit"></select>
