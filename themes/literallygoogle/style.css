@@ -542,7 +542,7 @@ body {
    ══════════════════════════════════════════════════════════════════════════ */
 
 .results-logo {
-    font-size: 22px;
+    font-size: 22px !important;
     letter-spacing: -1.5px;
     font-weight: 700;
     text-decoration: none;
