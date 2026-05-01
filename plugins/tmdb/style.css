@@ -1419,8 +1419,10 @@
     align-items: stretch;
 }
 
+/* Stacked layout (narrow slot): main must NOT flex-grow vertically or it steals all
+   space from the episodes rail when the slot panel stretches (default theme). */
 .tmdb-tv-main {
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
 }
 
