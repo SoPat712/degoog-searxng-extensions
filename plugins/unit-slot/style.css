@@ -7,9 +7,10 @@
     color: var(--text-primary, inherit);
 }
 
-/* Card — inherits outline/bg from degoog's .results-slot-panel */
+/* Card */
 .uxs-main {
     position: relative;
+    border: 1px solid var(--border, color-mix(in srgb, currentColor 20%, transparent));
     border-radius: 12px;
     overflow: hidden;
     margin-bottom: 20px;
