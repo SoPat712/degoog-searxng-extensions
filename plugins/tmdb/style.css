@@ -1,11 +1,11 @@
 /* ── TMDB Slot Plugin — Minimal Theme ──────────────────────────────────────── */
 
-/* Built-in theme uses `overflow: hidden` on slot panels, which clips the TV rail in
-   horizontal row layout. Only escape horizontally — keep vertical containment so
-   season overview text cannot paint outside the card (see examples/the office HTML). */
+/* Built-in theme clips slots with `overflow: hidden`, which breaks horizontal TV layout.
+   Restore full overflow visibility; season copy stays contained via rail `contain: paint`
+   + capped `.tmdb-season-overview` (do not use overflow-y:hidden here — it clips the
+   entire episodes rail on narrow slots). */
 .results-slot-panel:has(> .results-slot-panel-body > .tmdb-result.slot-full-width) {
-    overflow-x: visible;
-    overflow-y: hidden;
+    overflow: visible;
 }
 
 .tmdb-result {
@@ -1505,6 +1505,21 @@
 .tmdb-tv-main {
     flex: 0 1 auto;
     min-width: 0;
+}
+
+/* Narrow slot: tighten gap between hero/cast and the episodes rail (default theme). */
+@container (max-width: 559px) {
+    .tmdb-tv-body {
+        gap: 0.55rem;
+    }
+
+    .tmdb-panel--tv .tmdb-hero {
+        margin-bottom: 0.65rem;
+    }
+
+    .tmdb-tv-main .tmdb-section:last-child {
+        margin-bottom: 0.3rem;
+    }
 }
 
 @container (min-width: 560px) {

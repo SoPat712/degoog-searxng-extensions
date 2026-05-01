@@ -540,11 +540,11 @@
           e.stopPropagation();
           const dir = castNavBtn.getAttribute("data-tmdb-cast-nav");
           const card = scrollEl.querySelector(".tmdb-cast-card");
-          let step = Math.max(140, Math.floor(scrollEl.clientWidth * 0.55));
+          let step = Math.max(220, Math.floor(scrollEl.clientWidth * 0.88));
           if (card && typeof card.getBoundingClientRect === "function") {
             const w = card.getBoundingClientRect().width;
             if (w > 0) {
-              step = Math.ceil(w + 10);
+              step = Math.ceil(w * 1.35 + 14);
             }
           }
           scrollEl.scrollBy({
