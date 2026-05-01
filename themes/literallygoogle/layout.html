@@ -69,12 +69,30 @@
           var header = document.getElementById("results-header");
           if (!header) return null;
           var logo = header.querySelector(".results-logo");
-          var search = header.querySelector(".results-search-bar");
-          var apps =
-            header.querySelector(".apps-pocket-wrapper") ||
-            header.querySelector("#nav-settings-results");
-          if (!logo || !search || !apps) return null;
-          return { header: header, logo: logo, search: search, apps: apps };
+          var search =
+            header.querySelector(".lg-results-search-cluster") ||
+            header.querySelector(".results-search-bar");
+          var appsWrap = header.querySelector(".apps-pocket-wrapper");
+          var settings = header.querySelector("#nav-settings-results");
+          if (!logo || !search) return null;
+          if (!appsWrap && !settings) return null;
+          return {
+            header: header,
+            logo: logo,
+            search: search,
+            appsWrap: appsWrap,
+            settings: settings,
+          };
+        }
+
+        function trailingControlsWidth(appsWrap, settings, gap) {
+          var w = 0;
+          if (appsWrap) w += appsWrap.getBoundingClientRect().width;
+          if (settings && !(appsWrap && appsWrap.contains(settings))) {
+            if (w > 0) w += gap;
+            w += settings.getBoundingClientRect().width;
+          }
+          return w;
         }
 
         function updateHeaderWrapMode() {
@@ -84,7 +102,6 @@
           var header = parts.header;
           var logo = parts.logo;
           var search = parts.search;
-          var apps = parts.apps;
 
           var headerStyle = window.getComputedStyle(header);
           var gap = parseFloat(headerStyle.columnGap || "0") || 0;
@@ -92,7 +109,7 @@
           var searchMin = parseFloat(searchStyle.minWidth || "0") || 260;
           var neededWidth =
             logo.getBoundingClientRect().width +
-            apps.getBoundingClientRect().width +
+            trailingControlsWidth(parts.appsWrap, parts.settings, gap) +
             searchMin +
             gap * 2;
 
