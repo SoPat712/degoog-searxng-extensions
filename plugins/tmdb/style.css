@@ -1404,6 +1404,13 @@
     }
 }
 
+/* TV show panels: equal-width hero columns (still grid vs synopsis). Movies keep the asymmetric split above. */
+@container (min-width: 720px) {
+    .tmdb-panel--tv .tmdb-hero {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
 /* TV body: same idea as currency-slot — flex row when the slot is wide enough */
 .tmdb-tv-body {
     display: flex;
@@ -1436,8 +1443,11 @@
         max-width: min(400px, 100%);
         position: relative;
         align-self: flex-start;
+        box-sizing: border-box;
         /* Match main column height so the rail (and scrollable episode list) fills the
-           full vertical band; max-height alone lets the box shrink to content. */
+           full vertical band; max-height alone lets the box shrink to content.
+           min-height:0 is required so flex min-height:auto cannot expand past height. */
+        min-height: 0;
         height: var(--tmdb-tv-main-height, auto);
         max-height: var(--tmdb-tv-main-height, min(520px, 65vh));
         overflow: hidden;

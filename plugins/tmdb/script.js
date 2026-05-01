@@ -228,6 +228,15 @@
       }
       delete body.__tmdbTvRailSync;
     }
+    if (body && body.querySelector) {
+      const railEl = body.querySelector(".tmdb-tv-rail");
+      if (railEl && railEl.style) {
+        railEl.style.removeProperty("height");
+        railEl.style.removeProperty("max-height");
+        railEl.style.removeProperty("min-height");
+        railEl.style.removeProperty("overflow");
+      }
+    }
     if (body && body.style) {
       body.style.removeProperty("--tmdb-tv-main-height");
     }
@@ -247,15 +256,25 @@
       if (raf) cancelAnimationFrame(raf);
       raf = requestAnimationFrame(function () {
         raf = 0;
-        if (!body.isConnected) return;
+        if (!body.isConnected || !rail.isConnected) return;
         const dir = window.getComputedStyle(body).flexDirection;
         if (dir !== "row") {
           body.style.removeProperty("--tmdb-tv-main-height");
+          rail.style.removeProperty("height");
+          rail.style.removeProperty("max-height");
+          rail.style.removeProperty("min-height");
+          rail.style.removeProperty("overflow");
           return;
         }
         const h = Math.ceil(main.getBoundingClientRect().height);
         if (h < 1) return;
         body.style.setProperty("--tmdb-tv-main-height", h + "px");
+        /* Flex items use min-height:auto by default; episode content can force the rail
+           taller than `height` unless min-height is explicitly 0. Inline beats themes. */
+        rail.style.setProperty("height", h + "px");
+        rail.style.setProperty("max-height", h + "px");
+        rail.style.setProperty("min-height", "0");
+        rail.style.setProperty("overflow", "hidden");
       });
     }
 
