@@ -416,56 +416,63 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   FULL-WIDTH PLUGIN SLOTS
-   Desktop: grid with sidebar. Mobile: single stacked column.
+   RESULTS LAYOUT (DESKTOP)
+   Two-column grid + optional full-width above-results slot.
    ══════════════════════════════════════════════════════════════════════════ */
 
 @media (min-width: 768px) {
+    /*
+     * Two-column grid: main column (slot + results) never shares width with the
+     * sidebar. Absolute sidebar overlap is avoided — column 2 is reserved.
+     */
     #results-layout {
         position: relative;
-        display: block;
+        display: grid;
+        grid-template-columns: minmax(0, 692px) minmax(18rem, 22rem);
+        column-gap: 2rem;
+        row-gap: 0;
+        align-items: start;
         max-width: 70rem;
         margin-top: 0.5rem;
         margin-left: 2.5rem;
         margin-right: auto;
         padding: 0 1.5rem;
-        align-items: start;
     }
 
-    /*
-     * Above-results slots live outside #results-main in the search skeleton,
-     * so they need the same width cap as the left results column or they grow
-     * wider than the normal result cards.
-     */
     #slot-above-results {
+        grid-column: 1;
+        grid-row: 1;
         width: 100%;
         max-width: 692px;
         margin: 0;
     }
 
     #results-main {
+        grid-column: 1;
+        grid-row: 2;
         width: 100%;
         max-width: 692px;
     }
 
-    /* Keep the sidebar from contributing to left-column row heights. */
     #sidebar-col {
-        position: absolute;
-        top: 0;
-        right: 1.5rem;
+        position: static;
+        grid-column: 2;
+        grid-row: 1 / span 2;
         width: 100%;
         max-width: 22rem;
+        justify-self: stretch;
     }
 
-    #results-layout:has(#slot-above-results .slot-full-width) {
-        display: grid;
-        grid-template-columns: minmax(0, 692px) minmax(18rem, 22rem);
-        column-gap: 2rem;
-        row-gap: 0;
-        align-items: start;
+    /* No above-results slot: single main row beside the sidebar. */
+    #results-layout:has(#slot-above-results:empty) #results-main {
+        grid-row: 1;
     }
 
-    /* Plugin slot spans full width ONLY when the plugin opts in with .slot-full-width */
+    #results-layout:has(#slot-above-results:empty) #sidebar-col {
+        grid-row: 1;
+    }
+
+    /* Full-width above-results plugin: slot spans both columns; sidebar aligns with results. */
     #results-layout:has(#slot-above-results .slot-full-width) #slot-above-results {
         grid-column: 1 / -1;
         grid-row: 1;
@@ -480,16 +487,19 @@ body {
     }
 
     #results-layout:has(#slot-above-results .slot-full-width) #sidebar-col {
-        position: static;
         grid-column: 2;
         grid-row: 2;
-        justify-self: stretch;
     }
 
     #results-sidebar,
     #slot-above-sidebar,
     #slot-below-sidebar {
         margin-top: 0;
+    }
+
+    #results-layout > #media-preview-panel,
+    #results-layout > #img-lightbox {
+        grid-column: 1 / -1;
     }
 }
 
