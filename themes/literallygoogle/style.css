@@ -424,7 +424,8 @@ body {
     #results-layout {
         display: grid;
         grid-template-columns: minmax(0, 692px) minmax(18rem, 22rem);
-        gap: 1rem 2rem;
+        column-gap: 2rem;
+        row-gap: 0;
         max-width: 70rem;
         margin-top: 0.5rem;
         margin-left: 2.5rem;
@@ -472,7 +473,7 @@ body {
         align-self: start;
     }
 
-    #results-layout:has(#slot-above-results .slot-full-width) #sidebar-col {
+    #slot-above-results:has(.slot-full-width) ~ #sidebar-col {
         grid-row: 2 / -1;
     }
 
@@ -494,7 +495,8 @@ body {
     display: none;
 }
 
-#slot-above-results .results-slot-panel:has(.uxs-wrap) {
+#slot-above-results .results-slot-panel:has(.uxs-wrap),
+#slot-above-results .results-slot-panel:has(.slot-full-width) {
     background: transparent;
     border: none;
     border-radius: 0;
@@ -503,7 +505,8 @@ body {
     overflow: visible;
 }
 
-#slot-above-results .results-slot-panel-body:has(.uxs-wrap) {
+#slot-above-results .results-slot-panel-body:has(.uxs-wrap),
+#slot-above-results .results-slot-panel-body:has(.slot-full-width) {
     padding: 0;
 }
 
