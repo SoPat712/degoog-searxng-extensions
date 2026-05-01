@@ -426,7 +426,7 @@ body {
         grid-template-columns: 2fr 1fr;
         gap: 1rem;
         max-width: 70rem;
-        margin-top: 1rem;
+        margin-top: 0.5rem;
         margin-left: 2.5rem;
         margin-right: auto;
         padding: 0 1.5rem;
@@ -465,6 +465,17 @@ body {
 
 #slot-above-results:empty {
     display: none;
+}
+
+#slot-above-results > .results-slot-panel {
+    border: none;
+    padding: 0;
+    background: none;
+    border-radius: 0;
+}
+
+#slot-above-results > .results-slot-panel > .results-slot-panel-body {
+    padding: 0;
 }
 
 #media-preview-panel,
