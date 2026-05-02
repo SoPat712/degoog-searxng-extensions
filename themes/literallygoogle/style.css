@@ -344,10 +344,10 @@
 }
 
 .engine-stat-row {
-    border-radius: 4px;
+    border-radius: 0;
     background: var(--bg-light);
     padding: 14px;
-    margin-bottom: 2px;
+    margin-bottom: 0;
 }
 
 .engine-stat-row:first-child {
@@ -355,8 +355,17 @@
     border-top-left-radius: 0;
 }
 
+.engine-stat-row:not(:first-child) {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.engine-stat-row:not(:last-child) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
 .engine-stat-row:last-child {
-    margin-bottom: 0;
     border-bottom-right-radius: 12px;
     border-bottom-left-radius: 12px;
 }
