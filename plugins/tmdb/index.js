@@ -393,11 +393,10 @@ const _jellyfinSearch = async (title, ctx) => {
 const _buildJellyfinCard = (item, opts) => {
   if (!item) return "";
   const href = _esc(`${jellyfinUrl}/web/index.html#!/details?id=${item.Id}`);
-  const cardCls = "tmdb-jf-card tmdb-jf-card--compact";
+  const cardCls = "tmdb-jf-card tmdb-jf-card--compact tmdb-jf-card--icon-only";
   return (
-    `<a href="${href}" target="_blank" rel="noopener" class="${cardCls}" aria-label="Watch in Jellyfin">` +
-    `<img class="tmdb-jf-logo" src="${_esc(JELLYFIN_LOGO)}" alt="" loading="lazy" width="18" height="18">` +
-    `<span class="tmdb-jf-btn">Watch in Jellyfin</span>` +
+    `<a href="${href}" target="_blank" rel="noopener" class="${cardCls}" aria-label="Open in Jellyfin">` +
+    `<img class="tmdb-jf-logo" src="${_esc(JELLYFIN_LOGO)}" alt="" loading="lazy" width="24" height="24">` +
     `</a>`
   );
 };

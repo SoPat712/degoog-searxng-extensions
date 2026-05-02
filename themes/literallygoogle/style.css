@@ -370,6 +370,21 @@
     border-bottom-left-radius: 12px;
 }
 
+/* Engine Performance: core theme wraps this in .sidebar-panel (bg-light + shadow).
+   Drop that shell so only the stat rows read as pills on the sidebar background. */
+.sidebar-panel:has(.engine-stat-row) {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+    border-radius: 0 !important;
+}
+
+.sidebar-accordion-body:has(.engine-stat-row) {
+    background: transparent;
+    padding: 0;
+}
+
 .related-search-link {
     padding: 14px;
     border-bottom: 0;
