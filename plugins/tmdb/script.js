@@ -367,16 +367,71 @@
     root.querySelectorAll(".tmdb-cast-carousel").forEach(initCastCarousel);
   }
 
+  function formatMediumDateFromIso(iso) {
+    if (!iso || typeof iso !== "string") return "";
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+    if (!m) return "";
+    const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    if (Number.isNaN(dt.getTime())) return "";
+    return dt.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  function seasonFactsLineFromObject(facts) {
+    if (!facts || typeof facts !== "object") return "";
+    const ep =
+      facts.episodeCount > 0
+        ? `${facts.episodeCount} episode${facts.episodeCount !== 1 ? "s" : ""}`
+        : "";
+    const rt =
+      typeof facts.runtimeTotal === "string" ? facts.runtimeTotal.trim() : "";
+    const dr =
+      typeof facts.dateRange === "string" ? facts.dateRange.trim() : "";
+    return [ep, rt, dr].filter(Boolean).join(" \u00B7 ");
+  }
+
+  function applySeasonFacts(factsEl, facts) {
+    if (!factsEl) return;
+    const line = seasonFactsLineFromObject(facts);
+    factsEl.textContent = line || "\u2014";
+  }
+
+  function provisionalSeasonFactsFromTab(btn) {
+    const epRaw = btn.getAttribute("data-tmdb-season-episode-count") || "0";
+    const episodeCount = parseInt(epRaw, 10);
+    const safeEp = Number.isNaN(episodeCount) ? 0 : episodeCount;
+    const air = btn.getAttribute("data-tmdb-season-air-date") || "";
+    const dateRange = formatMediumDateFromIso(air);
+    return {
+      episodeCount: safeEp,
+      dateRange,
+      runtimeTotal: "",
+    };
+  }
+
   // ── TV seasons rail: horizontal tabs + lazy-loaded episodes ─────────────────
-  async function loadSeasonEpisodes(episodesEl, tvId, seasonNumber) {
+  async function loadSeasonEpisodes(episodesEl, tvId, seasonNumber, factsEl) {
     if (!episodesEl || !tvId || seasonNumber == null || seasonNumber === "") return;
     if (!episodesEl.__tmdbSeasonCache) episodesEl.__tmdbSeasonCache = {};
     const cache = episodesEl.__tmdbSeasonCache;
     const key = String(seasonNumber);
 
     if (cache[key]) {
-      episodesEl.innerHTML = cache[key];
+      const entry = cache[key];
+      const html = typeof entry === "string" ? entry : entry.html;
+      episodesEl.innerHTML = html;
       episodesEl.dataset.tmdbSeasonActive = key;
+      if (
+        factsEl &&
+        entry &&
+        typeof entry === "object" &&
+        entry.seasonFacts != null
+      ) {
+        applySeasonFacts(factsEl, entry.seasonFacts);
+      }
       return;
     }
     if (episodesEl.dataset.tmdbLoading === "1") return;
@@ -399,9 +454,19 @@
       if (!data || typeof data.html !== "string") {
         throw new Error("season response missing html");
       }
-      cache[key] = data.html;
+      const payload = {
+        html: data.html,
+        seasonFacts:
+          data.seasonFacts && typeof data.seasonFacts === "object"
+            ? data.seasonFacts
+            : null,
+      };
+      cache[key] = payload;
       episodesEl.innerHTML = data.html;
       episodesEl.dataset.tmdbSeasonActive = key;
+      if (factsEl && payload.seasonFacts) {
+        applySeasonFacts(factsEl, payload.seasonFacts);
+      }
     } catch (err) {
       episodesEl.innerHTML =
         '<div class="tmdb-episodes-error">' +
@@ -429,9 +494,14 @@
     const seasonNumber = btn.getAttribute("data-tmdb-season-number");
     const episodesEl = rail.querySelector("[data-tmdb-episodes]");
     const overviewEl = rail.querySelector("[data-tmdb-season-overview]");
+    const factsEl = rail.querySelector("[data-tmdb-season-facts]");
     if (!tvId || !seasonNumber || !episodesEl) return;
 
     updateSeasonButtons(rail, btn);
+
+    if (factsEl) {
+      applySeasonFacts(factsEl, provisionalSeasonFactsFromTab(btn));
+    }
 
     if (overviewEl) {
       const encoded = btn.getAttribute("data-tmdb-season-overview-uri") || "";
@@ -446,7 +516,7 @@
       overviewEl.classList.toggle("tmdb-season-overview--empty", !overviewText);
     }
 
-    await loadSeasonEpisodes(episodesEl, tvId, seasonNumber);
+    await loadSeasonEpisodes(episodesEl, tvId, seasonNumber, factsEl);
   }
 
   function initSeasonRail(rail) {

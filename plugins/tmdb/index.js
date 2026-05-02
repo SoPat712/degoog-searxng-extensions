@@ -108,6 +108,88 @@ const _formatRuntime = (mins) => {
   return h > 0 ? `${h}h ${m}min` : `${m}min`;
 };
 
+/** TMDB `YYYY-MM-DD` → e.g. Sep 19, 2016 */
+const _formatMediumDate = (iso) => {
+  if (!iso || typeof iso !== "string") return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  if (!m) return "";
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = Number(m[3]);
+  const dt = new Date(y, mo, d);
+  if (Number.isNaN(dt.getTime())) return "";
+  return dt.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+/** One-line facts for the rail: episodes · total runtime · air-date span (server + client). */
+const _seasonFactsLine = (facts) => {
+  if (!facts || typeof facts !== "object") return "";
+  const ep =
+    facts.episodeCount > 0
+      ? `${facts.episodeCount} episode${facts.episodeCount !== 1 ? "s" : ""}`
+      : "";
+  const rt =
+    typeof facts.runtimeTotal === "string" ? facts.runtimeTotal.trim() : "";
+  const dr = typeof facts.dateRange === "string" ? facts.dateRange.trim() : "";
+  return [ep, rt, dr].filter(Boolean).join(" \u00B7 ");
+};
+
+const _seasonFactsFromTvSeasonSummary = (season) => {
+  const episodeCount = Number(season?.episode_count) || 0;
+  const air =
+    typeof season?.air_date === "string" ? season.air_date.trim() : "";
+  const dateRange = air ? _formatMediumDate(air) : "";
+  return {
+    episodeCount,
+    dateRange,
+    runtimeTotal: "",
+  };
+};
+
+const _seasonFactsFromSeasonApi = (seasonData) => {
+  const episodes = Array.isArray(seasonData?.episodes)
+    ? seasonData.episodes
+    : [];
+  const episodeCount =
+    episodes.length > 0
+      ? episodes.length
+      : Number(seasonData?.episode_count) || 0;
+  const dates = episodes
+    .map((e) => (e.air_date || "").trim())
+    .filter(Boolean)
+    .sort();
+  let dateRange = "";
+  if (dates.length > 0) {
+    const first = _formatMediumDate(dates[0]);
+    const last = _formatMediumDate(dates[dates.length - 1]);
+    dateRange =
+      first && last && dates[0] !== dates[dates.length - 1]
+        ? `${first}\u2013${last}`
+        : first || last;
+  } else {
+    const air =
+      typeof seasonData?.air_date === "string"
+        ? seasonData.air_date.trim()
+        : "";
+    dateRange = air ? _formatMediumDate(air) : "";
+  }
+  let runtimeSum = 0;
+  for (const ep of episodes) {
+    const r = ep.runtime;
+    if (typeof r === "number" && r > 0) runtimeSum += r;
+  }
+  const runtimeTotal = runtimeSum > 0 ? _formatRuntime(runtimeSum) : "";
+  return {
+    episodeCount,
+    dateRange,
+    runtimeTotal,
+  };
+};
+
 const _ratingStr = (vote) => {
   if (!vote) return "";
   return `${Math.round(vote * 10) / 10}\u202F/\u202F10`;
@@ -674,20 +756,19 @@ const _buildSeasonsRail = (details) => {
       const seasonNum = season.season_number;
       const label = _esc(season.name || `Season ${seasonNum}`);
       const epCount = season.episode_count || 0;
-      const meta = _esc(
-        epCount ? `${epCount} episode${epCount !== 1 ? "s" : ""}` : "",
-      );
       const overviewRaw = String(season.overview || "")
         .replace(/\s+/g, " ")
         .trim();
       const overviewAttr = encodeURIComponent(overviewRaw);
+      const airDateRaw = String(season.air_date || "").trim();
       return (
         `<button type="button" class="tmdb-season-tab${idx === 0 ? " is-active" : ""}" ` +
         `data-tmdb-season-tab data-tmdb-season-tv="${details.id}" ` +
         `data-tmdb-season-number="${seasonNum}" data-tmdb-season-overview-uri="${overviewAttr}" ` +
+        `data-tmdb-season-episode-count="${epCount}" ` +
+        `data-tmdb-season-air-date="${_esc(airDateRaw)}" ` +
         `aria-selected="${idx === 0 ? "true" : "false"}">` +
         `<span class="tmdb-season-tab-label">${label}</span>` +
-        (meta ? `<span class="tmdb-season-tab-meta">${meta}</span>` : "") +
         `</button>`
       );
     })
@@ -697,6 +778,10 @@ const _buildSeasonsRail = (details) => {
       .replace(/\s+/g, " ")
       .trim(),
   );
+  const initialFactsLine = _seasonFactsLine(
+    _seasonFactsFromTvSeasonSummary(firstSeason),
+  );
+  const initialFactsText = initialFactsLine || "\u2014";
   const count = relevant.length;
   return (
     `<div class="tmdb-seasons-rail" data-tmdb-seasons-rail data-tmdb-season-tv="${details.id}">` +
@@ -708,6 +793,7 @@ const _buildSeasonsRail = (details) => {
     `<button type="button" class="tmdb-season-scroll-btn" data-tmdb-season-scroll="right" aria-label="Scroll seasons right">\u203A</button>` +
     `</div>` +
     `<div class="tmdb-season-detail">` +
+    `<p class="tmdb-season-facts" data-tmdb-season-facts>${_esc(initialFactsText)}</p>` +
     `<p class="tmdb-season-overview${initialOverview ? "" : " tmdb-season-overview--empty"}" data-tmdb-season-overview>${initialOverview}</p>` +
     `<div class="tmdb-episodes" data-tmdb-episodes data-tmdb-season-tv="${details.id}" data-tmdb-season-active="${firstSeason.season_number}" aria-live="polite"></div>` +
     `</div>` +
@@ -1234,9 +1320,11 @@ const _buildPersonPanel = async (id, ctx) => {
 const _buildSeasonPanel = async (tvId, seasonNumber, ctx) => {
   const data = await _tmdb(`tv/${tvId}/season/${seasonNumber}`, ctx);
   if (!data) return null;
+  const seasonFacts = _seasonFactsFromSeasonApi(data);
   return {
     title: data.name || `Season ${seasonNumber}`,
     html: _renderEpisodes(data, tvId),
+    seasonFacts,
   };
 };
 
