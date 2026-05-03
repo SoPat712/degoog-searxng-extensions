@@ -16,6 +16,11 @@
     --literallygoogle-results-content-inline-start: calc(
         1.25rem + 0.75rem + 1rem + 3.35 * clamp(1.875rem, 3rem - 2.5vw, 2.5rem)
     );
+    /* Results shell: wider than legacy 70rem / 692px + 22rem for slots (e.g. TMDb) + sidebar. */
+    --literallygoogle-results-layout-max: 75rem;
+    --literallygoogle-results-main-col-max: 736px;
+    --literallygoogle-results-sidebar-min: 19rem;
+    --literallygoogle-results-sidebar-max: 24rem;
     --primary: #4285f4;
     --primary-hover: #5a95f5;
     --primary-rgb: 66, 133, 244;
@@ -514,24 +519,28 @@ body {
     #results-layout {
         position: relative;
         display: grid;
-        grid-template-columns: minmax(0, 692px) minmax(18rem, 22rem);
+        grid-template-columns: minmax(0, var(--literallygoogle-results-main-col-max))
+            minmax(
+                var(--literallygoogle-results-sidebar-min),
+                var(--literallygoogle-results-sidebar-max)
+            );
         column-gap: 2rem;
         row-gap: 0;
         align-items: start;
-        max-width: 70rem;
+        max-width: var(--literallygoogle-results-layout-max);
         margin-top: 0.5rem;
         margin-inline-start: 0;
         margin-inline-end: auto;
         padding-block: 0;
         padding-inline-start: var(--literallygoogle-results-content-inline-start);
-        padding-inline-end: 1.5rem;
+        padding-inline-end: 1.25rem;
     }
 
     #slot-above-results {
         grid-column: 1;
         grid-row: 1;
         width: 100%;
-        max-width: 692px;
+        max-width: var(--literallygoogle-results-main-col-max);
         margin: 0;
     }
 
@@ -539,7 +548,7 @@ body {
         grid-column: 1;
         grid-row: 2;
         width: 100%;
-        max-width: 692px;
+        max-width: var(--literallygoogle-results-main-col-max);
     }
 
     #sidebar-col {
@@ -547,7 +556,7 @@ body {
         grid-column: 2;
         grid-row: 1 / span 2;
         width: 100%;
-        max-width: 22rem;
+        max-width: var(--literallygoogle-results-sidebar-max);
         justify-self: stretch;
     }
 
@@ -797,7 +806,7 @@ body {
 
 .container {
     width: 100%;
-    max-width: 70rem;
+    max-width: var(--literallygoogle-results-layout-max);
     margin: 0 auto;
     padding-block: 0;
     padding-inline: 2.5rem;
@@ -1006,7 +1015,7 @@ body {
     justify-content: center;
     gap: 1rem;
     padding: 1rem 1.5rem;
-    max-width: 70rem;
+    max-width: var(--literallygoogle-results-layout-max);
     margin: 0 auto;
     font-size: 14px;
 }
