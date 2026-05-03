@@ -726,7 +726,7 @@ const _buildCastAccordion = (cast, label) => {
 
 // Renders the episode list for a season. Returned by the `season` route and
 // injected into the right-column TV panel episodes slot.
-// Each episode card is a link to its TMDB page.
+// Primary row links to the episode on TMDB; long overviews get an in-row Show more toggle.
 const _renderEpisodes = (seasonData, tvId) => {
   const episodes = Array.isArray(seasonData?.episodes)
     ? seasonData.episodes
@@ -751,7 +751,23 @@ const _renderEpisodes = (seasonData, tvId) => {
       const stillHtml = stillUrl
         ? `<img src="${_esc(stillUrl)}" alt="" loading="lazy" class="tmdb-episode-still">`
         : `<div class="tmdb-episode-still tmdb-episode-still--empty"></div>`;
-      const overview = ep.overview ? _esc(ep.overview) : "";
+      const overviewRaw = ep.overview ? String(ep.overview).trim() : "";
+      const overviewEscaped = overviewRaw ? _esc(overviewRaw) : "";
+      const overviewToggle =
+        overviewRaw.length > 140
+          ? `<button type="button" class="tmdb-episode-overview-toggle" data-tmdb-episode-overview-toggle aria-expanded="false">Show more</button>`
+          : "";
+      const overviewBlockClass =
+        overviewEscaped &&
+        (overviewToggle
+          ? `tmdb-episode-overview-block`
+          : `tmdb-episode-overview-block tmdb-episode-overview-block--short`);
+      const overviewHtml = overviewEscaped
+        ? `<div class="${overviewBlockClass}" data-tmdb-overview-block>` +
+          `<p class="tmdb-episode-overview">${overviewEscaped}</p>` +
+          overviewToggle +
+          `</div>`
+        : "";
       const meta = [air, runtime, rating].filter(Boolean).join(" \u00B7 ");
       const numLabel = num != null ? `E${num}` : "";
       const canLink = resolvedTvId && seasonNum != null && num != null;
@@ -760,12 +776,13 @@ const _renderEpisodes = (seasonData, tvId) => {
             `https://www.themoviedb.org/tv/${resolvedTvId}/season/${seasonNum}/episode/${num}`,
           )
         : "";
-      const openTag = canLink
-        ? `<a href="${href}" target="_blank" rel="noopener" class="tmdb-episode tmdb-episode--clickable">`
-        : `<div class="tmdb-episode">`;
-      const closeTag = canLink ? `</a>` : `</div>`;
+      const openPrimary = canLink
+        ? `<a href="${href}" target="_blank" rel="noopener" class="tmdb-episode-primary tmdb-episode-primary--link">`
+        : `<div class="tmdb-episode-primary">`;
+      const closePrimary = canLink ? `</a>` : `</div>`;
       return (
-        openTag +
+        `<div class="tmdb-episode${canLink ? " tmdb-episode--clickable" : ""}">` +
+        openPrimary +
         `<div class="tmdb-episode-thumb">${stillHtml}</div>` +
         `<div class="tmdb-episode-body">` +
         `<div class="tmdb-episode-header">` +
@@ -775,9 +792,10 @@ const _renderEpisodes = (seasonData, tvId) => {
         `<span class="tmdb-episode-title">${name}</span>` +
         `</div>` +
         (meta ? `<div class="tmdb-episode-meta">${_esc(meta)}</div>` : "") +
-        (overview ? `<p class="tmdb-episode-overview">${overview}</p>` : "") +
         `</div>` +
-        closeTag
+        closePrimary +
+        overviewHtml +
+        `</div>`
       );
     })
     .join("");

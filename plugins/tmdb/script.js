@@ -635,6 +635,19 @@
         }
       }
 
+      const epOverviewBtn = target.closest("[data-tmdb-episode-overview-toggle]");
+      if (epOverviewBtn) {
+        const block = epOverviewBtn.closest("[data-tmdb-overview-block]");
+        if (block) {
+          e.preventDefault();
+          e.stopPropagation();
+          const expanded = block.classList.toggle("is-expanded");
+          epOverviewBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
+          epOverviewBtn.textContent = expanded ? "Show less" : "Show more";
+        }
+        return;
+      }
+
       // Back button
       const back = target.closest("[data-tmdb-back]");
       if (back) {
