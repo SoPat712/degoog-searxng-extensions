@@ -1205,7 +1205,12 @@ const _renderTv = (
     ? `${details.number_of_seasons} season${details.number_of_seasons !== 1 ? "s" : ""}`
     : "";
   const status = details.status || "";
-  const subtitleParts = [genres, seasons, status].filter(Boolean);
+  const subtitleParts = [
+    genres,
+    seasons,
+    status,
+    createdBy ? `Created by ${createdBy}` : "",
+  ].filter(Boolean);
   const subtitleHtml = subtitleParts.length
     ? `<div class="tmdb-subtitle">${_esc(subtitleParts.join(" \u00b7 "))}</div>`
     : "";
@@ -1276,12 +1281,6 @@ const _renderTv = (
     `<span class="tmdb-title-text">${name}</span>` +
     `</a>` +
     (year ? `<span class="tmdb-year">(${year})</span>` : "") +
-    (createdBy
-      ? `<span class="tmdb-title-meta">` +
-        `<span class="tmdb-title-meta-label">Created by:</span> ` +
-        _esc(createdBy) +
-        `</span>`
-      : "") +
     `</h3>` +
     (jellyfinCard || "") +
     `</div>` +

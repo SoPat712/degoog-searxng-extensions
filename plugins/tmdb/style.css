@@ -394,26 +394,8 @@
     margin-left: 0.35rem;
 }
 
-.tmdb-year + .tmdb-title-meta,
-.tmdb-title-link + .tmdb-title-meta {
-    margin-left: 0.65rem;
-}
-
-.tmdb-title-meta {
-    font-weight: 400;
-    font-size: 1.05rem;
-    color: var(--text-secondary);
-}
-
-.tmdb-title-meta-label {
-    font-weight: 400;
-    color: var(--text-secondary);
-}
-
 /* Match title text color (not global link blue); h3 is 500 — keep secondary line normal weight. */
-.tmdb-title .tmdb-year,
-.tmdb-title .tmdb-title-meta,
-.tmdb-title .tmdb-title-meta-label {
+.tmdb-title .tmdb-year {
     font-weight: 400;
 }
 
