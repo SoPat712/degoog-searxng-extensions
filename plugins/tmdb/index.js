@@ -1053,14 +1053,7 @@ const _renderMovie = (
     details.poster_path || (images?.posters || [])[0]?.file_path || "",
     "w500",
   );
-  const backdrops = (images?.backdrops || [])
-    .slice(0, 2)
-    .map((b) => _imgUrl(b.file_path, "w780"));
-  const imageCombo = _buildImageCombo(
-    poster,
-    backdrops[0] || "",
-    backdrops[1] || "",
-  );
+  const imageCombo = _buildImageCombo(poster, "", "");
 
   const directors = (credits?.crew || [])
     .filter((c) => c.job === "Director")
