@@ -258,10 +258,10 @@
 }
 
 /* Only merge with dropdown when suggestions/history is actually open. */
-[data-theme="light"] .results-search-bar:has(> .ac-dropdown[style*="display: block"]),
-[data-theme="light"] .results-search-bar:has(> .bang-ac-dropdown[style*="display: block"]),
-[data-theme="light"] .search-bar:has(> .ac-dropdown[style*="display: block"]),
-[data-theme="light"] .search-bar:has(> .bang-ac-dropdown[style*="display: block"]) {
+[data-theme="light"] .results-search-bar:has(> .ac-dropdown:not([style*="display: none"])),
+[data-theme="light"] .results-search-bar:has(> .bang-ac-dropdown:not([style*="display: none"])),
+[data-theme="light"] .search-bar:has(> .ac-dropdown:not([style*="display: none"])),
+[data-theme="light"] .search-bar:has(> .bang-ac-dropdown:not([style*="display: none"])) {
     border-color: #dadce0;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
