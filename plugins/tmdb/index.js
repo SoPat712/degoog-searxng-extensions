@@ -1191,12 +1191,7 @@ const _renderTv = (
 
   const seasonsRail =
     seasonsAccordion && seasonCount > 0
-      ? `<aside class="tmdb-tv-rail">` +
-        `<div class="tmdb-rail-heading">` +
-        `<span class="tmdb-rail-title">Episodes</span>` +
-        `</div>` +
-        seasonsAccordion +
-        `</aside>`
+      ? `<aside class="tmdb-tv-rail">` + seasonsAccordion + `</aside>`
       : "";
 
   const tvMain =
