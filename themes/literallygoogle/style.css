@@ -436,6 +436,9 @@ body {
         position: relative;
         display: grid;
         grid-template-columns: minmax(0, 692px) minmax(18rem, 22rem);
+        grid-template-areas:
+            "above sidebar"
+            "main sidebar";
         column-gap: 2rem;
         row-gap: 0;
         align-items: start;
@@ -447,36 +450,34 @@ body {
     }
 
     #slot-above-results {
-        grid-column: 1;
-        grid-row: 1;
+        grid-area: above;
         width: 100%;
         max-width: 692px;
         margin: 0;
     }
 
     #results-main {
-        grid-column: 1;
-        grid-row: 2;
+        grid-area: main;
         width: 100%;
         max-width: 692px;
     }
 
     #sidebar-col {
         position: static;
-        grid-column: 2;
-        grid-row: 1 / span 2;
+        grid-area: sidebar;
         width: 100%;
         max-width: 22rem;
         justify-self: stretch;
     }
 
-    /* No above-results slot: single main row beside the sidebar. */
-    #results-layout:has(#slot-above-results:empty) #results-main {
-        grid-row: 1;
+    #results-layout:has(#slot-above-results:not(:empty)) {
+        row-gap: 1rem;
     }
 
-    #results-layout:has(#slot-above-results:empty) #sidebar-col {
-        grid-row: 1;
+    /* No above-results slot: single main row beside the sidebar. */
+    #results-layout:has(#slot-above-results:empty) {
+        grid-template-areas: "main sidebar";
+        row-gap: 0;
     }
 
     /* Full-width above-results plugin: only when it's the sole panel.
@@ -487,8 +488,7 @@ body {
                 .slot-full-width
         )
         #slot-above-results {
-        grid-column: 1 / -1;
-        grid-row: 1;
+        grid-area: above;
         max-width: none;
         justify-self: stretch;
     }
@@ -497,10 +497,19 @@ body {
             #slot-above-results
                 > .results-slot-panel:only-child
                 .slot-full-width
+        ) {
+        grid-template-areas:
+            "above above"
+            "main sidebar";
+    }
+
+    #results-layout:has(
+            #slot-above-results
+                > .results-slot-panel:only-child
+                .slot-full-width
         )
         #results-main {
-        grid-column: 1;
-        grid-row: 2;
+        grid-area: main;
         justify-self: start;
     }
 
@@ -510,8 +519,7 @@ body {
                 .slot-full-width
         )
         #sidebar-col {
-        grid-column: 2;
-        grid-row: 2;
+        grid-area: sidebar;
     }
 
     /* Panel shell fills the spanned column for any plugin whose root uses `.slot-full-width`. */
@@ -555,12 +563,6 @@ body {
 
 #slot-above-results:empty {
     display: none;
-}
-
-/* Keep spacing between the above-results slot and results-main consistent
-   with the spacing inside results-main (e.g. at-a-glance → results-list). */
-#slot-above-results:not(:empty) {
-    margin-bottom: 1rem;
 }
 
 /* Flatten outer slot chrome only when the full-width panel is alone.
