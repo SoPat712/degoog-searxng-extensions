@@ -1170,6 +1170,8 @@ const _renderTv = (
     letterboxdHref: null,
   });
 
+  const plotHtml = overview ? `<p class="tmdb-plot">${_esc(overview)}</p>` : "";
+
   const cast = credits?.cast || [];
   const castStrip = _buildCastStrip(cast);
   const castSection = castStrip
