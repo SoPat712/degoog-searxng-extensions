@@ -7,7 +7,7 @@
  * collapse (phones + default theme), not LiterallyGoogle’s optional side-by-side rail.
  *
  * LiterallyGoogle-only: `#results-page.degoog-fullwidth-slot-shell` + `.slot-full-width`
- * enables the two-column TV band; theme CSS is unchanged here beyond those scoped blocks.
+ * enables the two-column TV band (hero | episodes) with full-width cast below; theme CSS is unchanged here beyond those scoped blocks.
  */
 .results-slot-panel:has(> .results-slot-panel-body > .tmdb-result.slot-full-width) {
     overflow: visible;
@@ -1499,7 +1499,7 @@
 /* Movies with trailer: collage left (narrower), trailer right; synopsis row full width below. */
 @container (min-width: 640px) {
     .tmdb-hero--movie:has(.tmdb-hero-trailer) {
-        grid-template-columns: minmax(0, 38%) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 44%) minmax(0, 1fr);
         grid-template-rows: auto auto;
         grid-template-areas:
             "tmdb-hero-media tmdb-hero-trailer"
@@ -1531,8 +1531,8 @@
 @container (min-width: 720px) {
     .tmdb-panel--tv .tmdb-hero-media .tmdb-img-combo,
     .tmdb-hero--movie:not(:has(.tmdb-hero-trailer)) .tmdb-hero-media .tmdb-img-combo {
-        height: 360px;
-        min-height: 300px;
+        height: 400px;
+        min-height: 320px;
     }
 
     .tmdb-header .tmdb-title {
@@ -1543,8 +1543,8 @@
 @container (min-width: 900px) {
     .tmdb-panel--tv .tmdb-hero-media .tmdb-img-combo,
     .tmdb-hero--movie:not(:has(.tmdb-hero-trailer)) .tmdb-hero-media .tmdb-img-combo {
-        height: 440px;
-        min-height: 360px;
+        height: 488px;
+        min-height: 400px;
     }
 
     .tmdb-header .tmdb-title {
@@ -1555,19 +1555,25 @@
 @container (min-width: 1100px) {
     .tmdb-panel--tv .tmdb-hero-media .tmdb-img-combo,
     .tmdb-hero--movie:not(:has(.tmdb-hero-trailer)) .tmdb-hero-media .tmdb-img-combo {
-        height: 520px;
-        min-height: 400px;
+        height: 568px;
+        min-height: 440px;
     }
 }
-/* TV body: default stacked (hero + cast, then episodes). Optional row band when the page
-   shell opts in: add class `degoog-fullwidth-slot-shell` on `#results-page` in the theme’s
-   search skeleton (any theme with full-width above-results slots can add the same). Plugins
-   use `.slot-full-width` on their root and scope wide layouts under that ancestor. */
+/* TV body: column wrapper when an episode rail exists (band + full-width cast below).
+   Wide full-width shell: `.tmdb-tv-band` is the hero | episodes row; cast spans the panel. */
 .tmdb-tv-body {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1.5rem;
     align-items: stretch;
+}
+
+.tmdb-tv-band {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+    min-width: 0;
 }
 
 /* Main column must not flex-grow and steal vertical space from siblings in stretched panels. */
@@ -1576,29 +1582,30 @@
     min-width: 0;
 }
 
-/* Wide full-width slot shell + wide panel: two-column TV band (hero + cast | episodes rail).
-   Script syncs rail height via --tmdb-tv-main-height when flex-direction is row. */
+/* Wide full-width slot shell + wide panel: hero | episodes in `.tmdb-tv-band`; cast full width under.
+   Script syncs rail height to `.tmdb-tv-main` when `.tmdb-tv-band` is `flex-direction: row`. */
 @container (min-width: 560px) {
-    #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-body {
+    #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-band {
         flex-direction: row;
         align-items: flex-start;
-        gap: 1rem;
+        gap: 1.75rem;
     }
 
     #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-main {
-        flex: 1 1 0;
+        flex: 1.35 1 0;
+        min-width: 0;
     }
 
     #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-rail {
-        flex: 1 1 0;
+        flex: 0.65 1 0;
         min-width: min(100%, 272px);
-        max-width: min(400px, 100%);
+        max-width: min(380px, 100%);
         position: relative;
         align-self: flex-start;
         box-sizing: border-box;
         min-height: 0;
         height: var(--tmdb-tv-main-height, auto);
-        max-height: var(--tmdb-tv-main-height, min(520px, 65vh));
+        max-height: var(--tmdb-tv-main-height, min(460px, 62vh));
         overflow: hidden;
     }
 
@@ -1660,17 +1667,43 @@
 
 @container (min-width: 900px) {
     #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-body {
-        gap: 1.25rem;
+        gap: 1.75rem;
+    }
+
+    #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-band {
+        gap: 2.25rem;
     }
 
     #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-rail {
-        max-width: min(440px, 42%);
+        max-width: min(400px, 36%);
     }
 }
 
-/* Narrow slot: tighten gap between hero/cast and the episodes rail (default theme). */
+/* Narrow slot: tighten gaps; when a rail exists, keep hero → cast → episodes reading order. */
 @container (max-width: 559px) {
-    .tmdb-tv-body {
+    .tmdb-tv-body:has(.tmdb-tv-band) {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.55rem;
+    }
+
+    .tmdb-tv-body:has(.tmdb-tv-band) .tmdb-tv-band {
+        display: contents;
+    }
+
+    .tmdb-tv-body:has(.tmdb-tv-band) .tmdb-tv-main {
+        grid-row: 1;
+    }
+
+    .tmdb-tv-body:has(.tmdb-tv-band) > .tmdb-section {
+        grid-row: 2;
+    }
+
+    .tmdb-tv-body:has(.tmdb-tv-band) .tmdb-tv-rail {
+        grid-row: 3;
+    }
+
+    .tmdb-tv-body:not(:has(.tmdb-tv-band)) {
         gap: 0.55rem;
     }
 
@@ -1678,7 +1711,8 @@
         margin-bottom: 0.65rem;
     }
 
-    .tmdb-tv-main .tmdb-section:last-child {
+    .tmdb-tv-main .tmdb-section:last-child,
+    .tmdb-tv-body > .tmdb-section:last-child {
         margin-bottom: 0.3rem;
     }
 }

@@ -1196,8 +1196,7 @@ const _renderTv = (
       ? `<aside class="tmdb-tv-rail">` + seasonsAccordion + `</aside>`
       : "";
 
-  const tvMain =
-    `<div class="tmdb-tv-main">` +
+  const tvHeroBlock =
     `<div class="tmdb-hero">` +
     `<div class="tmdb-hero-media">${imageCombo}</div>` +
     `<div class="tmdb-hero-info">` +
@@ -1205,6 +1204,18 @@ const _renderTv = (
     creatorHtml +
     plotHtml +
     `</div>` +
+    `</div>`;
+
+  const tvMainStacked =
+    `<div class="tmdb-tv-main">` + tvHeroBlock + castSection + `</div>`;
+
+  const tvMainHeroOnly = `<div class="tmdb-tv-main">` + tvHeroBlock + `</div>`;
+
+  const tvBodyWithRail =
+    `<div class="tmdb-tv-body">` +
+    `<div class="tmdb-tv-band">` +
+    tvMainHeroOnly +
+    seasonsRail +
     `</div>` +
     castSection +
     `</div>`;
@@ -1222,7 +1233,7 @@ const _renderTv = (
     subtitleHtml +
     `</div>` +
     `</div>` +
-    (seasonsRail ? `<div class="tmdb-tv-body">${tvMain}${seasonsRail}</div>` : tvMain) +
+    (seasonsRail ? tvBodyWithRail : tvMainStacked) +
     `</div>`
   );
 };

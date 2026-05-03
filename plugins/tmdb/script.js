@@ -226,9 +226,9 @@
           /* ignore */
         }
       }
-      if (sync.roCast) {
+      if (sync.roBand) {
         try {
-          sync.roCast.disconnect();
+          sync.roBand.disconnect();
         } catch (_e) {
           /* ignore */
         }
@@ -249,30 +249,22 @@
     }
   }
 
-  /** Height from top of .tmdb-tv-main to bottom of cast (preferred), so the rail
-   *  matches the hero+cast band instead of the full main box when the hero row is
-   *  taller than the image column (plot vs stills). Falls back to full main height. */
+  /** Hero column height only (cast sits below the band in wide layouts). */
   function measureTvMainRailHeight(main) {
     if (!main || !main.getBoundingClientRect) return 0;
-    const mainTop = main.getBoundingClientRect().top;
-    const cast = main.querySelector(".tmdb-section");
-    if (cast && cast.getBoundingClientRect) {
-      const cr = cast.getBoundingClientRect();
-      if (cr.height > 0) {
-        return Math.ceil(cr.bottom - mainTop);
-      }
-    }
     return Math.ceil(main.getBoundingClientRect().height);
   }
 
   function setupTvRailSync(body) {
     if (!body || !body.querySelector) return;
+    const band = body.querySelector(".tmdb-tv-band");
     const main = body.querySelector(".tmdb-tv-main");
     const rail = body.querySelector(".tmdb-tv-rail");
     if (!main || !rail) return;
 
     teardownTvRailSync(body);
 
+    const rowHost = band || body;
     const container = body.closest(".tmdb-result") || null;
     let raf = 0;
     function apply() {
@@ -280,7 +272,7 @@
       raf = requestAnimationFrame(function () {
         raf = 0;
         if (!body.isConnected || !rail.isConnected) return;
-        const dir = window.getComputedStyle(body).flexDirection;
+        const dir = window.getComputedStyle(rowHost).flexDirection;
         if (dir !== "row") {
           body.style.removeProperty("--tmdb-tv-main-height");
           rail.style.removeProperty("height");
@@ -302,15 +294,14 @@
     }
 
     const roMain = new ResizeObserver(apply);
+    const roBand = band ? new ResizeObserver(apply) : null;
     const roContainer = container
       ? new ResizeObserver(apply)
       : null;
-    const castSection = main.querySelector(".tmdb-section");
-    const roCast = castSection ? new ResizeObserver(apply) : null;
     roMain.observe(main);
+    if (roBand && band) roBand.observe(band);
     if (roContainer && container) roContainer.observe(container);
-    if (roCast && castSection) roCast.observe(castSection);
-    body.__tmdbTvRailSync = { roMain, roContainer, roCast, apply };
+    body.__tmdbTvRailSync = { roMain, roContainer, roBand, apply };
     apply();
   }
 
