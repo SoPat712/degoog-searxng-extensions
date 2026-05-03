@@ -1,5 +1,6 @@
 let showMode = "keyword";
 let defaultZoom = 13;
+let tileUrlTemplate = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 export const slot = {
   id: "osm-slot",
@@ -22,12 +23,20 @@ export const slot = {
       options: ["5", "8", "11", "13", "15"],
       description: "Higher = more zoomed in. 13 is a good default for cities.",
     },
+    {
+      key: "tileUrlTemplate",
+      label: "Tile URL template",
+      type: "text",
+      placeholder: "https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=YOUR_KEY",
+      description: "Optional custom tiles URL. Leave blank to use OpenStreetMap default.",
+    },
   ],
 
   configure(settings) {
     showMode = settings?.showMode === "always" ? "always" : "keyword";
     const z = parseInt(settings?.defaultZoom ?? "13", 10);
     defaultZoom = Number.isFinite(z) ? z : 13;
+    tileUrlTemplate = _normalizeTileUrl(settings?.tileUrlTemplate);
   },
 
   trigger(query) {
@@ -101,7 +110,7 @@ export const slot = {
     <span class="osm-slot-city">${_esc(shortName)}</span>
     <a class="osm-slot-open" href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}&zoom=${defaultZoom}" target="_blank" rel="noopener noreferrer">Open in OSM ↗</a>
   </div>
-  <div class="osm-map-container" id="${mapId}" data-lat="${lat}" data-lon="${lon}" data-zoom="${defaultZoom}" data-name="${_esc(shortName)}"></div>
+  <div class="osm-map-container" id="${mapId}" data-lat="${lat}" data-lon="${lon}" data-zoom="${defaultZoom}" data-name="${_esc(shortName)}" data-tile-url="${_esc(tileUrlTemplate)}"></div>
 </div>`;
 
       return { html };
@@ -121,4 +130,16 @@ function _esc(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function _normalizeTileUrl(value) {
+  const fallback = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+  if (!/^https?:\/\//i.test(trimmed)) return fallback;
+  if (!trimmed.includes("{z}") || !trimmed.includes("{x}") || !trimmed.includes("{y}")) {
+    return fallback;
+  }
+  return trimmed;
 }

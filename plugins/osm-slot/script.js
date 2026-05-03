@@ -1,4 +1,6 @@
 (function () {
+  const DEFAULT_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
   function _loadLeaflet(cb) {
     if (window._leafletLoaded) { cb(); return; }
     if (window._leafletLoading) {
@@ -55,11 +57,12 @@
     const lon = parseFloat(el.dataset.lon);
     const zoom = parseInt(el.dataset.zoom || "13", 10);
     const name = el.dataset.name || "";
+    const tileUrl = _pickTileUrl(el.dataset.tileUrl);
 
     const map = L.map(el, { zoomControl: true, scrollWheelZoom: false }).setView([lat, lon], zoom);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    L.tileLayer(tileUrl, {
+      attribution: _tileAttribution(tileUrl),
       maxZoom: 19,
       referrerPolicy: "strict-origin-when-cross-origin",
     }).addTo(map);
@@ -78,4 +81,22 @@
     if (pending.length > 0) _loadLeaflet(_initAll);
   });
   observer.observe(document.body, { childList: true, subtree: true });
+
+  function _pickTileUrl(value) {
+    if (typeof value !== "string") return DEFAULT_TILE_URL;
+    const url = value.trim();
+    if (!url) return DEFAULT_TILE_URL;
+    if (!/^https?:\/\//i.test(url)) return DEFAULT_TILE_URL;
+    if (!url.includes("{z}") || !url.includes("{x}") || !url.includes("{y}")) {
+      return DEFAULT_TILE_URL;
+    }
+    return url;
+  }
+
+  function _tileAttribution(tileUrl) {
+    if (/maptiler\.com/i.test(tileUrl)) {
+      return '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+    }
+    return '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+  }
 })();
