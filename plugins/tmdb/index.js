@@ -514,46 +514,23 @@ const _pickTrailerVideo = (videos) => {
   return youtube[0];
 };
 
-/** `published_at` ISO → medium date, or "". */
-const _formatVideoPublishedLine = (iso) => {
-  if (!iso || typeof iso !== "string") return "";
-  const head = iso.trim().slice(0, 10);
-  return _formatMediumDate(head);
-};
-
-/** Thumbnail facade + clip title under the frame (no iframe until play — avoids YouTube chrome/title overlay). */
-const _buildTrailerCard = (video, movieTitle) => {
+/** Minimal YouTube embed for the movie hero (no extra card chrome below the iframe). */
+const _buildTrailerEmbed = (video, movieTitle) => {
   if (!video || !video.key) return "";
   const key = String(video.key || "").trim();
   if (!key) return "";
-  const fallbackTitle = String(movieTitle || "Video").trim() || "Video";
-  const clipName = String(video.name || "").trim() || `${fallbackTitle} clip`;
-  const safeIframeTitle = _esc(clipName);
-  const embedBase = `https://www.youtube-nocookie.com/embed/${key}?rel=0&modestbranding=1`;
-  const embedAttr = _esc(embedBase);
-  const thumbUrl = _esc(`https://i.ytimg.com/vi/${key}/hqdefault.jpg`);
-  const publishedLine = _formatVideoPublishedLine(video.published_at || "");
-
-  const dateHtml = publishedLine
-    ? `<div class="tmdb-trailer-card-date">${_esc(publishedLine)}</div>`
-    : "";
-
-  const facadeHtml =
-    `<div class="tmdb-trailer tmdb-trailer--card tmdb-trailer--facade" data-tmdb-trailer-facade data-tmdb-trailer-embed="${embedAttr}" data-tmdb-trailer-iframe-title="${safeIframeTitle}">` +
-    `<button type="button" class="tmdb-trailer-facade-btn" data-tmdb-trailer-play ` +
-    `aria-label="Play video: ${safeIframeTitle}">` +
-    `<img src="${thumbUrl}" alt="" class="tmdb-trailer-facade-thumb" loading="lazy" width="480" height="360">` +
-    `<span class="tmdb-trailer-facade-play" aria-hidden="true"></span>` +
-    `</button>` +
-    `</div>`;
-
+  const fallbackTitle = String(movieTitle || "Trailer").trim() || "Trailer";
+  const clipName = String(video.name || "").trim() || `${fallbackTitle} trailer`;
+  const safeTitle = _esc(clipName);
+  const src = _esc(
+    `https://www.youtube-nocookie.com/embed/${key}?rel=0&modestbranding=1`,
+  );
   return (
-    `<div class="tmdb-trailer-card">` +
-    `<div class="tmdb-trailer-card-media">${facadeHtml}</div>` +
-    `<div class="tmdb-trailer-card-body">` +
-    `<div class="tmdb-trailer-card-title">${_esc(clipName)}</div>` +
-    dateHtml +
-    `</div>` +
+    `<div class="tmdb-trailer tmdb-trailer--hero">` +
+    `<iframe class="tmdb-trailer-frame tmdb-trailer-frame--hero" src="${src}" title="${safeTitle}" ` +
+    `loading="lazy" referrerpolicy="strict-origin-when-cross-origin" ` +
+    `allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" ` +
+    `allowfullscreen></iframe>` +
     `</div>`
   );
 };
@@ -574,9 +551,9 @@ const _buildMetaGrid = (items) => {
   return cells ? `<div class="tmdb-meta-grid">${cells}</div>` : "";
 };
 
-const _buildImageCombo = (poster, bd1, bd2, bd3) => {
+const _buildImageCombo = (poster, bd1, bd2) => {
   const posterClean = (poster && String(poster).trim()) || "";
-  const bdList = [bd1, bd2, bd3]
+  const bdList = [bd1, bd2]
     .map((b) => (b && String(b).trim()) || "")
     .filter(Boolean);
   const imgs = posterClean ? [posterClean, ...bdList] : [...bdList];
@@ -653,17 +630,8 @@ const _buildImageCombo = (poster, bd1, bd2, bd3) => {
   }
 
   return (
-    `<div class="tmdb-img-combo tmdb-img-combo--quad tmdb-img-combo--poster-first" data-tmdb-img-count="4">` +
-    `<div class="tmdb-img-main">${imgHtml(imgs[0], "tmdb-combo-poster")}</div>` +
-    `<div class="tmdb-img-side tmdb-img-side--quad">` +
-    `<div class="tmdb-quad-side-top">` +
-    wrapTile(imgHtml(imgs[2], "tmdb-combo-tile tmdb-combo-tile--quad-top-left")) +
-    wrapTile(imgHtml(imgs[3], "tmdb-combo-tile tmdb-combo-tile--quad-top-right")) +
-    `</div>` +
-    `<div class="tmdb-quad-side-bottom">` +
-    wrapTile(imgHtml(imgs[1], "tmdb-combo-tile tmdb-combo-tile--quad-bottom")) +
-    `</div>` +
-    `</div>` +
+    `<div class="tmdb-img-combo tmdb-img-combo--single" data-tmdb-img-count="1">` +
+    imgHtml(imgs[0], "tmdb-combo-poster") +
     `</div>`
   );
 };
@@ -769,11 +737,11 @@ const _renderEpisodes = (seasonData, tvId) => {
       const overviewHtml = overviewEscaped
         ? overviewNeedsToggle
           ? `<div class="tmdb-episode-overview-block" data-tmdb-overview-block>` +
-            `<p class="tmdb-episode-overview">` +
-            `<span class="tmdb-episode-overview-trunc">${overviewPreviewEscaped}\u2026 </span>` +
+            `<p class="tmdb-episode-overview tmdb-episode-overview--collapsible">` +
+            `<span class="tmdb-episode-overview-trunc">${overviewPreviewEscaped}</span>` +
             `<span class="tmdb-episode-overview-full" hidden>${overviewEscaped}</span>` +
-            `<button type="button" class="tmdb-episode-overview-toggle" data-tmdb-episode-overview-toggle aria-expanded="false">Show more</button>` +
             `</p>` +
+            `<button type="button" class="tmdb-episode-overview-toggle" data-tmdb-episode-overview-toggle aria-expanded="false">Show more</button>` +
             `</div>`
           : `<div class="tmdb-episode-overview-block tmdb-episode-overview-block--short" data-tmdb-overview-block>` +
             `<p class="tmdb-episode-overview">${overviewEscaped}</p>` +
@@ -1111,13 +1079,12 @@ const _renderMovie = (
     "w500",
   );
   const backdrops = (images?.backdrops || [])
-    .slice(0, 3)
+    .slice(0, 2)
     .map((b) => _imgUrl(b.file_path, "w780"));
   const imageCombo = _buildImageCombo(
     poster,
     backdrops[0] || "",
     backdrops[1] || "",
-    backdrops[2] || "",
   );
 
   const directors = (credits?.crew || [])
@@ -1146,10 +1113,25 @@ const _renderMovie = (
     : "";
 
   const plotHtml = overview ? `<p class="tmdb-plot">${_esc(overview)}</p>` : "";
-  const trailerHtml = _buildTrailerCard(
+  const trailerEmbed = _buildTrailerEmbed(
     trailerVideo,
     details.title || details.name || "",
   );
+  const heroInfoInner = ratingsHtml + directorHtml + plotHtml;
+
+  const heroMain =
+    trailerEmbed
+      ? `<div class="tmdb-hero tmdb-hero--movie tmdb-hero--movie-with-trailer">` +
+        `<div class="tmdb-hero-media">${imageCombo}</div>` +
+        `<div class="tmdb-hero-side">` +
+        `<div class="tmdb-hero-trailer">${trailerEmbed}</div>` +
+        `<div class="tmdb-hero-info">${heroInfoInner}</div>` +
+        `</div>` +
+        `</div>`
+      : `<div class="tmdb-hero tmdb-hero--movie">` +
+        `<div class="tmdb-hero-media">${imageCombo}</div>` +
+        `<div class="tmdb-hero-info">${heroInfoInner}</div>` +
+        `</div>`;
 
   const cast = credits?.cast || [];
   const castStrip = _buildCastStrip(cast);
@@ -1183,17 +1165,7 @@ const _renderMovie = (
     subtitleHtml +
     `</div>` +
     `</div>` +
-    `<div class="tmdb-hero tmdb-hero--movie">` +
-    `<div class="tmdb-hero-media">${imageCombo}</div>` +
-    (trailerHtml
-      ? `<div class="tmdb-hero-trailer">${trailerHtml}</div>`
-      : "") +
-    `<div class="tmdb-hero-info">` +
-    ratingsHtml +
-    directorHtml +
-    plotHtml +
-    `</div>` +
-    `</div>` +
+    heroMain +
     castSection +
     `</div>`
   );
@@ -1216,13 +1188,12 @@ const _renderTv = (
     "w500",
   );
   const backdrops = (images?.backdrops || [])
-    .slice(0, 3)
+    .slice(0, 2)
     .map((b) => _imgUrl(b.file_path, "w780"));
   const imageCombo = _buildImageCombo(
     poster,
     backdrops[0] || "",
     backdrops[1] || "",
-    backdrops[2] || "",
   );
 
   const createdBy = (details.created_by || []).map((c) => c.name).join(", ");
