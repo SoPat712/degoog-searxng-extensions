@@ -1061,7 +1061,11 @@ const _renderMovie = (
     .join(", ");
   const genres = (details.genres || []).map((g) => g.name).join(", ");
   const runtime = _formatRuntime(details.runtime);
-  const subtitleParts = [genres, runtime].filter(Boolean);
+  const subtitleParts = [
+    genres,
+    runtime,
+    directors ? `Directed by ${directors}` : "",
+  ].filter(Boolean);
   const subtitleHtml = subtitleParts.length
     ? `<div class="tmdb-subtitle">${_esc(subtitleParts.join(" \u00b7 "))}</div>`
     : "";
@@ -1073,19 +1077,15 @@ const _renderMovie = (
     rottenTomatoes: omdbRatings?.rottenTomatoes,
     letterboxdHref: `https://letterboxd.com/tmdb/${details.id}/`,
   });
-  const directorHtml = directors
-    ? `<div class="tmdb-hero-director">` +
-      `<span class="tmdb-hero-director-label">Directed by</span> ` +
-      _esc(directors) +
-      `</div>`
-    : "";
 
   const plotHtml = overview ? `<p class="tmdb-plot">${_esc(overview)}</p>` : "";
   const trailerEmbed = _buildTrailerEmbed(
     trailerVideo,
     details.title || details.name || "",
   );
-  const heroInfoInner = ratingsHtml + directorHtml + plotHtml;
+  const heroInfoInner = trailerEmbed
+    ? plotHtml + ratingsHtml
+    : ratingsHtml + plotHtml;
 
   const heroMain =
     trailerEmbed

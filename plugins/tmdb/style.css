@@ -1539,9 +1539,31 @@
     flex-shrink: 0;
 }
 
-.tmdb-hero--movie-with-trailer .tmdb-hero-side .tmdb-hero-info {
-    flex: 1 1 auto;
+.tmdb-hero--movie-with-trailer .tmdb-hero-side {
+    gap: 0.45rem;
     min-height: 0;
+}
+
+.tmdb-hero--movie-with-trailer .tmdb-hero-trailer {
+    width: min(100%, min(400px, 92cqw));
+    max-width: 100%;
+    align-self: flex-start;
+}
+
+.tmdb-hero--movie-with-trailer .tmdb-hero-info {
+    flex: 0 1 auto;
+    gap: 0.45rem;
+    min-height: 0;
+}
+
+.tmdb-hero.tmdb-hero--movie-with-trailer {
+    container-type: inline-size;
+    container-name: tmdb-movie-hero;
+    margin-bottom: 0.65rem;
+}
+
+.tmdb-hero--movie-with-trailer + .tmdb-section {
+    margin-top: 0;
 }
 
 .tmdb-hero-media .tmdb-img-combo {
@@ -1561,10 +1583,10 @@
     background: var(--bg-light);
 }
 
-/* Movie + trailer: tall poster collage matches the height of trailer + ratings + overview. */
+/* Movie + trailer: side column stacks trailer + copy; poster column height is intrinsic. */
 .tmdb-hero--movie-with-trailer .tmdb-hero-media {
     display: flex;
-    min-height: min(520px, 88cqw);
+    min-height: 0;
 }
 
 .tmdb-hero--movie-with-trailer .tmdb-hero-media .tmdb-img-combo {
@@ -1572,7 +1594,7 @@
     align-self: stretch;
     width: 100%;
     height: 100%;
-    min-height: min(360px, 72cqw);
+    min-height: 0;
     max-height: none;
     aspect-ratio: unset;
 }
@@ -1585,7 +1607,7 @@
     min-height: 0;
 }
 
-/* Hero info: ratings + director credit + overview */
+/* Hero info: ratings + overview (director lives in `.tmdb-subtitle` like TV “Created by”) */
 .tmdb-hero-info {
     display: flex;
     flex-direction: column;
@@ -1740,12 +1762,13 @@
     @container (min-width: 520px) {
         .tmdb-hero--movie-with-trailer {
             grid-template-columns: minmax(220px, min(40%, 340px)) minmax(0, 1fr);
-            align-items: stretch;
+            align-items: start;
             column-gap: 1rem;
         }
 
+        /* Avoid forcing a tall poster column when the still is shorter than the trailer rail */
         .tmdb-hero--movie-with-trailer .tmdb-hero-media {
-            min-height: min(560px, 88cqw);
+            min-height: 0;
         }
     }
 }
