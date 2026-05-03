@@ -1651,6 +1651,34 @@
     width: 100%;
 }
 
+/* Stacked hero (non-wide containers): keep trailer as a normal 16:9 block.
+   The side-by-side "fill available height" mode above can collapse/hide it when
+   the side column is content-driven instead of height-capped by the row layout. */
+@container tmdb-movie-hero (max-width: 519px) {
+    .tmdb-hero--movie-with-trailer .tmdb-hero-side {
+        overflow: visible;
+    }
+
+    .tmdb-hero--movie-with-trailer .tmdb-hero-trailer {
+        width: 100%;
+        max-width: none;
+        flex: 0 0 auto;
+        align-self: stretch;
+        margin-inline: 0;
+        overflow: visible;
+    }
+
+    .tmdb-hero--movie-with-trailer .tmdb-trailer {
+        height: auto;
+    }
+
+    .tmdb-hero--movie-with-trailer .tmdb-trailer-frame {
+        aspect-ratio: 16 / 9;
+        height: auto;
+        width: 100%;
+    }
+}
+
 /* Ratings display */
 .tmdb-ratings {
     display: flex;
