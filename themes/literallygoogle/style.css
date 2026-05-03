@@ -263,8 +263,8 @@
 [data-theme="light"] .search-bar:has(> .ac-dropdown:not([style*="display: none"])),
 [data-theme="light"] .search-bar:has(> .bang-ac-dropdown:not([style*="display: none"])) {
     border-color: #dadce0;
-    border-bottom-start-radius: 0;
-    border-bottom-end-radius: 0;
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
     box-shadow: 0 8px 14px rgba(64, 60, 67, 0.24);
 }
 
