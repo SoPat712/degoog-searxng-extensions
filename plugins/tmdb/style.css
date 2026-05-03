@@ -1545,9 +1545,10 @@
 }
 
 .tmdb-hero--movie-with-trailer .tmdb-hero-trailer {
-    width: min(100%, min(400px, 92cqw));
+    width: min(100%, min(480px, 98cqw));
     max-width: 100%;
-    align-self: flex-start;
+    align-self: center;
+    margin-inline: auto;
 }
 
 .tmdb-hero--movie-with-trailer .tmdb-hero-info {
