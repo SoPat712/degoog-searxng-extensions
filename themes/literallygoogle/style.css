@@ -490,10 +490,10 @@ body {
         padding-bottom: 0.75rem;
     }
 
-    #results-tabs,
-    #results-meta {
-        margin-inline-start: 0 !important;
-        padding-inline-start: 4rem !important;
+    #results-page #results-tabs,
+    #results-page #results-meta {
+        margin-inline-start: 0;
+        padding-inline-start: 4rem;
     }
 }
 
