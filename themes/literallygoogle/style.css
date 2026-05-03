@@ -39,8 +39,11 @@
     --white: #fff;
 }
 
+/* Light tokens live in two blocks on purpose: explicit `[data-theme="light"]` must
+   apply when the OS prefers dark; the media query covers “follow system” light only.
+   Keep the variable declarations identical between the two. */
 @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) {
+    :root:not([data-theme="dark"]):not([data-theme="light"]) {
         --primary: #4285f4;
         --primary-hover: #5a95f5;
         --primary-rgb: 66, 133, 244;
@@ -69,6 +72,7 @@
     }
 }
 
+/* Pair: implicit “follow OS” light palette in @media (prefers-color-scheme: light). */
 [data-theme="light"] {
     --primary: #4285f4;
     --primary-hover: #5a95f5;
@@ -803,7 +807,6 @@ body {
 /* ══════════════════════════════════════════════════════════════════════════
    SETTINGS PAGE
    Matches examples/theannoying-degoog-extensions/themes/LiterallyGoogle.
-   Do not override .settings-page-back (core uses --text-secondary, not link blue).
    ══════════════════════════════════════════════════════════════════════════ */
 
 .settings-page button {
