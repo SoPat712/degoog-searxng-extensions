@@ -565,6 +565,35 @@ body {
     display: none;
 }
 
+/* Some degoog builds place `#slot-above-results` inside `#results-main` instead of
+   directly under `#results-layout`. Enforce visual order explicitly so the
+   above-results slot stays above at-a-glance/results in both skeleton variants. */
+#results-main {
+    display: flex;
+    flex-direction: column;
+}
+
+#results-main > #slot-above-results {
+    order: 1;
+    margin-bottom: 1rem;
+}
+
+#results-main > #at-a-glance {
+    order: 2;
+}
+
+#results-main > #results-list {
+    order: 3;
+}
+
+#results-main > #slot-below-results {
+    order: 4;
+}
+
+#results-main > #pagination {
+    order: 5;
+}
+
 /* Flatten outer slot chrome only when the full-width panel is alone.
    Keep normal panel framing when multiple above-results plugins are stacked. */
 #slot-above-results
