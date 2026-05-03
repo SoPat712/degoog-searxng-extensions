@@ -1103,10 +1103,12 @@ const _renderMovie = (
     subtitleHtml +
     `</div>` +
     `</div>` +
-    `<div class="tmdb-hero">` +
+    `<div class="tmdb-hero tmdb-hero--movie">` +
     `<div class="tmdb-hero-media">${imageCombo}</div>` +
+    (trailerHtml
+      ? `<div class="tmdb-hero-trailer">${trailerHtml}</div>`
+      : "") +
     `<div class="tmdb-hero-info">` +
-    trailerHtml +
     ratingsHtml +
     directorHtml +
     plotHtml +

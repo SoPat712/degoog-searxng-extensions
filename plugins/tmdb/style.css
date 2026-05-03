@@ -1324,7 +1324,7 @@
     margin-top: 0.35rem;
 }
 
-/* Hero: collage full-width on top, ratings / synopsis below (all container widths). */
+/* Hero: stacked by default; movies gain a side-by-side band when a trailer exists (see below). */
 .tmdb-hero {
     display: grid;
     grid-template-columns: 1fr;
@@ -1332,10 +1332,14 @@
     margin-bottom: 1.25rem;
 }
 
-/* Hero media: the image combo fills the panel width */
+/* Hero media: the image combo fills the hero column */
 .tmdb-hero-media {
     min-width: 0;
     width: 100%;
+}
+
+.tmdb-hero-trailer {
+    min-width: 0;
 }
 
 .tmdb-hero-media .tmdb-img-combo {
@@ -1492,9 +1496,41 @@
     text-transform: none;
 }
 
-/* Taller collage on wide containers (single-column hero). */
+/* Movies with trailer: collage left (narrower), trailer right; synopsis row full width below. */
+@container (min-width: 640px) {
+    .tmdb-hero--movie:has(.tmdb-hero-trailer) {
+        grid-template-columns: minmax(0, 38%) minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        grid-template-areas:
+            "tmdb-hero-media tmdb-hero-trailer"
+            "tmdb-hero-info tmdb-hero-info";
+        align-items: start;
+    }
+
+    .tmdb-hero--movie:has(.tmdb-hero-trailer) .tmdb-hero-media {
+        grid-area: tmdb-hero-media;
+    }
+
+    .tmdb-hero--movie:has(.tmdb-hero-trailer) .tmdb-hero-trailer {
+        grid-area: tmdb-hero-trailer;
+    }
+
+    .tmdb-hero--movie:has(.tmdb-hero-trailer) .tmdb-hero-info {
+        grid-area: tmdb-hero-info;
+    }
+
+    .tmdb-hero--movie:has(.tmdb-hero-trailer) .tmdb-hero-media .tmdb-img-combo {
+        height: auto;
+        max-height: min(280px, 50cqw);
+        min-height: 160px;
+        aspect-ratio: 16 / 9;
+    }
+}
+
+/* TV + movie-without-trailer: taller stacked collage on wide containers. */
 @container (min-width: 720px) {
-    .tmdb-hero-media .tmdb-img-combo {
+    .tmdb-panel--tv .tmdb-hero-media .tmdb-img-combo,
+    .tmdb-hero--movie:not(:has(.tmdb-hero-trailer)) .tmdb-hero-media .tmdb-img-combo {
         height: 360px;
         min-height: 300px;
     }
@@ -1505,7 +1541,8 @@
 }
 
 @container (min-width: 900px) {
-    .tmdb-hero-media .tmdb-img-combo {
+    .tmdb-panel--tv .tmdb-hero-media .tmdb-img-combo,
+    .tmdb-hero--movie:not(:has(.tmdb-hero-trailer)) .tmdb-hero-media .tmdb-img-combo {
         height: 440px;
         min-height: 360px;
     }
@@ -1516,7 +1553,8 @@
 }
 
 @container (min-width: 1100px) {
-    .tmdb-hero-media .tmdb-img-combo {
+    .tmdb-panel--tv .tmdb-hero-media .tmdb-img-combo,
+    .tmdb-hero--movie:not(:has(.tmdb-hero-trailer)) .tmdb-hero-media .tmdb-img-combo {
         height: 520px;
         min-height: 400px;
     }
