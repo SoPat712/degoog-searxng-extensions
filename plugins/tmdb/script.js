@@ -635,29 +635,6 @@
         }
       }
 
-      const epOverviewBtn = target.closest("[data-tmdb-episode-overview-toggle]");
-      if (epOverviewBtn) {
-        const block = epOverviewBtn.closest("[data-tmdb-overview-block]");
-        if (block) {
-          e.preventDefault();
-          e.stopPropagation();
-          const expanded = block.classList.toggle("is-expanded");
-          const trunc = block.querySelector(".tmdb-episode-overview-trunc");
-          const full = block.querySelector(".tmdb-episode-overview-full");
-          if (trunc && full) {
-            trunc.toggleAttribute("hidden", expanded);
-            full.toggleAttribute("hidden", !expanded);
-          }
-          epOverviewBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
-          epOverviewBtn.textContent = expanded ? "Show less" : "Show more";
-          const flow = block.closest(".tmdb-episode-flow");
-          const epCard = block.closest(".tmdb-episode");
-          if (flow) flow.classList.toggle("is-overview-expanded", expanded);
-          if (epCard) epCard.classList.toggle("is-overview-expanded", expanded);
-        }
-        return;
-      }
-
       // Back button
       const back = target.closest("[data-tmdb-back]");
       if (back) {

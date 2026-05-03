@@ -89,18 +89,6 @@ const _esc = (s) => {
     .replace(/"/g, "&quot;");
 };
 
-/** Episode overview: trim for one-line-with-toggle preview (word boundary when possible). */
-const _truncateEpisodeOverviewPreview = (plain, maxChars) => {
-  const t = String(plain || "")
-    .trim()
-    .replace(/\s+/g, " ");
-  if (t.length <= maxChars) return t;
-  let cut = t.slice(0, maxChars);
-  const lastSpace = cut.lastIndexOf(" ");
-  if (lastSpace > Math.floor(maxChars * 0.55)) cut = cut.slice(0, lastSpace);
-  return cut.trimEnd();
-};
-
 const _imgUrl = (path, size) => {
   if (!path || typeof path !== "string") return "";
   const p = path.trim();
@@ -702,9 +690,7 @@ const _buildCastAccordion = (cast, label) => {
 
 // Renders the episode list for a season. Returned by the `season` route and
 // injected into the right-column TV panel episodes slot.
-// Magazine-style layout: floated still with fixed aspect box defines collapsed card height;
-// title/meta + synopsis share one normal flow; expanding removes the height clip so text runs
-// full-width below the still. Long overviews: inline Show more after the preview text.
+// CSS grid: still | title/meta/synopsis; synopsis clamped (~2 lines) — full text on TMDB via card links.
 const _renderEpisodes = (seasonData, tvId) => {
   const episodes = Array.isArray(seasonData?.episodes)
     ? seasonData.episodes
@@ -731,22 +717,8 @@ const _renderEpisodes = (seasonData, tvId) => {
         : `<div class="tmdb-episode-still tmdb-episode-still--empty"></div>`;
       const overviewRaw = ep.overview ? String(ep.overview).trim() : "";
       const overviewEscaped = overviewRaw ? _esc(overviewRaw) : "";
-      const overviewNeedsToggle = overviewRaw.length > 140;
-      const overviewPreviewPlain = overviewNeedsToggle
-        ? _truncateEpisodeOverviewPreview(overviewRaw, 130)
-        : overviewRaw;
-      const overviewPreviewEscaped = overviewPreviewPlain
-        ? _esc(overviewPreviewPlain) +
-          (overviewNeedsToggle ? "\u2026\u00a0" : "")
-        : "";
       const overviewHtml = overviewEscaped
-        ? overviewNeedsToggle
-          ? `<p class="tmdb-episode-overview tmdb-episode-overview--collapsible" data-tmdb-overview-block>` +
-            `<span class="tmdb-episode-overview-trunc">${overviewPreviewEscaped}</span>` +
-            `<span class="tmdb-episode-overview-full" hidden>${overviewEscaped}\u00a0</span>` +
-            `<button type="button" class="tmdb-episode-overview-toggle" data-tmdb-episode-overview-toggle aria-expanded="false">Show more</button>` +
-            `</p>`
-          : `<p class="tmdb-episode-overview">${overviewEscaped}</p>`
+        ? `<p class="tmdb-episode-overview">${overviewEscaped}</p>`
         : "";
       const meta = [air, runtime, rating].filter(Boolean).join(" \u00B7 ");
       const numLabel = num != null ? `E${num}` : "";
@@ -770,6 +742,7 @@ const _renderEpisodes = (seasonData, tvId) => {
         thumbOpen +
         stillHtml +
         thumbClose +
+        `<div class="tmdb-episode-copy">` +
         headOpen +
         `<div class="tmdb-episode-header">` +
         (numLabel
@@ -780,6 +753,7 @@ const _renderEpisodes = (seasonData, tvId) => {
         (meta ? `<div class="tmdb-episode-meta">${_esc(meta)}</div>` : "") +
         headClose +
         overviewHtml +
+        `</div>` +
         `</div>` +
         `</div>`
       );
