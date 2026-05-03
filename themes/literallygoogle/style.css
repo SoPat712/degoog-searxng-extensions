@@ -593,6 +593,92 @@ body {
     #results-layout > #img-lightbox {
         grid-column: 1 / -1;
     }
+
+    /* Images/videos tabs should use the full page width (no web-results column clamp). */
+    #results-page:has(#results-tabs .results-tab[data-type="images"].active) .container,
+    #results-page:has(
+            #results-tabs .results-tab[data-type="images"][aria-selected="true"]
+        )
+        .container,
+    #results-page:has(#results-tabs .results-tab[data-type="videos"].active) .container,
+    #results-page:has(
+            #results-tabs .results-tab[data-type="videos"][aria-selected="true"]
+        )
+        .container,
+    #results-page:has(#results-list .image-card) .container,
+    #results-page:has(#results-list .video-card) .container {
+        max-width: none;
+    }
+
+    #results-page:has(#results-tabs .results-tab[data-type="images"].active)
+        #results-layout,
+    #results-page:has(
+            #results-tabs .results-tab[data-type="images"][aria-selected="true"]
+        )
+        #results-layout,
+    #results-page:has(#results-tabs .results-tab[data-type="videos"].active)
+        #results-layout,
+    #results-page:has(
+            #results-tabs .results-tab[data-type="videos"][aria-selected="true"]
+        )
+        #results-layout,
+    #results-page:has(#results-list .image-card) #results-layout,
+    #results-page:has(#results-list .video-card) #results-layout {
+        grid-template-columns: minmax(0, 1fr);
+        max-width: none;
+        margin-left: 0;
+        margin-right: 0;
+        padding: 0;
+        column-gap: 0;
+    }
+
+    #results-page:has(#results-tabs .results-tab[data-type="images"].active)
+        #slot-above-results,
+    #results-page:has(
+            #results-tabs .results-tab[data-type="images"][aria-selected="true"]
+        )
+        #slot-above-results,
+    #results-page:has(#results-tabs .results-tab[data-type="videos"].active)
+        #slot-above-results,
+    #results-page:has(
+            #results-tabs .results-tab[data-type="videos"][aria-selected="true"]
+        )
+        #slot-above-results,
+    #results-page:has(#results-list .image-card) #slot-above-results,
+    #results-page:has(#results-list .video-card) #slot-above-results,
+    #results-page:has(#results-tabs .results-tab[data-type="images"].active)
+        #results-main,
+    #results-page:has(
+            #results-tabs .results-tab[data-type="images"][aria-selected="true"]
+        )
+        #results-main,
+    #results-page:has(#results-tabs .results-tab[data-type="videos"].active)
+        #results-main,
+    #results-page:has(
+            #results-tabs .results-tab[data-type="videos"][aria-selected="true"]
+        )
+        #results-main,
+    #results-page:has(#results-list .image-card) #results-main,
+    #results-page:has(#results-list .video-card) #results-main {
+        max-width: none;
+    }
+
+    #results-page:has(#results-tabs .results-tab[data-type="images"].active)
+        #sidebar-col,
+    #results-page:has(
+            #results-tabs .results-tab[data-type="images"][aria-selected="true"]
+        )
+        #sidebar-col,
+    #results-page:has(#results-tabs .results-tab[data-type="videos"].active)
+        #sidebar-col,
+    #results-page:has(
+            #results-tabs .results-tab[data-type="videos"][aria-selected="true"]
+        )
+        #sidebar-col,
+    #results-page:has(#results-list .image-card) #sidebar-col,
+    #results-page:has(#results-list .video-card) #sidebar-col {
+        display: none;
+    }
 }
 
 /* Mobile: single column, no custom offsets */
