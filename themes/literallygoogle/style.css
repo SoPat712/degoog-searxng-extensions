@@ -343,47 +343,28 @@
     padding: 0;
 }
 
-/* Engine performance + related searches: one filled card, stacked rows, hairline
-   dividers only — no outer border ring (matches Google sidebar grouping). */
+/* Sidebar engine stats + related searches: same stack as Settings → Themes
+   (.ext-cards gap + .theme-select pills — no outer wrapper border). */
 .sidebar-panel:has(.engine-stat-row),
 .sidebar-panel:has(.related-search-link) {
-    background: var(--bg-light) !important;
+    background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    border-radius: 12px !important;
-    overflow: hidden;
+    border-radius: 0 !important;
+    overflow: visible;
 }
 
 .sidebar-accordion-body:has(.engine-stat-row),
 .sidebar-accordion-body:has(.related-search-link) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     background: transparent;
     padding: 0;
 }
 
-.engine-stat-row {
-    margin: 0;
-    padding: 14px;
-    border-radius: 0;
-    background: transparent;
-    border-bottom: 1px solid var(--border-light);
-}
-
-.engine-stat-row:last-child {
-    border-bottom: none;
-}
-
 .related-search-link {
     display: block;
-    padding: 14px;
-    margin: 0;
-    font-size: 14px;
-    background: transparent;
-    border-radius: 0;
-    border-bottom: 1px solid var(--border-light);
-}
-
-.related-search-link:last-child {
-    border-bottom: none;
 }
 
 body {
@@ -795,23 +776,32 @@ body {
     color: white;
 }
 
-.theme-select {
+.theme-select,
+.engine-stat-row,
+.related-search-link {
     background: #333537;
     border-radius: 999px;
     padding: 15px 20px;
     border: none;
+    margin: 0;
 }
 
-.theme-select:hover {
+.theme-select:hover,
+.engine-stat-row:hover,
+.related-search-link:hover {
     background: #414345;
     border: none;
 }
 
-[data-theme="light"] .theme-select {
+[data-theme="light"] .theme-select,
+[data-theme="light"] .engine-stat-row,
+[data-theme="light"] .related-search-link {
     background: #dde3ea;
 }
 
-[data-theme="light"] .theme-select:hover {
+[data-theme="light"] .theme-select:hover,
+[data-theme="light"] .engine-stat-row:hover,
+[data-theme="light"] .related-search-link:hover {
     background: #ced3da;
 }
 
