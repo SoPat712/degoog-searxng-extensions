@@ -716,10 +716,17 @@ body {
 }
 
 .settings-toggle-wrap,
-.ext-card,
+.ext-card {
+    padding: 17px 20px;
+    border: none;
+    border-radius: 4px;
+    background: #37393b;
+}
+
+/* Sidebar engine stats + suggestions: same card treatment, slightly tighter than Settings themes. */
 .engine-stat-row,
 .related-search-link {
-    padding: 17px 20px;
+    padding: 11px 14px;
     border: none;
     border-radius: 4px;
     background: #37393b;
