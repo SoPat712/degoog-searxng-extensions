@@ -5,6 +5,10 @@
   max-width: 680px;
 }
 
+#results-page.degoog-fullwidth-slot-shell .osm-slot-wrap.slot-full-width {
+  max-width: none;
+}
+
 .osm-slot-header {
   display: flex;
   align-items: center;

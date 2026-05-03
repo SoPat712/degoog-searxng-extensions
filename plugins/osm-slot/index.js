@@ -94,7 +94,7 @@ export const slot = {
       const mapId = `osm-map-${Date.now()}`;
 
       const html = `
-<div class="osm-slot-wrap">
+<div class="osm-slot-wrap slot-full-width">
   <div class="osm-slot-header">
     <svg width=\"28\" height=\"28\" viewBox=\"0 0 20 20\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"10\" cy=\"10\" r=\"10\" fill=\"rgba(255,255,255,0.12)\"/><circle cx=\"10\" cy=\"10\" r=\"5.5\" stroke=\"rgba(255,255,255,0.85)\" stroke-width=\"1.2\"/><path d=\"M10 4.5c-1.5 1.5-2.5 3.3-2.5 5.5s1 4 2.5 5.5\" stroke=\"rgba(255,255,255,0.85)\" stroke-width=\"1.2\" stroke-linecap=\"round\"/><path d=\"M10 4.5c1.5 1.5 2.5 3.3 2.5 5.5s-1 4-2.5 5.5\" stroke=\"rgba(255,255,255,0.85)\" stroke-width=\"1.2\" stroke-linecap=\"round\"/><line x1=\"4.5\" y1=\"10\" x2=\"15.5\" y2=\"10\" stroke=\"rgba(255,255,255,0.85)\" stroke-width=\"1.2\" stroke-linecap=\"round\"/></svg>
     <span class="osm-slot-label">OpenStreetMap</span>
