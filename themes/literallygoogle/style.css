@@ -842,9 +842,19 @@ body {
     border-radius: 999px;
 }
 
-.settings-page-back,
-.settings-page-back:visited {
+a.settings-page-back,
+a.settings-page-back:visited {
     color: var(--text-link);
+}
+
+a.settings-page-back:hover,
+a.settings-page-back:focus-visible {
+    color: var(--primary);
+}
+
+/* Font Awesome inherits link color; core styles sometimes pin icon/muted greys. */
+.settings-page-back i {
+    color: inherit;
 }
 
 [data-theme="light"] .settings-page-body {
