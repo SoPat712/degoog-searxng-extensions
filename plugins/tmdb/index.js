@@ -483,11 +483,12 @@ const _buildJellyfinCard = (item, opts) => {
   );
 };
 
-const _pickTrailerKey = (videos) => {
+/** Best YouTube clip for the hero card (TMDB `/videos` result item). */
+const _pickTrailerVideo = (videos) => {
   const list = Array.isArray(videos?.results) ? videos.results : [];
-  if (!list.length) return "";
+  if (!list.length) return null;
   const youtube = list.filter((v) => v && v.site === "YouTube" && v.key);
-  if (!youtube.length) return "";
+  if (!youtube.length) return null;
   const rank = (v) => {
     const type = String(v.type || "").toLowerCase();
     const name = String(v.name || "").toLowerCase();
@@ -498,20 +499,58 @@ const _pickTrailerKey = (videos) => {
     return 4;
   };
   youtube.sort((a, b) => rank(a) - rank(b));
-  return String(youtube[0].key || "");
+  return youtube[0];
 };
 
-const _buildTrailerEmbed = (trailerKey, titleText) => {
-  const key = String(trailerKey || "").trim();
+/** `published_at` ISO → medium date, or "". */
+const _formatVideoPublishedLine = (iso) => {
+  if (!iso || typeof iso !== "string") return "";
+  const head = iso.trim().slice(0, 10);
+  return _formatMediumDate(head);
+};
+
+/** Narrow embed + stacked metadata (title, synopsis snippet, upload date). */
+const _buildTrailerCard = (video, movieTitle, overviewPlain) => {
+  if (!video || !video.key) return "";
+  const key = String(video.key || "").trim();
   if (!key) return "";
-  const safeTitle = _esc(titleText || "Trailer");
+  const fallbackTitle = String(movieTitle || "Trailer").trim() || "Trailer";
+  const clipName = String(video.name || "").trim() || `${fallbackTitle} trailer`;
+  const safeIframeTitle = _esc(clipName);
   const src = _esc(`https://www.youtube-nocookie.com/embed/${key}?rel=0&modestbranding=1`);
+  const publishedLine = _formatVideoPublishedLine(video.published_at || "");
+
+  const overviewTrim = String(overviewPlain || "").trim().replace(/\s+/g, " ");
+  const descMax = 160;
+  let descHtml = "";
+  if (overviewTrim) {
+    const snip =
+      overviewTrim.length > descMax
+        ? `${overviewTrim.slice(0, descMax).trim()}\u2026`
+        : overviewTrim;
+    descHtml = `<p class="tmdb-trailer-card-desc">${_esc(snip)}</p>`;
+  }
+
+  const dateHtml = publishedLine
+    ? `<div class="tmdb-trailer-card-date">${_esc(publishedLine)}</div>`
+    : "";
+
   return (
-    `<div class="tmdb-trailer">` +
-    `<iframe class="tmdb-trailer-frame" src="${src}" title="${safeTitle} trailer" ` +
+    `<div class="tmdb-trailer-card">` +
+    `<div class="tmdb-trailer-card-media">` +
+    `<div class="tmdb-trailer tmdb-trailer--card">` +
+    `<iframe class="tmdb-trailer-frame tmdb-trailer-frame--card" src="${src}" title="${safeIframeTitle}" ` +
     `loading="lazy" referrerpolicy="strict-origin-when-cross-origin" ` +
     `allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" ` +
     `allowfullscreen></iframe>` +
+    `</div>` +
+    `</div>` +
+    `<div class="tmdb-trailer-card-body">` +
+    `<div class="tmdb-trailer-card-source">YouTube</div>` +
+    `<div class="tmdb-trailer-card-title">${_esc(clipName)}</div>` +
+    descHtml +
+    dateHtml +
+    `</div>` +
     `</div>`
   );
 };
@@ -1025,7 +1064,7 @@ const _renderMovie = (
   images,
   jellyfinItem,
   omdbRatings,
-  trailerKey,
+  trailerVideo,
 ) => {
   const title = _esc(details.title || details.name || "");
   const year = _esc((details.release_date || "").slice(0, 4));
@@ -1072,7 +1111,11 @@ const _renderMovie = (
     : "";
 
   const plotHtml = overview ? `<p class="tmdb-plot">${_esc(overview)}</p>` : "";
-  const trailerHtml = _buildTrailerEmbed(trailerKey, details.title || details.name || "");
+  const trailerHtml = _buildTrailerCard(
+    trailerVideo,
+    details.title || details.name || "",
+    overview,
+  );
 
   const cast = credits?.cast || [];
   const castStrip = _buildCastStrip(cast);
@@ -1269,7 +1312,7 @@ const _buildMoviePanel = async (id, ctx) => {
       images,
       jellyfinItem,
       omdbRatings,
-      _pickTrailerKey(videos),
+      _pickTrailerVideo(videos),
     ),
   };
 };
