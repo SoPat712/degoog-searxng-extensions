@@ -785,12 +785,18 @@ const _buildSeasonsRail = (details) => {
   const count = relevant.length;
   return (
     `<div class="tmdb-seasons-rail" data-tmdb-seasons-rail data-tmdb-season-tv="${details.id}">` +
-    `<div class="tmdb-seasons-nav">` +
-    `<button type="button" class="tmdb-season-scroll-btn" data-tmdb-season-scroll="left" aria-label="Scroll seasons left">\u2039</button>` +
+    `<div class="tmdb-seasons-carousel">` +
+    `<button type="button" class="tmdb-season-nav tmdb-season-nav--prev" data-tmdb-season-scroll="left" aria-label="Previous seasons">` +
+    `<span class="tmdb-season-nav-icon" aria-hidden="true">\u2039</span>` +
+    `</button>` +
+    `<button type="button" class="tmdb-season-nav tmdb-season-nav--next" data-tmdb-season-scroll="right" aria-label="Next seasons">` +
+    `<span class="tmdb-season-nav-icon" aria-hidden="true">\u203A</span>` +
+    `</button>` +
+    `<div class="tmdb-seasons-scroll">` +
     `<div class="tmdb-seasons-strip" data-tmdb-seasons-strip role="tablist" aria-label="Seasons and episodes, ${count} season${count !== 1 ? "s" : ""}">` +
     tabs +
     `</div>` +
-    `<button type="button" class="tmdb-season-scroll-btn" data-tmdb-season-scroll="right" aria-label="Scroll seasons right">\u203A</button>` +
+    `</div>` +
     `</div>` +
     `<div class="tmdb-season-detail">` +
     `<p class="tmdb-season-facts" data-tmdb-season-facts>${_esc(initialFactsText)}</p>` +

@@ -329,8 +329,20 @@
     bodies.forEach(setupTvRailSync);
   }
 
-  // ── Cast strip: carousel arrows + scroll state (no scrollbar) ──────────────
-  function updateCastNavButtons(scrollEl, prevBtn, nextBtn) {
+  // ── Horizontal strips (cast cards, season tabs): scroll step + nav enabled state
+  function horizontalStripScrollStep(scrollEl, itemSelector) {
+    let step = Math.max(220, Math.floor(scrollEl.clientWidth * 0.88));
+    const item = scrollEl.querySelector(itemSelector);
+    if (item && typeof item.getBoundingClientRect === "function") {
+      const w = item.getBoundingClientRect().width;
+      if (w > 0) {
+        step = Math.ceil(w * 1.35 + 14);
+      }
+    }
+    return Math.max(1, Math.round(step * 1.5));
+  }
+
+  function updateHorizontalScrollNav(scrollEl, prevBtn, nextBtn) {
     if (!scrollEl || !prevBtn || !nextBtn) return;
     const max = scrollEl.scrollWidth - scrollEl.clientWidth;
     if (max <= 2) {
@@ -352,7 +364,7 @@
     carousel.dataset.tmdbCastInit = "1";
 
     const refresh = function () {
-      updateCastNavButtons(scrollEl, prevBtn, nextBtn);
+      updateHorizontalScrollNav(scrollEl, prevBtn, nextBtn);
     };
 
     scrollEl.addEventListener("scroll", refresh, { passive: true });
@@ -523,23 +535,22 @@
     if (!rail || rail.dataset.tmdbSeasonRailInit === "1") return;
     rail.dataset.tmdbSeasonRailInit = "1";
 
-    const strip = rail.querySelector("[data-tmdb-seasons-strip]");
+    const carousel = rail.querySelector(".tmdb-seasons-carousel");
+    const scrollEl = rail.querySelector(".tmdb-seasons-scroll");
     const leftBtn = rail.querySelector('[data-tmdb-season-scroll="left"]');
     const rightBtn = rail.querySelector('[data-tmdb-season-scroll="right"]');
     const tabs = Array.from(rail.querySelectorAll("[data-tmdb-season-tab]"));
-    if (!strip || tabs.length === 0) return;
+    if (!scrollEl || !leftBtn || !rightBtn || tabs.length === 0) return;
 
-    const scrollByAmount = () => Math.max(220, Math.floor(strip.clientWidth * 0.72));
-    if (leftBtn) {
-      leftBtn.addEventListener("click", () => {
-        strip.scrollBy({ left: -scrollByAmount(), behavior: "smooth" });
-      });
-    }
-    if (rightBtn) {
-      rightBtn.addEventListener("click", () => {
-        strip.scrollBy({ left: scrollByAmount(), behavior: "smooth" });
-      });
-    }
+    const refresh = function () {
+      updateHorizontalScrollNav(scrollEl, leftBtn, rightBtn);
+    };
+
+    scrollEl.addEventListener("scroll", refresh, { passive: true });
+    const ro = new ResizeObserver(refresh);
+    ro.observe(scrollEl);
+    if (carousel) ro.observe(carousel);
+    refresh();
 
     tabs.forEach((btn) => {
       btn.addEventListener("click", () => activateSeasonTab(rail, btn));
@@ -609,19 +620,26 @@
           e.preventDefault();
           e.stopPropagation();
           const dir = castNavBtn.getAttribute("data-tmdb-cast-nav");
-          const card = scrollEl.querySelector(".tmdb-cast-card");
-          let step = Math.max(220, Math.floor(scrollEl.clientWidth * 0.88));
-          if (card && typeof card.getBoundingClientRect === "function") {
-            const w = card.getBoundingClientRect().width;
-            if (w > 0) {
-              step = Math.ceil(w * 1.35 + 14);
-            }
-          }
-          step = Math.max(1, Math.round(step * 1.5));
+          const step = horizontalStripScrollStep(scrollEl, ".tmdb-cast-card");
           scrollEl.scrollBy({
             left: dir === "prev" ? -step : step,
             behavior: "smooth",
           });
+          return;
+        }
+      }
+
+      const seasonNavBtn = target.closest("[data-tmdb-season-scroll]");
+      if (seasonNavBtn) {
+        const carousel = seasonNavBtn.closest(".tmdb-seasons-carousel");
+        const scrollEl = carousel?.querySelector(".tmdb-seasons-scroll");
+        if (carousel && scrollEl && !seasonNavBtn.disabled) {
+          e.preventDefault();
+          e.stopPropagation();
+          const dir = seasonNavBtn.getAttribute("data-tmdb-season-scroll");
+          const step = horizontalStripScrollStep(scrollEl, ".tmdb-season-tab");
+          const delta = dir === "left" ? -step : step;
+          scrollEl.scrollBy({ left: delta, behavior: "smooth" });
           return;
         }
       }
