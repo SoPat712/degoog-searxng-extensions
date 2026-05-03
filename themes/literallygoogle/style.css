@@ -594,8 +594,9 @@ body {
         grid-column: 1 / -1;
     }
 
-    /* Images/videos: single column (no sidebar), full main width inside the same
-       horizontal rhythm as web results (upstream does not drop .container / layout padding). */
+    /* Images/videos: single column (no sidebar). Do not stack extra #results-layout
+       margin/padding on top of .container (padding: 0 2.5rem) — that was adding ~4rem
+       more left inset than upstream, which does not define #results-layout at all. */
     #results-page:has(#results-tabs .results-tab[data-type="images"].active)
         #results-layout,
     #results-page:has(
@@ -612,10 +613,10 @@ body {
     #results-page:has(#results-list .video-card) #results-layout {
         grid-template-columns: minmax(0, 1fr);
         max-width: none;
-        margin-left: 2.5rem;
+        margin-left: 0;
         margin-right: auto;
         margin-top: 0.5rem;
-        padding: 0 1.5rem;
+        padding: 0;
         column-gap: 0;
     }
 
