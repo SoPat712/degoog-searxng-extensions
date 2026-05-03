@@ -207,10 +207,10 @@
     min-height: 0;
 }
 
-/* Poster + backdrop: poster column gets a real share of width (not `auto` intrinsic).
-   Cover+zoom still fills this cell edge-to-edge. */
+/* Poster + backdrop: poster column sizes itself to the poster's natural aspect ratio at
+   the collage height — no forced width. Backdrops take the remaining space. */
 .tmdb-img-combo.tmdb-img-combo--double.tmdb-img-combo--poster-first {
-    grid-template-columns: minmax(158px, 60%) minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr);
 }
 
 .tmdb-img-combo--double.tmdb-img-combo--poster-first > .tmdb-combo-tile-wrap {
@@ -231,7 +231,7 @@
 }
 
 .tmdb-img-combo.tmdb-img-combo--triple.tmdb-img-combo--poster-first {
-    grid-template-columns: minmax(158px, 60%) minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr);
 }
 
 .tmdb-img-combo--triple > .tmdb-img-main {
@@ -251,25 +251,25 @@
     gap: 2px;
 }
 
-/* Poster-leading hero column: poster fills the column (cover, no letterboxing). */
+/* Poster-leading hero column: poster drives its own width from intrinsic aspect ratio. */
 .tmdb-img-combo--poster-first > .tmdb-img-main,
 .tmdb-img-combo--double.tmdb-img-combo--poster-first > .tmdb-combo-tile-wrap:first-child {
-    display: grid;
+    display: flex;
     min-width: 0;
     min-height: 0;
     align-items: stretch;
-    justify-items: stretch;
 }
 
 .tmdb-img-combo--poster-first > .tmdb-img-main > .tmdb-combo-img,
 .tmdb-img-combo--poster-first > .tmdb-img-main > .tmdb-combo-placeholder,
 .tmdb-img-combo--double.tmdb-img-combo--poster-first > .tmdb-combo-tile-wrap:first-child > .tmdb-combo-img,
 .tmdb-img-combo--double.tmdb-img-combo--poster-first > .tmdb-combo-tile-wrap:first-child > .tmdb-combo-placeholder {
-    width: 100%;
+    width: auto;
     height: 100%;
     min-height: 0;
-    object-fit: cover;
+    object-fit: contain;
     object-position: center top;
+    display: block;
 }
 
 /* Three stills only (no poster in the assembled set) */
