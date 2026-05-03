@@ -594,20 +594,21 @@ body {
     /* Images/videos: single column (no sidebar). Do not stack extra #results-layout
        margin/padding on top of .container (padding: 0 2.5rem) — that was adding ~4rem
        more left inset than upstream, which does not define #results-layout at all. */
-    #results-page:has(#results-tabs .results-tab[data-type="images"].active)
-        #results-layout,
-    #results-page:has(
-            #results-tabs .results-tab[data-type="images"][aria-selected="true"]
+    #results-page:is(
+            :has(#results-tabs .results-tab[data-type="images"].active),
+            :has(
+                #results-tabs
+                    .results-tab[data-type="images"][aria-selected="true"]
+            ),
+            :has(#results-tabs .results-tab[data-type="videos"].active),
+            :has(
+                #results-tabs
+                    .results-tab[data-type="videos"][aria-selected="true"]
+            ),
+            :has(#results-list .image-card),
+            :has(#results-list .video-card)
         )
-        #results-layout,
-    #results-page:has(#results-tabs .results-tab[data-type="videos"].active)
-        #results-layout,
-    #results-page:has(
-            #results-tabs .results-tab[data-type="videos"][aria-selected="true"]
-        )
-        #results-layout,
-    #results-page:has(#results-list .image-card) #results-layout,
-    #results-page:has(#results-list .video-card) #results-layout {
+        #results-layout {
         grid-template-columns: minmax(0, 1fr);
         max-width: none;
         margin-inline-start: 0;
@@ -617,51 +618,39 @@ body {
         column-gap: 0;
     }
 
-    #results-page:has(#results-tabs .results-tab[data-type="images"].active)
-        #slot-above-results,
-    #results-page:has(
-            #results-tabs .results-tab[data-type="images"][aria-selected="true"]
+    #results-page:is(
+            :has(#results-tabs .results-tab[data-type="images"].active),
+            :has(
+                #results-tabs
+                    .results-tab[data-type="images"][aria-selected="true"]
+            ),
+            :has(#results-tabs .results-tab[data-type="videos"].active),
+            :has(
+                #results-tabs
+                    .results-tab[data-type="videos"][aria-selected="true"]
+            ),
+            :has(#results-list .image-card),
+            :has(#results-list .video-card)
         )
-        #slot-above-results,
-    #results-page:has(#results-tabs .results-tab[data-type="videos"].active)
-        #slot-above-results,
-    #results-page:has(
-            #results-tabs .results-tab[data-type="videos"][aria-selected="true"]
-        )
-        #slot-above-results,
-    #results-page:has(#results-list .image-card) #slot-above-results,
-    #results-page:has(#results-list .video-card) #slot-above-results,
-    #results-page:has(#results-tabs .results-tab[data-type="images"].active)
-        #results-main,
-    #results-page:has(
-            #results-tabs .results-tab[data-type="images"][aria-selected="true"]
-        )
-        #results-main,
-    #results-page:has(#results-tabs .results-tab[data-type="videos"].active)
-        #results-main,
-    #results-page:has(
-            #results-tabs .results-tab[data-type="videos"][aria-selected="true"]
-        )
-        #results-main,
-    #results-page:has(#results-list .image-card) #results-main,
-    #results-page:has(#results-list .video-card) #results-main {
+        :is(#slot-above-results, #results-main) {
         max-width: none;
     }
 
-    #results-page:has(#results-tabs .results-tab[data-type="images"].active)
-        #sidebar-col,
-    #results-page:has(
-            #results-tabs .results-tab[data-type="images"][aria-selected="true"]
+    #results-page:is(
+            :has(#results-tabs .results-tab[data-type="images"].active),
+            :has(
+                #results-tabs
+                    .results-tab[data-type="images"][aria-selected="true"]
+            ),
+            :has(#results-tabs .results-tab[data-type="videos"].active),
+            :has(
+                #results-tabs
+                    .results-tab[data-type="videos"][aria-selected="true"]
+            ),
+            :has(#results-list .image-card),
+            :has(#results-list .video-card)
         )
-        #sidebar-col,
-    #results-page:has(#results-tabs .results-tab[data-type="videos"].active)
-        #sidebar-col,
-    #results-page:has(
-            #results-tabs .results-tab[data-type="videos"][aria-selected="true"]
-        )
-        #sidebar-col,
-    #results-page:has(#results-list .image-card) #sidebar-col,
-    #results-page:has(#results-list .video-card) #sidebar-col {
+        #sidebar-col {
         display: none;
     }
 }
