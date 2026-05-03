@@ -794,15 +794,21 @@ const _renderEpisodes = (seasonData, tvId) => {
             `https://www.themoviedb.org/tv/${resolvedTvId}/season/${seasonNum}/episode/${num}`,
           )
         : "";
-      const openPrimary = canLink
-        ? `<a href="${href}" target="_blank" rel="noopener" class="tmdb-episode-primary tmdb-episode-primary--link">`
-        : `<div class="tmdb-episode-primary">`;
-      const closePrimary = canLink ? `</a>` : `</div>`;
+      const thumbOpen = canLink
+        ? `<a href="${href}" target="_blank" rel="noopener" class="tmdb-episode-thumb tmdb-episode-thumb--link">`
+        : `<div class="tmdb-episode-thumb">`;
+      const thumbClose = canLink ? `</a>` : `</div>`;
+      const bodyOpen = canLink
+        ? `<a href="${href}" target="_blank" rel="noopener" class="tmdb-episode-body tmdb-episode-body--link">`
+        : `<div class="tmdb-episode-body">`;
+      const bodyClose = canLink ? `</a>` : `</div>`;
       return (
         `<div class="tmdb-episode${canLink ? " tmdb-episode--clickable" : ""}">` +
-        openPrimary +
-        `<div class="tmdb-episode-thumb">${stillHtml}</div>` +
-        `<div class="tmdb-episode-body">` +
+        `<div class="tmdb-episode-primary">` +
+        thumbOpen +
+        stillHtml +
+        thumbClose +
+        bodyOpen +
         `<div class="tmdb-episode-header">` +
         (numLabel
           ? `<span class="tmdb-episode-num">${_esc(numLabel)}</span>`
@@ -810,9 +816,9 @@ const _renderEpisodes = (seasonData, tvId) => {
         `<span class="tmdb-episode-title">${name}</span>` +
         `</div>` +
         (meta ? `<div class="tmdb-episode-meta">${_esc(meta)}</div>` : "") +
-        `</div>` +
+        bodyClose +
         overviewHtml +
-        closePrimary +
+        `</div>` +
         `</div>`
       );
     })

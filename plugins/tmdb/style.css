@@ -947,17 +947,39 @@
         transform 0.1s ease;
 }
 
-/* Float layout: still sits flush left; title/meta/overview wrap on the right then span full width below the still. */
+/* Float layout: still sits flush left; title/meta/overview wrap on the right then span full width below the still.
+   Overview + Show more stay outside any <a> (interactive inside interactive is invalid and breaks the button). */
 .tmdb-episode-primary {
     display: flow-root;
     min-width: 0;
     color: inherit;
+}
+
+.tmdb-episode-thumb--link,
+.tmdb-episode-body--link {
+    color: inherit;
     text-decoration: none;
 }
 
-.tmdb-episode-primary--link {
-    border-radius: 8px;
-    cursor: pointer;
+.tmdb-episode-thumb--link {
+    display: block;
+}
+
+.tmdb-episode-body--link {
+    display: block;
+    min-width: 0;
+}
+
+.tmdb-episode-body--link:focus-visible {
+    outline: 2px solid var(--primary, #1a73e8);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+.tmdb-episode-thumb--link:focus-visible {
+    outline: 2px solid var(--primary, #1a73e8);
+    outline-offset: 2px;
+    border-radius: 12px 999px 999px 12px;
 }
 
 .tmdb-episode--clickable {
@@ -970,19 +992,14 @@
     background: var(--bg-hover, var(--bg-light));
 }
 
-.tmdb-episode-primary--link:active {
+.tmdb-episode-body--link:active {
     transform: translateY(1px);
 }
 
-.tmdb-episode--clickable .tmdb-episode-primary--link:hover .tmdb-episode-title,
-.tmdb-episode--clickable .tmdb-episode-primary--link:focus-visible .tmdb-episode-title {
+.tmdb-episode--clickable .tmdb-episode-body--link:hover .tmdb-episode-title,
+.tmdb-episode--clickable .tmdb-episode-body--link:focus-visible .tmdb-episode-title {
     text-decoration: underline;
     text-underline-offset: 2px;
-}
-
-.tmdb-episode-primary--link:focus-visible {
-    outline: 2px solid var(--primary, #1a73e8);
-    outline-offset: 2px;
 }
 
 .tmdb-episode-thumb {
@@ -1061,10 +1078,18 @@
     color: var(--text-primary);
 }
 
-/* Inline "… Show more" / full text + "Show less" in the same paragraph flow */
-.tmdb-episode-overview-trunc,
-.tmdb-episode-overview-full {
+/* Inline preview / full text; never force display:inline on [hidden] or it overrides UA hiding. */
+.tmdb-episode-overview-trunc {
     display: inline;
+}
+
+.tmdb-episode-overview-full:not([hidden]) {
+    display: inline;
+}
+
+.tmdb-episode-overview-trunc[hidden],
+.tmdb-episode-overview-full[hidden] {
+    display: none !important;
 }
 
 .tmdb-episode-overview-toggle {
