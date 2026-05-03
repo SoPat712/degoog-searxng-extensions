@@ -17,8 +17,9 @@
         1.25rem + 0.75rem + 1rem + 3.35 * clamp(1.875rem, 3rem - 2.5vw, 2.5rem)
     );
     /* Results shell: wider than legacy 70rem / 692px + 22rem for slots (e.g. TMDb) + sidebar. */
-    --literallygoogle-results-layout-max: 75rem;
-    --literallygoogle-results-main-col-max: 736px;
+    --literallygoogle-results-layout-max: 76rem;
+    /* rem tracks user font size; must beat core #results-main { max-width: 40.75rem }. */
+    --literallygoogle-results-main-col-max: 48rem;
     --literallygoogle-results-sidebar-min: 19rem;
     --literallygoogle-results-sidebar-max: 24rem;
     --primary: #4285f4;
@@ -544,7 +545,7 @@ body {
         margin: 0;
     }
 
-    #results-main {
+    #results-page #results-main {
         grid-column: 1;
         grid-row: 2;
         width: 100%;
@@ -633,6 +634,15 @@ body {
     #results-layout > #media-preview-panel,
     #results-layout > #img-lightbox {
         grid-column: 1 / -1;
+    }
+
+    /* Core caps .glance-box / skeletons at 40.75rem — match main column width. */
+    #results-page .glance-box {
+        max-width: var(--literallygoogle-results-main-col-max);
+    }
+
+    #results-page .skeleton-card {
+        max-width: var(--literallygoogle-results-main-col-max);
     }
 
     /* Images/videos: single column (no sidebar). Reset web layout inset so grids stay
