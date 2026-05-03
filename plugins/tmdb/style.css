@@ -239,13 +239,16 @@
     gap: 2px;
 }
 
-/* Poster-leading hero column: fit poster height (contain), backdrops stay cover */
+/* Poster-leading hero column: fit poster height (contain), backdrops stay cover.
+   Letterboxing uses this surface — not the collage gutter rgba(0,0,0,.65) — so the
+   poster strip matches the card instead of black bars at full hero height. */
 .tmdb-img-combo--poster-first > .tmdb-img-main,
 .tmdb-img-combo--double.tmdb-img-combo--poster-first > .tmdb-combo-tile-wrap:first-child {
     display: flex;
     align-items: center;
     justify-content: center;
     min-width: 0;
+    background: var(--bg-light);
 }
 
 .tmdb-img-combo--poster-first > .tmdb-img-main > .tmdb-combo-img,
