@@ -190,7 +190,7 @@
     height: 100%;
     aspect-ratio: unset;
     object-fit: contain;
-    object-position: center top;
+    object-position: center;
 }
 
 /* Two images: side by side */
