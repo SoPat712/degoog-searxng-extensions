@@ -1592,14 +1592,14 @@
     }
 
     #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-main {
-        flex: 1.35 1 0;
+        flex: 1.2 1 0;
         min-width: 0;
     }
 
     #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-rail {
-        flex: 0.65 1 0;
+        flex: 0.8 1 0;
         min-width: min(100%, 272px);
-        max-width: min(380px, 100%);
+        max-width: min(460px, 100%);
         position: relative;
         align-self: flex-start;
         box-sizing: border-box;
@@ -1675,7 +1675,7 @@
     }
 
     #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-rail {
-        max-width: min(400px, 36%);
+        max-width: min(520px, 46%);
     }
 }
 
