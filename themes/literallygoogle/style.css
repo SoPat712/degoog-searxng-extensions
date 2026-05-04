@@ -1236,6 +1236,10 @@ body {
    ══════════════════════════════════════════════════════════════════════════ */
 
 .mp2-bar {
+    position: sticky;
+    top: 0.5rem;
+    z-index: 10;
+    background: var(--bg);
     display: flex;
     align-items: center;
     gap: 0.25rem;
@@ -1254,11 +1258,33 @@ body {
     overflow: hidden;
 }
 
-.mp2-favicon {
+.mp2-favicon-bg {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
     flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
+    overflow: hidden;
+    /* Dark mode default: white circle so favicon pops against dark bg */
+    background: var(--white);
+}
+
+/* Light mode: grey circle for subtle definition against light bg */
+[data-theme="light"] .mp2-favicon-bg {
+    background: var(--bg-hover);
+}
+
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) .mp2-favicon-bg {
+        background: var(--bg-hover);
+    }
+}
+
+.mp2-favicon {
+    width: 18px;
+    height: 18px;
     object-fit: contain;
     display: block;
 }
