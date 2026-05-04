@@ -419,6 +419,18 @@
     color: var(--text-secondary);
 }
 
+/*
+ * TMDB strings are overwhelmingly Latin/LTR. On `dir=rtl` pages, without isolation the
+ * Unicode bidirectional algorithm can place sentence-final punctuation on the wrong side.
+ */
+.tmdb-plot,
+.tmdb-season-overview,
+.tmdb-episode-overview {
+    direction: ltr;
+    unicode-bidi: isolate;
+    text-align: start;
+}
+
 /* ── Clickable title (opens TMDB in a new tab) ───────────────────────────── */
 
 /* Stronger than theme `a { color: link }` inside results slots. */
