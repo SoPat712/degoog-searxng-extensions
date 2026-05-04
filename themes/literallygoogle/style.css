@@ -290,29 +290,43 @@
     border-color: #dadce0;
     border-end-start-radius: 0;
     border-end-end-radius: 0;
-    box-shadow: 0 8px 14px rgba(64, 60, 67, 0.24);
+    /* No bar shadow while the list is open — avoids a halo on top of the suggestions pane. */
+    box-shadow: none;
+}
+
+/* Kill core bar shadow whenever AC is open (all themes). */
+.results-search-bar.ac-open,
+.search-bar.ac-open {
+    box-shadow: none !important;
 }
 
 .ac-dropdown {
     background: var(--search-bar-focused);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55) !important;
+    /* Bottom + sides only (negative spread trims upward blur). */
+    box-shadow:
+        5px 10px 14px -8px rgba(0, 0, 0, 0.45),
+        -5px 10px 14px -8px rgba(0, 0, 0, 0.45),
+        0 12px 18px -8px rgba(0, 0, 0, 0.4) !important;
 }
 
 #apps-pocket-panel {
     border-top: 1px solid #5f6368;
     background: var(--search-bar-focused);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55) !important;
+    box-shadow:
+        5px 10px 14px -8px rgba(0, 0, 0, 0.45),
+        -5px 10px 14px -8px rgba(0, 0, 0, 0.45),
+        0 12px 18px -8px rgba(0, 0, 0, 0.4) !important;
 }
 
-/* Autocomplete: match bar width (no horizontal inset — avoids page bg in the “wings”).
-   margin-top: 0 so the panel meets the bar; same --search-bar-focused on both kills the seam slit. */
+/* Autocomplete: outdent by the bar’s border width so the panel lines up with the outer pill
+   (core positions against the padding box; the bar has a 1px border). */
 .results-search-bar > .ac-dropdown,
 .results-search-bar > .bang-ac-dropdown,
 .search-bar > .ac-dropdown,
 .search-bar > .bang-ac-dropdown {
     margin-top: 0;
-    inset-inline-start: 0;
-    inset-inline-end: 0;
+    inset-inline-start: -1px;
+    inset-inline-end: -1px;
     width: auto;
     box-sizing: border-box;
 }
@@ -369,7 +383,10 @@
     border-start-end-radius: 0;
     border-end-start-radius: 24px;
     border-end-end-radius: 24px;
-    box-shadow: 0 6px 8px 1px rgba(64, 60, 67, 0.24);
+    box-shadow:
+        4px 8px 12px -7px rgba(64, 60, 67, 0.22),
+        -4px 8px 12px -7px rgba(64, 60, 67, 0.22),
+        0 8px 14px -6px rgba(64, 60, 67, 0.24);
 }
 
 @media (prefers-color-scheme: light) {
@@ -382,7 +399,10 @@
         border-start-end-radius: 0;
         border-end-start-radius: 24px;
         border-end-end-radius: 24px;
-        box-shadow: 0 6px 8px 1px rgba(64, 60, 67, 0.24);
+        box-shadow:
+            4px 8px 12px -7px rgba(64, 60, 67, 0.22),
+            -4px 8px 12px -7px rgba(64, 60, 67, 0.22),
+            0 8px 14px -6px rgba(64, 60, 67, 0.24);
     }
 }
 
