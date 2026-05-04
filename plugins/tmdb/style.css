@@ -1956,9 +1956,11 @@
     .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail {
         grid-column: 2;
         grid-row: 1 / span 2;
-        min-width: min(100%, 288px);
-        max-width: min(500px, 100%);
-        width: auto;
+        /* Fill the grid track: a fixed max-width left empty space to the right of the rail
+           (misaligned vs cast / full-width content below). Column width is already capped by fr. */
+        min-width: min(100%, 240px);
+        max-width: none;
+        width: 100%;
         justify-self: stretch;
         position: relative;
         box-sizing: border-box;
@@ -2010,7 +2012,7 @@
     }
 
     .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail {
-        max-width: min(560px, 50%);
+        max-width: none;
     }
 }
 
