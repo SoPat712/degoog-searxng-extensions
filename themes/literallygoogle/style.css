@@ -318,15 +318,14 @@
         0 12px 18px -8px rgba(0, 0, 0, 0.4) !important;
 }
 
-/* Autocomplete: outdent by the bar’s border width so the panel lines up with the outer pill
-   (core positions against the padding box; the bar has a 1px border). */
+/* Autocomplete: slight outdent vs padding box (~1px border); −0.75px/side trims ½px total width. */
 .results-search-bar > .ac-dropdown,
 .results-search-bar > .bang-ac-dropdown,
 .search-bar > .ac-dropdown,
 .search-bar > .bang-ac-dropdown {
     margin-top: 0;
-    inset-inline-start: -1px;
-    inset-inline-end: -1px;
+    inset-inline-start: -0.75px;
+    inset-inline-end: -0.75px;
     width: auto;
     box-sizing: border-box;
 }
