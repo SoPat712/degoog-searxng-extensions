@@ -1933,7 +1933,8 @@
 @container tmdb-result (min-width: 560px) {
     .tmdb-panel--tv .tmdb-tv-band--with-head {
         display: grid;
-        grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+        /* Slightly wider rail column so episodes block aligns closer to the panel edge. */
+        grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
         grid-template-rows: auto minmax(0, 1fr);
         row-gap: 0;
         column-gap: 1.75rem;
@@ -1955,8 +1956,8 @@
     .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail {
         grid-column: 2;
         grid-row: 1 / span 2;
-        min-width: min(100%, 272px);
-        max-width: min(460px, 100%);
+        min-width: min(100%, 288px);
+        max-width: min(500px, 100%);
         width: auto;
         justify-self: stretch;
         position: relative;
@@ -2009,7 +2010,7 @@
     }
 
     .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail {
-        max-width: min(520px, 46%);
+        max-width: min(560px, 50%);
     }
 }
 
