@@ -20,6 +20,19 @@
     </div>
 </div>
 <div id="img-lightbox"></div>
+<script>
+    (function () {
+        var header = document.getElementById("results-header");
+        if (!header) return;
+        window.addEventListener(
+            "scroll",
+            function () {
+                header.classList.toggle("scrolled", window.scrollY > 50);
+            },
+            { passive: true },
+        );
+    })();
+</script>
 <div
     class="mp2-toast"
     id="mp2-toast"
