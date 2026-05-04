@@ -1243,6 +1243,17 @@ body {
     overflow-y: hidden;
 }
 
+/* On desktop the panel is position:sticky;top:0 — that puts it behind
+   our sticky search header. Offset it by the header's rendered height
+   (50px search bar + 0.75rem padding-bottom) so it starts just below
+   the search bar, and shrink its height to stay within the viewport. */
+@media (min-width: 768px) {
+    #media-preview-panel {
+        top: calc(50px + 0.75rem);
+        height: calc(100vh - 50px - 0.75rem);
+    }
+}
+
 .mp2-bar {
     flex-shrink: 0;
     z-index: 10;
