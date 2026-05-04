@@ -304,23 +304,16 @@
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55) !important;
 }
 
-/* Dark: lose the 1px top rule + nudge up so bar and AC list read as one shell (no hairline gap). */
-[data-theme="dark"] .results-search-bar > .ac-dropdown,
-[data-theme="dark"] .results-search-bar > .bang-ac-dropdown,
-[data-theme="dark"] .search-bar > .ac-dropdown,
-[data-theme="dark"] .search-bar > .bang-ac-dropdown {
-    margin-top: -1px;
-    border-top: none;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .results-search-bar > .ac-dropdown,
-    :root:not([data-theme="light"]) .results-search-bar > .bang-ac-dropdown,
-    :root:not([data-theme="light"]) .search-bar > .ac-dropdown,
-    :root:not([data-theme="light"]) .search-bar > .bang-ac-dropdown {
-        margin-top: -1px;
-        border-top: none;
-    }
+/* Match dropdown width to the search bar; +1px top gap shows the hairline between bar and list. */
+.results-search-bar > .ac-dropdown,
+.results-search-bar > .bang-ac-dropdown,
+.search-bar > .ac-dropdown,
+.search-bar > .bang-ac-dropdown {
+    margin-top: 1px;
+    inset-inline-start: -1px;
+    inset-inline-end: -1px;
+    width: auto;
+    box-sizing: border-box;
 }
 
 /* Light: upstream-style shadow on suggestions/history (examples/LiterallyGoogle). */
@@ -347,29 +340,6 @@
         border-end-start-radius: 24px;
         border-end-end-radius: 24px;
         box-shadow: 0 6px 8px 1px rgba(64, 60, 67, 0.24);
-    }
-}
-
-/* Keep suggestion/history panel flush with the search bar width. */
-[data-theme="light"] .results-search-bar > .ac-dropdown,
-[data-theme="light"] .results-search-bar > .bang-ac-dropdown,
-[data-theme="light"] .search-bar > .ac-dropdown,
-[data-theme="light"] .search-bar > .bang-ac-dropdown {
-    inset-inline-start: -1px;
-    inset-inline-end: -1px;
-    width: auto;
-    box-sizing: border-box;
-}
-
-@media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) .results-search-bar > .ac-dropdown,
-    :root:not([data-theme="dark"]) .results-search-bar > .bang-ac-dropdown,
-    :root:not([data-theme="dark"]) .search-bar > .ac-dropdown,
-    :root:not([data-theme="dark"]) .search-bar > .bang-ac-dropdown {
-        inset-inline-start: -1px;
-        inset-inline-end: -1px;
-        width: auto;
-        box-sizing: border-box;
     }
 }
 
