@@ -304,14 +304,15 @@
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55) !important;
 }
 
-/* Autocomplete: inset from bar edges (Google-like pill); +1px gap under bar. */
+/* Autocomplete: match bar width (no horizontal inset — avoids page bg in the “wings”).
+   margin-top: 0 so the panel meets the bar; same --search-bar-focused on both kills the seam slit. */
 .results-search-bar > .ac-dropdown,
 .results-search-bar > .bang-ac-dropdown,
 .search-bar > .ac-dropdown,
 .search-bar > .bang-ac-dropdown {
-    margin-top: 1px;
-    inset-inline-start: 0.75rem;
-    inset-inline-end: 0.75rem;
+    margin-top: 0;
+    inset-inline-start: 0;
+    inset-inline-end: 0;
     width: auto;
     box-sizing: border-box;
 }
@@ -321,7 +322,7 @@
 .search-bar.ac-open::after {
     content: "";
     position: absolute;
-    top: calc(100% + 0.5px);
+    top: 100%;
     inset-inline: 10%;
     height: 1px;
     background: var(--border-light);
