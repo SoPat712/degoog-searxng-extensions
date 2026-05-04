@@ -593,7 +593,9 @@
 
 .result-engine-tag {
     user-select: none;
-    font-size: 12px;
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
     color: var(--text-link);
     border: 1px solid var(--border-light);
     background: var(--bg);
@@ -1397,7 +1399,11 @@ body {
     background: var(--bg-hover);
 }
 
-/* Toast — fixed viewport overlay, used by the share action */
+/* RTL: flip the prev/next chevrons so ‹ › become › ‹ */
+[dir="rtl"] #media-preview-prev svg,
+[dir="rtl"] #media-preview-next svg {
+    transform: scaleX(-1);
+}
 .mp2-toast {
     position: fixed;
     bottom: 2rem;
