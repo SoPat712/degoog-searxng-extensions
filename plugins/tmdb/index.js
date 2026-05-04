@@ -135,10 +135,10 @@ const _seasonFactsLine = (facts) => {
   const rt =
     typeof facts.runtimeTotal === "string" ? facts.runtimeTotal.trim() : "";
   const dr = typeof facts.dateRange === "string" ? facts.dateRange.trim() : "";
-  return [ep, rt, dr].filter(Boolean).join(" \u00B7 ");
+  return [dr, rt, ep].filter(Boolean).join(" \u00B7 ");
 };
 
-/** Bidi-safe markup: DOM order date → runtime → episodes; CSS flips to ep·rt·dr in LTR. */
+/** Bidi-safe markup: DOM order date → runtime → episodes (same as on-screen order in LTR). */
 const _seasonFactsHtml = (facts) => {
   if (!facts || typeof facts !== "object") return "";
   const ep =

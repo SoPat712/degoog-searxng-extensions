@@ -2233,16 +2233,12 @@
     line-height: 1.4;
     color: var(--text-secondary);
     border-bottom: 1px solid var(--tmdb-edge);
-    /* DOM order: air dates · runtime · episodes. LTR reverses to ep·rt·dates; RTL keeps row for date·rt·ep reading order. */
+    /* DOM order = reading order: air dates · runtime · episodes (LTR). Segments use dir=ltr for bidi inside RTL pages. */
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    flex-direction: row-reverse;
-    gap: 0;
-}
-
-.tmdb-season-facts:dir(rtl) {
     flex-direction: row;
+    gap: 0;
 }
 
 .tmdb-season-facts__seg {

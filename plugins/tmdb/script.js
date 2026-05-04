@@ -393,10 +393,10 @@
       typeof facts.runtimeTotal === "string" ? facts.runtimeTotal.trim() : "";
     const dr =
       typeof facts.dateRange === "string" ? facts.dateRange.trim() : "";
-    return [ep, rt, dr].filter(Boolean).join(" \u00B7 ");
+    return [dr, rt, ep].filter(Boolean).join(" \u00B7 ");
   }
 
-  /** DOM order date → runtime → episodes; theme CSS reverses visually in LTR. */
+  /** DOM order date → runtime → episodes (matches LTR reading order). */
   function seasonFactsHtmlFromObject(facts) {
     if (!facts || typeof facts !== "object") return "";
     const ep =
