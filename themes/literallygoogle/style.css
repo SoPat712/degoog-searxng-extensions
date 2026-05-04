@@ -576,11 +576,17 @@ body {
    Desktop only — on mobile the header scrolls normally.
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* Above-results slots (e.g. OSM Leaflet) must not paint over the search bar / AC. */
+#results-header {
+    position: relative;
+    z-index: 120;
+}
+
 @media (min-width: 768px) {
     #results-header {
         position: sticky;
         top: 0;
-        z-index: 10;
+        z-index: 120;
         background-color: var(--bg);
         padding-bottom: 0.75rem;
     }

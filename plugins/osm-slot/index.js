@@ -73,22 +73,17 @@ export const slot = {
         return { html: "" };
       }
 
-      const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=10&addressdetails=1`;
-      const geoRes = await fetch(geoUrl, {
-        headers: {
-          "User-Agent": "degoog-osm-slot/1.0",
-          "Accept-Language": "en",
-        },
-      });
+      let geoData = [];
+      for (const tryQuery of _geocodeQueryVariants(searchQuery)) {
+        geoData = await _nominatimSearch(tryQuery);
+        if (geoData.length > 0) break;
+      }
+      if (geoData.length === 0) return { html: "" };
 
-      if (!geoRes.ok) return { html: "" };
-
-      const geoData = await geoRes.json();
-      if (!geoData || geoData.length === 0) return { html: "" };
-
-      const usable = geoData.filter((r) =>
+      let usable = geoData.filter((r) =>
         _isOsmGeocodeResultUsable(r, searchQuery),
       );
+      usable = _usableResultsLenientFallback(geoData, usable, searchQuery);
       if (usable.length === 0) return { html: "" };
 
       const ranked = _rankOsmResults(usable, searchQuery);
@@ -109,14 +104,11 @@ export const slot = {
       }));
       const candidatesAttr = encodeURIComponent(JSON.stringify(navCandidates));
 
-      const navBlock =
-        navCandidates.length > 1
-          ? `<div class="osm-slot-match-nav is-visible" aria-label="Other geocode matches">
+      const navBlock = `<div class="osm-slot-match-nav is-visible" aria-label="Geocode matches">
   <button type="button" class="osm-slot-nav-btn osm-slot-nav-prev" aria-label="Previous match">‹</button>
   <span class="osm-slot-nav-meta"><span class="osm-slot-nav-cur">1</span> / ${navCandidates.length}</span>
   <button type="button" class="osm-slot-nav-btn osm-slot-nav-next" aria-label="Next match">›</button>
-</div>`
-          : "";
+</div>`;
 
       const html = `
 <div class="osm-slot-wrap slot-full-width">
@@ -138,6 +130,90 @@ export const slot = {
 };
 
 export default { slot };
+
+async function _nominatimSearch(queryText) {
+  const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(queryText)}&format=json&limit=10&addressdetails=1`;
+  const geoRes = await fetch(geoUrl, {
+    headers: {
+      "User-Agent": "degoog-osm-slot/1.0",
+      "Accept-Language": "en",
+    },
+  });
+  if (!geoRes.ok) return [];
+  const data = await geoRes.json();
+  return Array.isArray(data) ? data : [];
+}
+
+/** Nominatim often returns nothing for “13 Foo Ct Someville” but hits “13 Foo Ct” — try drops + spell-outs. */
+function _geocodeQueryVariants(qRaw) {
+  const q = qRaw.trim().replace(/\s+/g, " ");
+  const out = [];
+  const seen = new Set();
+  const push = (s) => {
+    const t = s.trim().replace(/\s+/g, " ");
+    if (t.length < 3) return;
+    const k = t.toLowerCase();
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push(t);
+  };
+
+  push(q);
+  const parts = q.split(/\s+/).filter(Boolean);
+  for (let drop = 1; drop <= 5 && parts.length - drop >= 2; drop++) {
+    push(parts.slice(0, parts.length - drop).join(" "));
+  }
+
+  for (const expanded of _expandStreetAbbrevs(q)) {
+    push(expanded);
+    const ep = expanded.split(/\s+/).filter(Boolean);
+    for (let drop = 1; drop <= 5 && ep.length - drop >= 2; drop++) {
+      push(ep.slice(0, ep.length - drop).join(" "));
+    }
+  }
+
+  return out;
+}
+
+function _expandStreetAbbrevs(s) {
+  const out = new Set();
+  const specs = [
+    ["\\bct\\b", "Court"],
+    ["\\bdr\\b", "Drive"],
+    ["\\brd\\b", "Road"],
+    ["\\bln\\b", "Lane"],
+    ["\\bst\\b", "Street"],
+    ["\\bave\\b", "Avenue"],
+    ["\\bblvd\\b", "Boulevard"],
+    ["\\bpl\\b", "Place"],
+    ["\\bter\\b", "Terrace"],
+    ["\\bcir\\b", "Circle"],
+    ["\\bpkwy\\b", "Parkway"],
+    ["\\bhwy\\b", "Highway"],
+  ];
+  for (const [src, rep] of specs) {
+    const re = new RegExp(src, "gi");
+    if (re.test(s)) out.add(s.replace(new RegExp(src, "gi"), rep));
+  }
+  return [...out];
+}
+
+function _usableResultsLenientFallback(geoData, usable, searchQuery) {
+  if (usable.length > 0) return usable;
+  const s = searchQuery.toLowerCase().trim();
+  const allow =
+    _hasStreetSuffixToken(s) || /^\d+[a-z]?\s+\S/.test(s);
+  if (!allow) return [];
+  return geoData
+    .filter(
+      (r) =>
+        r &&
+        r.lat != null &&
+        r.lon != null &&
+        (r.display_name || r.name),
+    )
+    .slice(0, 10);
+}
 
 function _esc(str) {
   if (typeof str !== "string") return "";
@@ -233,6 +309,8 @@ function _isOsmGeocodeResultUsable(r, queryRaw) {
       typ === "pedestrian" ||
       typ === "unclassified" ||
       typ === "road" ||
+      typ === "service" ||
+      typ === "track" ||
       typ === "tertiary" ||
       typ === "secondary" ||
       typ === "primary")

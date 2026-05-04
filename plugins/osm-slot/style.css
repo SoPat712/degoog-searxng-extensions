@@ -3,6 +3,10 @@
 .osm-slot-wrap {
   margin-bottom: 12px;
   max-width: 680px;
+  /* Leaflet defaults use z-index 200+ on panes; keep the whole card under search AC (≈100). */
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
 }
 
 #results-page.degoog-fullwidth-slot-shell .osm-slot-wrap.slot-full-width {
@@ -12,7 +16,9 @@
 .osm-slot-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+  row-gap: 6px;
   margin-bottom: 10px;
 }
 
@@ -58,6 +64,36 @@
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--border);
+  position: relative;
+  z-index: 0;
+}
+
+.osm-slot-wrap .leaflet-container {
+  z-index: 0 !important;
+}
+
+.osm-slot-wrap .leaflet-tile-pane {
+  z-index: 1 !important;
+}
+
+.osm-slot-wrap .leaflet-overlay-pane {
+  z-index: 2 !important;
+}
+
+.osm-slot-wrap .leaflet-shadow-pane {
+  z-index: 3 !important;
+}
+
+.osm-slot-wrap .leaflet-marker-pane {
+  z-index: 4 !important;
+}
+
+.osm-slot-wrap .leaflet-tooltip-pane {
+  z-index: 5 !important;
+}
+
+.osm-slot-wrap .leaflet-popup-pane {
+  z-index: 6 !important;
 }
 
 .osm-slot-match-nav {

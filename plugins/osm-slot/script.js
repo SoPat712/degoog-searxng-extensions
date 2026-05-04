@@ -90,7 +90,7 @@
     } catch (_) {
       return;
     }
-    if (!Array.isArray(candidates) || candidates.length < 2) return;
+    if (!Array.isArray(candidates) || candidates.length === 0) return;
     el.dataset.osmNavBound = "1";
 
     const prev = header.querySelector(".osm-slot-nav-prev");
@@ -101,8 +101,9 @@
     let idx = 0;
 
     function syncChrome() {
-      if (prev) prev.disabled = idx <= 0;
-      if (next) next.disabled = idx >= candidates.length - 1;
+      const single = candidates.length <= 1;
+      if (prev) prev.disabled = single || idx <= 0;
+      if (next) next.disabled = single || idx >= candidates.length - 1;
       if (curEl) curEl.textContent = String(idx + 1);
     }
 
