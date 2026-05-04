@@ -272,6 +272,15 @@
       raf = requestAnimationFrame(function () {
         raf = 0;
         if (!body.isConnected || !rail.isConnected) return;
+        /* Grid band: rail height follows the grid cell; do not pin to hero column height. */
+        if (body.querySelector(".tmdb-tv-band-head")) {
+          body.style.removeProperty("--tmdb-tv-main-height");
+          rail.style.removeProperty("height");
+          rail.style.removeProperty("max-height");
+          rail.style.removeProperty("min-height");
+          rail.style.removeProperty("overflow");
+          return;
+        }
         const dir = window.getComputedStyle(rowHost).flexDirection;
         if (dir !== "row") {
           body.style.removeProperty("--tmdb-tv-main-height");
@@ -417,7 +426,7 @@
       return `<span class="tmdb-season-facts__seg" dir="ltr">\u2014</span>`;
     }
     return parts.join(
-      `<span class="tmdb-season-facts__sep" aria-hidden="true"> \u00B7 </span>`,
+      `<span class="tmdb-season-facts__sep" aria-hidden="true">\u00B7</span>`,
     );
   }
 

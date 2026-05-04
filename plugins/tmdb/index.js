@@ -158,7 +158,7 @@ const _seasonFactsHtml = (facts) => {
     return `<span class="tmdb-season-facts__seg" dir="ltr">\u2014</span>`;
   }
   return parts.join(
-    `<span class="tmdb-season-facts__sep" aria-hidden="true"> \u00B7 </span>`,
+    `<span class="tmdb-season-facts__sep" aria-hidden="true">\u00B7</span>`,
   );
 };
 
@@ -192,7 +192,7 @@ const _seasonFactsFromSeasonApi = (seasonData) => {
     const last = _formatMediumDate(dates[dates.length - 1]);
     dateRange =
       first && last && dates[0] !== dates[dates.length - 1]
-        ? `${first}\u2013${last}`
+        ? `${first} \u2013 ${last}`
         : first || last;
   } else {
     const air =
@@ -496,15 +496,10 @@ const _jellyfinSearch = async (title, ctx) => {
   }
 };
 
-const _buildJellyfinCard = (item, opts) => {
-  if (!item) return "";
-  const href = _esc(`${jellyfinUrl}/web/index.html#!/details?id=${item.Id}`);
-  const cardCls = "tmdb-jf-card tmdb-jf-card--compact tmdb-jf-card--icon-only";
-  return (
-    `<a href="${href}" target="_blank" rel="noopener" class="${cardCls}" aria-label="Open in Jellyfin">` +
-    `<img class="tmdb-jf-logo" src="${_esc(JELLYFIN_LOGO)}" alt="" loading="lazy" width="24" height="24">` +
-    `</a>`
-  );
+/** Jellyfin web UI URL for a library item (movies + TV). */
+const _jellyfinHrefForItem = (item) => {
+  if (!item?.Id || !jellyfinUrl) return "";
+  return `${jellyfinUrl}/web/index.html#!/details?id=${item.Id}`;
 };
 
 /** Best YouTube clip for the hero card (TMDB `/videos` result item). */
@@ -999,6 +994,7 @@ const _buildRatingsHtml = (opts) => {
     imdb,
     rottenTomatoes,
     letterboxdHref,
+    jellyfinHref,
   } = opts;
 
   const parts = [];
@@ -1055,6 +1051,16 @@ const _buildRatingsHtml = (opts) => {
     );
   }
 
+  if (jellyfinHref) {
+    const jf = _esc(jellyfinHref);
+    parts.push(
+      `<a href="${jf}" target="_blank" rel="noopener" class="tmdb-rating-item tmdb-rating-item--link tmdb-rating-item--jellyfin" aria-label="Open in Jellyfin">` +
+        `<img class="tmdb-rating-jf-icon" src="${_esc(JELLYFIN_LOGO)}" alt="" width="18" height="18" loading="lazy">` +
+        `<span class="tmdb-rating-badge tmdb-rating-badge--jellyfin">Jellyfin</span>` +
+        `</a>`,
+    );
+  }
+
   if (parts.length === 0) return "";
   return `<div class="tmdb-ratings">${parts.join("")}</div>`;
 };
@@ -1099,6 +1105,7 @@ const _renderMovie = (
     imdb: omdbRatings?.imdb,
     rottenTomatoes: omdbRatings?.rottenTomatoes,
     letterboxdHref: `https://letterboxd.com/tmdb/${details.id}/`,
+    jellyfinHref: _jellyfinHrefForItem(jellyfinItem),
   });
 
   const plotHtml = overview ? `<p class="tmdb-plot">${_esc(overview)}</p>` : "";
@@ -1134,7 +1141,6 @@ const _renderMovie = (
       `</div>`
     : "";
 
-  const jellyfinCard = _buildJellyfinCard(jellyfinItem);
   const labelText = `${title}${year ? ` (${year})` : ""}`;
 
   return (
@@ -1148,7 +1154,6 @@ const _renderMovie = (
     `</a>` +
     (year ? `<span class="tmdb-year">(${year})</span>` : "") +
     `</h3>` +
-    (jellyfinCard || "") +
     `</div>` +
     subtitleHtml +
     `</div>` +
@@ -1206,6 +1211,7 @@ const _renderTv = (
     imdb: omdbRatings?.imdb,
     rottenTomatoes: omdbRatings?.rottenTomatoes,
     letterboxdHref: null,
+    jellyfinHref: _jellyfinHrefForItem(jellyfinItem),
   });
 
   const plotHtml = overview ? `<p class="tmdb-plot">${_esc(overview)}</p>` : "";
@@ -1225,7 +1231,6 @@ const _renderTv = (
   const seasonsAccordion = _buildSeasonsRail(details);
   const seasonCount =
     details?.seasons?.filter((s) => s.season_number > 0).length || 0;
-  const jellyfinCard = _buildJellyfinCard(jellyfinItem);
   const labelText = `${name}${year ? ` (${year})` : ""}`;
 
   const seasonsRail =
@@ -1247,17 +1252,7 @@ const _renderTv = (
 
   const tvMainHeroOnly = `<div class="tmdb-tv-main">` + tvHeroBlock + `</div>`;
 
-  const tvBodyWithRail =
-    `<div class="tmdb-tv-body">` +
-    `<div class="tmdb-tv-band">` +
-    tvMainHeroOnly +
-    seasonsRail +
-    `</div>` +
-    castSection +
-    `</div>`;
-
-  return (
-    `<div class="tmdb-panel tmdb-panel--tv" data-tmdb-label="${labelText}">` +
+  const tvHeaderBlock =
     `<div class="tmdb-header">` +
     `<div class="tmdb-header-primary">` +
     `<div class="tmdb-header-title-row">` +
@@ -1267,12 +1262,35 @@ const _renderTv = (
     `</a>` +
     (year ? `<span class="tmdb-year">(${year})</span>` : "") +
     `</h3>` +
-    (jellyfinCard || "") +
     `</div>` +
     subtitleHtml +
     `</div>` +
+    `</div>`;
+
+  const tvBodyWithRail =
+    `<div class="tmdb-tv-body">` +
+    `<div class="tmdb-tv-band tmdb-tv-band--with-head">` +
+    `<div class="tmdb-tv-band-head">` +
+    tvHeaderBlock +
     `</div>` +
-    (seasonsRail ? tvBodyWithRail : tvMainStacked) +
+    tvMainHeroOnly +
+    seasonsRail +
+    `</div>` +
+    castSection +
+    `</div>`;
+
+  if (seasonsRail) {
+    return (
+      `<div class="tmdb-panel tmdb-panel--tv" data-tmdb-label="${labelText}">` +
+      tvBodyWithRail +
+      `</div>`
+    );
+  }
+
+  return (
+    `<div class="tmdb-panel tmdb-panel--tv" data-tmdb-label="${labelText}">` +
+    tvHeaderBlock +
+    tvMainStacked +
     `</div>`
   );
 };

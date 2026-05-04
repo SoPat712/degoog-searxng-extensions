@@ -16,6 +16,7 @@
 
 .tmdb-result {
     container-type: inline-size;
+    container-name: tmdb-result;
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -1730,6 +1731,31 @@
     color: #00e054;
 }
 
+.tmdb-rating-badge--jellyfin {
+    color: #00a4dc;
+    text-transform: none;
+    letter-spacing: 0.02em;
+}
+
+.tmdb-rating-jf-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    object-fit: contain;
+    display: block;
+}
+
+.tmdb-rating-item--jellyfin:hover,
+.tmdb-rating-item--jellyfin:focus-visible {
+    border-color: #00a4dc;
+    background: var(--bg-hover, rgba(255, 255, 255, 0.04));
+}
+
+.tmdb-rating-item--jellyfin:focus-visible {
+    outline: 2px solid #00a4dc;
+    outline-offset: 2px;
+}
+
 .tmdb-rating-score {
     font-size: 1.05rem;
     font-weight: 600;
@@ -1868,8 +1894,8 @@
         min-height: 440px;
     }
 }
-/* TV body: column wrapper when an episode rail exists (band + full-width cast below).
-   Wide full-width shell: `.tmdb-tv-band` is the hero | episodes row; cast spans the panel. */
+/* TV body: column wrapper when an episode rail exists (band + cast below).
+   Wide containers: `.tmdb-tv-band--with-head` is a grid (title row, then hero | episodes rail). */
 .tmdb-tv-body {
     display: flex;
     flex-direction: column;
@@ -1887,111 +1913,108 @@
     min-width: 0;
 }
 
+.tmdb-tv-band-head {
+    min-width: 0;
+}
+
+/* Title sits in the band so wide layouts can align the episodes rail with the title row. */
+.tmdb-tv-band--with-head > .tmdb-tv-band-head .tmdb-header {
+    margin-bottom: 0.5rem;
+}
+
 /* Main column must not flex-grow and steal vertical space from siblings in stretched panels. */
 .tmdb-tv-main {
     flex: 0 1 auto;
     min-width: 0;
 }
 
-/* Wide full-width slot shell + wide panel: hero | episodes in `.tmdb-tv-band`; cast full width under.
-   Script syncs rail height to `.tmdb-tv-main` when `.tmdb-tv-band` is `flex-direction: row`. */
-@container (min-width: 560px) {
-    #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-band {
-        flex-direction: row;
-        align-items: flex-start;
-        gap: 1.75rem;
+/* Wide panel + episode rail: title spans full width; hero left / rail right; rail spans both
+   rows so its top lines up with the title (no dead space above the episode box). */
+@container tmdb-result (min-width: 560px) {
+    .tmdb-panel--tv .tmdb-tv-band--with-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        row-gap: 0;
+        column-gap: 1.75rem;
+        align-items: stretch;
     }
 
-    #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-main {
-        flex: 1.2 1 0;
+    .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-band-head {
+        grid-column: 1 / -1;
+        grid-row: 1;
         min-width: 0;
     }
 
-    #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-rail {
-        flex: 0.8 1 0;
+    .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-main {
+        grid-column: 1;
+        grid-row: 2;
+        min-width: 0;
+    }
+
+    .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail {
+        grid-column: 2;
+        grid-row: 1 / span 2;
         min-width: min(100%, 272px);
         max-width: min(460px, 100%);
+        width: auto;
+        justify-self: stretch;
         position: relative;
-        align-self: flex-start;
         box-sizing: border-box;
         min-height: 0;
-        height: var(--tmdb-tv-main-height, auto);
-        max-height: var(--tmdb-tv-main-height, min(460px, 62vh));
+        height: auto;
+        max-height: none;
         overflow: hidden;
     }
 
-    #results-page.degoog-fullwidth-slot-shell
-        .tmdb-result.slot-full-width
-        .tmdb-tv-rail
-        .tmdb-seasons-rail,
-    #results-page.degoog-fullwidth-slot-shell
-        .tmdb-result.slot-full-width
-        .tmdb-tv-rail
-        .tmdb-season-detail,
-    #results-page.degoog-fullwidth-slot-shell
-        .tmdb-result.slot-full-width
-        .tmdb-tv-rail
-        .tmdb-episodes {
+    .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail .tmdb-seasons-rail,
+    .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail .tmdb-season-detail,
+    .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail .tmdb-episodes {
         overflow: hidden;
         min-height: 0;
     }
 
-    #results-page.degoog-fullwidth-slot-shell
-        .tmdb-result.slot-full-width
-        .tmdb-tv-rail
-        .tmdb-episodes-list {
+    .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail .tmdb-episodes-list {
         max-height: none;
     }
 
-    /* Row layout: fixed-height rail — fill with flex; stacked layout uses content height above. */
-    #results-page.degoog-fullwidth-slot-shell
-        .tmdb-result.slot-full-width
-        .tmdb-tv-rail
-        .tmdb-seasons-rail {
+    .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail .tmdb-seasons-rail {
         flex: 1 1 0;
         min-height: 0;
     }
 
-    #results-page.degoog-fullwidth-slot-shell
-        .tmdb-result.slot-full-width
-        .tmdb-season-detail {
+    .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail .tmdb-season-detail {
         flex: 1 1 0;
         min-height: 0;
     }
 
-    #results-page.degoog-fullwidth-slot-shell
-        .tmdb-result.slot-full-width
-        .tmdb-tv-rail
-        .tmdb-episodes {
+    .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail .tmdb-episodes {
         flex: 1 1 0;
         min-height: 0;
     }
 
-    #results-page.degoog-fullwidth-slot-shell
-        .tmdb-result.slot-full-width
-        .tmdb-tv-rail
-        .tmdb-episodes-list {
+    .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail .tmdb-episodes-list {
         flex: 1 1 0;
         min-height: 0;
     }
 }
 
-@container (min-width: 900px) {
+@container tmdb-result (min-width: 900px) {
     #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-body {
         gap: 1.75rem;
     }
 
-    #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-band {
-        gap: 2.25rem;
+    .tmdb-panel--tv .tmdb-tv-band--with-head {
+        column-gap: 2.25rem;
     }
 
-    #results-page.degoog-fullwidth-slot-shell .tmdb-result.slot-full-width .tmdb-tv-rail {
+    .tmdb-panel--tv .tmdb-tv-band--with-head .tmdb-tv-rail {
         max-width: min(520px, 46%);
     }
 }
 
 /* Narrow slot: tighten gaps; when a rail exists, keep hero → cast → episodes reading order. */
-@container (max-width: 559px) {
+@container tmdb-result (max-width: 559px) {
     .tmdb-tv-body:has(.tmdb-tv-band) {
         display: grid;
         grid-template-columns: 1fr;
@@ -2002,16 +2025,20 @@
         display: contents;
     }
 
-    .tmdb-tv-body:has(.tmdb-tv-band) .tmdb-tv-main {
+    .tmdb-tv-body:has(.tmdb-tv-band) .tmdb-tv-band-head {
         grid-row: 1;
     }
 
-    .tmdb-tv-body:has(.tmdb-tv-band) > .tmdb-section {
+    .tmdb-tv-body:has(.tmdb-tv-band) .tmdb-tv-main {
         grid-row: 2;
     }
 
-    .tmdb-tv-body:has(.tmdb-tv-band) .tmdb-tv-rail {
+    .tmdb-tv-body:has(.tmdb-tv-band) > .tmdb-section {
         grid-row: 3;
+    }
+
+    .tmdb-tv-body:has(.tmdb-tv-band) .tmdb-tv-rail {
+        grid-row: 4;
     }
 
     .tmdb-tv-body:not(:has(.tmdb-tv-band)) {
@@ -2238,7 +2265,9 @@
     flex-wrap: wrap;
     align-items: baseline;
     flex-direction: row;
-    gap: 0;
+    gap: 0.35rem;
+    justify-content: flex-start;
+    direction: ltr;
 }
 
 .tmdb-season-facts__seg {
@@ -2247,6 +2276,8 @@
 
 .tmdb-season-facts__sep {
     unicode-bidi: isolate;
+    color: var(--text-secondary);
+    opacity: 0.85;
 }
 
 .tmdb-tv-rail .tmdb-season-overview {
