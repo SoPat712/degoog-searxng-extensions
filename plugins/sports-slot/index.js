@@ -1769,6 +1769,14 @@ function renderCommandUsage() {
   `);
 }
 
+function _footballDataHeaders() {
+  return { "X-Auth-Token": footballDataApiKey, Accept: "application/json" };
+}
+
+function _balldontlieHeaders() {
+  return { Authorization: balldontlieApiKey, Accept: "application/json" };
+}
+
 async function fetchJson(url, options = {}) {
   const response = await fetch(url, options);
   if (!response.ok) {
@@ -1787,10 +1795,7 @@ async function getBalldontlieTeams(sport) {
   if (cache[cacheKey]) return cache[cacheKey];
 
   const data = await fetchJson(`${BALLDONTLIE_BASE[sport]}/teams`, {
-    headers: {
-      Authorization: balldontlieApiKey,
-      Accept: "application/json",
-    },
+    headers: _balldontlieHeaders(),
   });
 
   cache[cacheKey] = Array.isArray(data?.data) ? data.data : [];
@@ -1822,10 +1827,7 @@ async function fetchBalldontlieGames(sport, params) {
   const data = await fetchJson(
     `${BALLDONTLIE_BASE[sport]}/games?${searchParams.toString()}`,
     {
-      headers: {
-        Authorization: balldontlieApiKey,
-        Accept: "application/json",
-      },
+      headers: _balldontlieHeaders(),
     },
   );
 
@@ -1844,10 +1846,7 @@ async function getSoccerCompetitionTeams(competitionCode) {
   const data = await fetchJson(
     `${FOOTBALL_DATA_BASE}/competitions/${competitionCode}/teams`,
     {
-      headers: {
-        "X-Auth-Token": footballDataApiKey,
-        Accept: "application/json",
-      },
+      headers: _footballDataHeaders(),
     },
   );
 
@@ -1912,10 +1911,7 @@ async function fetchSoccerTeamMatches(teamId, options = {}) {
   const data = await fetchJson(
     `${FOOTBALL_DATA_BASE}/teams/${teamId}/matches?${params.toString()}`,
     {
-      headers: {
-        "X-Auth-Token": footballDataApiKey,
-        Accept: "application/json",
-      },
+      headers: _footballDataHeaders(),
     },
   );
 
@@ -1930,10 +1926,7 @@ async function fetchSoccerCompetitionMatches(competitionCode, options = {}) {
   const data = await fetchJson(
     `${FOOTBALL_DATA_BASE}/competitions/${competitionCode}/matches?${params.toString()}`,
     {
-      headers: {
-        "X-Auth-Token": footballDataApiKey,
-        Accept: "application/json",
-      },
+      headers: _footballDataHeaders(),
     },
   );
 
@@ -1944,10 +1937,7 @@ async function fetchSoccerStandings(competitionCode) {
   const data = await fetchJson(
     `${FOOTBALL_DATA_BASE}/competitions/${competitionCode}/standings`,
     {
-      headers: {
-        "X-Auth-Token": footballDataApiKey,
-        Accept: "application/json",
-      },
+      headers: _footballDataHeaders(),
     },
   );
 

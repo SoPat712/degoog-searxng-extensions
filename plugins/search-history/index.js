@@ -6,13 +6,10 @@ const CLOCK_ICON =
 const TRASH_ICON =
   "<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' aria-hidden='true'><path d='M3 6h18v2l-2 14H5L3 8V6z'/><path d='M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2'/><path d='M10 11v6'/><path d='M14 11v6'/></svg>";
 
-const HISTORY_PATH = join(process.cwd(), "data", "history.json");
+const DATA_DIR = join(process.cwd(), "data");
+const HISTORY_PATH = join(DATA_DIR, "history.json");
 const PER_PAGE = 20;
 let maxEntries = 1000;
-
-const _getDataDir = () => {
-  return join(process.cwd(), "data");
-};
 
 const _loadHistory = async () => {
   try {
@@ -26,8 +23,7 @@ const _loadHistory = async () => {
 };
 
 const _saveHistory = async (entries) => {
-  const dir = _getDataDir();
-  await mkdir(dir, { recursive: true });
+  await mkdir(DATA_DIR, { recursive: true });
   await writeFile(HISTORY_PATH, JSON.stringify(entries, null, 2), "utf-8");
 };
 
@@ -49,6 +45,13 @@ const _formatTimestamp = (ts) => {
     timeStyle: "short",
   });
 };
+
+function jsonResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
 
 export default {
   name: "Search history",
@@ -87,15 +90,16 @@ export default {
     const start = (page - 1) * PER_PAGE;
     const slice = newestFirst.slice(start, start + PER_PAGE);
 
-    let items = "";
-    for (const item of slice) {
-      const entry = _esc(String(item.entry ?? ""));
-      const ts = _formatTimestamp(item.timestamp);
-      const timeStr = _esc(ts);
-      const searchUrl = `/search?q=${encodeURIComponent(item.entry ?? "")}`;
-      const deleteUrl = `/api/plugin/search-history/delete?id=${encodeURIComponent(item.id)}&return=bang`;
-      items += `<div class="result-item"><div class="result-body"><div class="result-url-row"><span class="result-favicon result-favicon--clock">${CLOCK_ICON}</span><cite class="result-cite">${timeStr}</cite><a href="${_esc(deleteUrl)}" class="history-delete-btn" aria-label="Delete">${TRASH_ICON}</a></div><a class="result-title" href="${_esc(searchUrl)}">${entry}</a></div></div>`;
-    }
+    const items = slice
+      .map((item) => {
+        const entry = _esc(String(item.entry ?? ""));
+        const ts = _formatTimestamp(item.timestamp);
+        const timeStr = _esc(ts);
+        const searchUrl = `/search?q=${encodeURIComponent(item.entry ?? "")}`;
+        const deleteUrl = `/api/plugin/search-history/delete?id=${encodeURIComponent(item.id)}&return=bang`;
+        return `<div class="result-item"><div class="result-body"><div class="result-url-row"><span class="result-favicon result-favicon--clock">${CLOCK_ICON}</span><cite class="result-cite">${timeStr}</cite><a href="${_esc(deleteUrl)}" class="history-delete-btn" aria-label="Delete">${TRASH_ICON}</a></div><a class="result-title" href="${_esc(searchUrl)}">${entry}</a></div></div>`;
+      })
+      .join("");
 
     const noResults =
       slice.length === 0 ? '<div class="no-results">No history yet.</div>' : "";
@@ -116,10 +120,7 @@ export default {
         const entries = await _loadHistory();
         const newestFirst = [...entries].reverse();
         const out = limit ? newestFirst.slice(0, limit) : newestFirst;
-        return new Response(JSON.stringify(out), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
+        return jsonResponse(out);
       },
     },
     {
@@ -131,23 +132,14 @@ export default {
           const text = await req.text();
           body = text ? JSON.parse(text) : {};
         } catch {
-          return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          });
+          return jsonResponse({ error: "Invalid JSON" }, 400);
         }
         const entry = typeof body.entry === "string" ? body.entry.trim() : "";
         if (!entry) {
-          return new Response(
-            JSON.stringify({ error: "Missing or empty entry" }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
-          );
+          return jsonResponse({ error: "Missing or empty entry" }, 400);
         }
         if (entry === "!history" || entry.startsWith("!history ")) {
-          return new Response(
-            JSON.stringify({ error: "Cannot store bang command" }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
-          );
+          return jsonResponse({ error: "Cannot store bang command" }, 400);
         }
         const history = await _loadHistory();
         const entryLower = entry.toLowerCase();
@@ -174,13 +166,7 @@ export default {
           }
         }
         await _saveHistory(history);
-        return new Response(
-          JSON.stringify({ id, entry: storedEntry, timestamp }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
+        return jsonResponse({ id, entry: storedEntry, timestamp });
       },
     },
     {
@@ -191,10 +177,7 @@ export default {
         const id = url.searchParams.get("id");
         const returnBang = url.searchParams.get("return") === "bang";
         if (!id) {
-          return new Response(JSON.stringify({ error: "Missing id" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          });
+          return jsonResponse({ error: "Missing id" }, 400);
         }
         const history = await _loadHistory();
         const idx = history.findIndex((e) => String(e.id) === String(id));
@@ -206,10 +189,7 @@ export default {
               302,
             );
           }
-          return new Response(JSON.stringify({ error: "Not found" }), {
-            status: 404,
-            headers: { "Content-Type": "application/json" },
-          });
+          return jsonResponse({ error: "Not found" }, 404);
         }
         history.splice(idx, 1);
         await _saveHistory(history);
@@ -220,10 +200,7 @@ export default {
             302,
           );
         }
-        return new Response(JSON.stringify({ ok: true }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
+        return jsonResponse({ ok: true });
       },
     },
   ],

@@ -14,7 +14,8 @@ export const slot = {
       label: "When to show",
       type: "select",
       options: ["always", "keyword"],
-      description: "Always: every search. Keyword: map / where is / street-style queries (e.g. Rd, Ln) and similar.",
+      description:
+        "Always: every search. Keyword: map / where is / street-style queries (e.g. Rd, Ln) and similar.",
     },
     {
       key: "defaultZoom",
@@ -27,8 +28,10 @@ export const slot = {
       key: "tileUrlTemplate",
       label: "Tile URL template",
       type: "text",
-      placeholder: "https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=YOUR_KEY",
-      description: "Optional custom tiles URL. Leave blank to use OpenStreetMap default.",
+      placeholder:
+        "https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=YOUR_KEY",
+      description:
+        "Optional custom tiles URL. Leave blank to use OpenStreetMap default.",
     },
   ],
 
@@ -69,7 +72,11 @@ export const slot = {
       if (wordCount > maxWords) return { html: "" };
 
       // Reject queries with common non-place words
-      if (/\b(alternative|how|why|what|when|best|top|list|vs|versus|review|tutorial|guide|example|free|download|install|price|cost|buy|cheap)\b/i.test(searchQuery)) {
+      if (
+        /\b(alternative|how|why|what|when|best|top|list|vs|versus|review|tutorial|guide|example|free|download|install|price|cost|buy|cheap)\b/i.test(
+          searchQuery,
+        )
+      ) {
         return { html: "" };
       }
 
@@ -113,7 +120,7 @@ export const slot = {
       const html = `
 <div class="osm-slot-wrap slot-full-width">
   <div class="osm-slot-header">
-    <svg width=\"28\" height=\"28\" viewBox=\"0 0 20 20\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"10\" cy=\"10\" r=\"10\" fill=\"rgba(255,255,255,0.12)\"/><circle cx=\"10\" cy=\"10\" r=\"5.5\" stroke=\"rgba(255,255,255,0.85)\" stroke-width=\"1.2\"/><path d=\"M10 4.5c-1.5 1.5-2.5 3.3-2.5 5.5s1 4 2.5 5.5\" stroke=\"rgba(255,255,255,0.85)\" stroke-width=\"1.2\" stroke-linecap=\"round\"/><path d=\"M10 4.5c1.5 1.5 2.5 3.3 2.5 5.5s-1 4-2.5 5.5\" stroke=\"rgba(255,255,255,0.85)\" stroke-width=\"1.2\" stroke-linecap=\"round\"/><line x1=\"4.5\" y1=\"10\" x2=\"15.5\" y2=\"10\" stroke=\"rgba(255,255,255,0.85)\" stroke-width=\"1.2\" stroke-linecap=\"round\"/></svg>
+    <svg width="28" height="28" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10" fill="rgba(255,255,255,0.12)"/><circle cx="10" cy="10" r="5.5" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"/><path d="M10 4.5c-1.5 1.5-2.5 3.3-2.5 5.5s1 4 2.5 5.5" stroke="rgba(255,255,255,0.85)" stroke-width="1.2" stroke-linecap="round"/><path d="M10 4.5c1.5 1.5 2.5 3.3 2.5 5.5s-1 4-2.5 5.5" stroke="rgba(255,255,255,0.85)" stroke-width="1.2" stroke-linecap="round"/><line x1="4.5" y1="10" x2="15.5" y2="10" stroke="rgba(255,255,255,0.85)" stroke-width="1.2" stroke-linecap="round"/></svg>
     <span class="osm-slot-label">OpenStreetMap</span>
     <span class="osm-slot-city">${_esc(shortName)}</span>
     ${navBlock}
@@ -201,16 +208,11 @@ function _expandStreetAbbrevs(s) {
 function _usableResultsLenientFallback(geoData, usable, searchQuery) {
   if (usable.length > 0) return usable;
   const s = searchQuery.toLowerCase().trim();
-  const allow =
-    _hasStreetSuffixToken(s) || /^\d+[a-z]?\s+\S/.test(s);
+  const allow = _hasStreetSuffixToken(s) || /^\d+[a-z]?\s+\S/.test(s);
   if (!allow) return [];
   return geoData
     .filter(
-      (r) =>
-        r &&
-        r.lat != null &&
-        r.lon != null &&
-        (r.display_name || r.name),
+      (r) => r && r.lat != null && r.lon != null && (r.display_name || r.name),
     )
     .slice(0, 10);
 }
@@ -231,7 +233,11 @@ function _normalizeTileUrl(value) {
   const trimmed = value.trim();
   if (!trimmed) return fallback;
   if (!/^https?:\/\//i.test(trimmed)) return fallback;
-  if (!trimmed.includes("{z}") || !trimmed.includes("{x}") || !trimmed.includes("{y}")) {
+  if (
+    !trimmed.includes("{z}") ||
+    !trimmed.includes("{x}") ||
+    !trimmed.includes("{y}")
+  ) {
     return fallback;
   }
   return trimmed;
@@ -287,7 +293,8 @@ function _isOsmGeocodeResultUsable(r, queryRaw) {
     "postcode",
   ]);
 
-  if (placeLike.has(at) || placeLike.has(typ) || placeLike.has(cls)) return true;
+  if (placeLike.has(at) || placeLike.has(typ) || placeLike.has(cls))
+    return true;
 
   const addressLike = new Set([
     "house",
@@ -326,14 +333,21 @@ function _isOsmGeocodeResultUsable(r, queryRaw) {
   ) {
     return true;
   }
-  if (addr && addr.building && (addr.road || addr.city || addr.town || addr.village)) {
+  if (
+    addr &&
+    addr.building &&
+    (addr.road || addr.city || addr.town || addr.village)
+  ) {
     return true;
   }
 
   const queryLooksAddressy = _hasStreetSuffixToken(q) || /\d/.test(q);
   if (
     queryLooksAddressy &&
-    (cls === "shop" || cls === "amenity" || cls === "office" || cls === "tourism") &&
+    (cls === "shop" ||
+      cls === "amenity" ||
+      cls === "office" ||
+      cls === "tourism") &&
     addr &&
     (addr.road || addr.city || addr.town || addr.village || addr.hamlet)
   ) {
@@ -346,7 +360,10 @@ function _isOsmGeocodeResultUsable(r, queryRaw) {
 function _osmShortLabel(place, searchQuery) {
   const a = place?.address;
   if (a && typeof a === "object") {
-    const house = [a.house_number, a.house_name].filter(Boolean).join(" ").trim();
+    const house = [a.house_number, a.house_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
     const parts = [
       house || null,
       a.road || a.pedestrian || null,
@@ -407,7 +424,10 @@ function _scoreOsmCandidate(r, queryRaw) {
     .map((x) => x.trim())
     .filter(Boolean);
   const firstNum = q.match(/^\s*(\d+[a-z]?)\b/i);
-  if (firstNum && hn.some((h) => h.toLowerCase() === firstNum[1].toLowerCase())) {
+  if (
+    firstNum &&
+    hn.some((h) => h.toLowerCase() === firstNum[1].toLowerCase())
+  ) {
     score += 85;
   }
 
@@ -491,8 +511,18 @@ function _zoomForBroadPlace(place, baseZoom) {
   if (at === "state" || typ === "state" || typ === "region") return 7;
   if (at === "county" || typ === "county") return 9;
   if (
-    ["city", "town", "village", "municipality", "locality", "hamlet", "borough"].includes(typ) ||
-    ["city", "town", "village", "municipality", "locality", "borough"].includes(at)
+    [
+      "city",
+      "town",
+      "village",
+      "municipality",
+      "locality",
+      "hamlet",
+      "borough",
+    ].includes(typ) ||
+    ["city", "town", "village", "municipality", "locality", "borough"].includes(
+      at,
+    )
   ) {
     return Math.min(14, Math.max(11, baseZoom));
   }

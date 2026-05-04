@@ -40,19 +40,6 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
-function replaceTemplateToken(template, tokenName, value) {
-  const safeTemplate = String(template ?? "");
-  const replacement = String(value ?? "");
-  const escapedTokenName = String(tokenName)
-    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    .replace(/\\-/g, "-");
-  const tokenPattern = new RegExp(
-    `__\\s*${escapedTokenName.replace(/-/g, "[-_ ]?")}\\s*__`,
-    "gi",
-  );
-  return safeTemplate.replace(tokenPattern, replacement);
-}
-
 function configureSettings(settings) {
   debugMode = settings?.debugMode === true || settings?.debugMode === "true";
 }
@@ -68,22 +55,10 @@ function renderCardHtml() {
   if (!templateHtml) {
     return `<div class="speedtest-card"><p>${escapeHtml(PLUGIN_NAME)}</p></div>`;
   }
-
-  let rendered = templateHtml;
-  rendered = replaceTemplateToken(
-    rendered,
-    "PLUGIN_VERSION",
-    escapeHtml(PLUGIN_VERSION),
-  );
-  rendered = replaceTemplateToken(
-    rendered,
-    "DEBUG_HIDDEN",
-    debugMode ? "" : "hidden",
-  );
-  return rendered;
+  return templateHtml
+    .replaceAll("__PLUGIN_VERSION__", escapeHtml(PLUGIN_VERSION))
+    .replaceAll("__DEBUG_HIDDEN__", debugMode ? "" : "hidden");
 }
-
-export const routes = [];
 
 // Command-only plugin. An earlier version also exported a `slot`, but
 // degoog renders one Settings row per exported capability, which

@@ -244,22 +244,11 @@ const slotDef = {
   },
 
   configure(s) {
-    // Defaults flipped to imperial: unset/invalid stored values fall back
-    // to fahrenheit / mph / mmHg / inch / 12h. An explicit saved value in
-    // the other unit still wins so existing users keep their preferences.
-    settings.units = s?.units === "celsius" ? "celsius" : "fahrenheit";
-    settings.windUnit = ["kmh", "mph", "ms", "kn"].includes(s?.windUnit)
-      ? s.windUnit
-      : "mph";
-    settings.pressureUnit = ["hPa", "kPa", "mmHg", "inHg"].includes(
-      s?.pressureUnit,
-    )
-      ? s.pressureUnit
-      : "mmHg";
-    settings.precipUnit = s?.precipUnit === "mm" ? "mm" : "inch";
-    settings.timeFormat = ["auto", "24h", "12h"].includes(s?.timeFormat)
-      ? s.timeFormat
-      : "auto";
+    settings.units = _pick(s?.units, ["celsius", "fahrenheit"], "fahrenheit");
+    settings.windUnit = _pick(s?.windUnit, ["kmh", "mph", "ms", "kn"], "mph");
+    settings.pressureUnit = _pick(s?.pressureUnit, ["hPa", "kPa", "mmHg", "inHg"], "mmHg");
+    settings.precipUnit = _pick(s?.precipUnit, ["mm", "inch"], "inch");
+    settings.timeFormat = _pick(s?.timeFormat, ["auto", "24h", "12h"], "auto");
   },
 
   async execute(args, context) {
@@ -697,6 +686,10 @@ export const slotPlugin = slotDef;
 export default slotDef;
 
 // ───────── helpers ─────────
+
+function _pick(value, allowed, fallback) {
+  return allowed.includes(value) ? value : fallback;
+}
 
 function _convertPressure(hpa, unit) {
   if (!Number.isFinite(hpa)) return "—";

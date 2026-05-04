@@ -527,7 +527,8 @@ const _buildTrailerEmbed = (video, movieTitle) => {
   const key = String(video.key || "").trim();
   if (!key) return "";
   const fallbackTitle = String(movieTitle || "Trailer").trim() || "Trailer";
-  const clipName = String(video.name || "").trim() || `${fallbackTitle} trailer`;
+  const clipName =
+    String(video.name || "").trim() || `${fallbackTitle} trailer`;
   const safeTitle = _esc(clipName);
   const src = _esc(
     `https://www.youtube-nocookie.com/embed/${key}?rel=0&modestbranding=1`,
@@ -625,10 +626,7 @@ const _buildImageCombo = (poster, bd1, bd2) => {
       imgs
         .map((s, i) =>
           wrapTile(
-            imgHtml(
-              s,
-              i === 0 ? "tmdb-combo-poster" : "tmdb-combo-backdrop",
-            ),
+            imgHtml(s, i === 0 ? "tmdb-combo-poster" : "tmdb-combo-backdrop"),
           ),
         )
         .join("") +
@@ -643,8 +641,7 @@ const _buildImageCombo = (poster, bd1, bd2) => {
   );
 };
 
-const _formatCastCountLabel = (n) =>
-  `${n} ${n === 1 ? "person" : "people"}`;
+const _formatCastCountLabel = (n) => `${n} ${n === 1 ? "person" : "people"}`;
 
 const _buildCastStrip = (cast) => {
   if (!Array.isArray(cast) || cast.length === 0) return "";
@@ -1099,7 +1096,9 @@ const _renderMovie = (
     ? `<div class="tmdb-subtitle">${_esc(subtitleParts.join(" \u00b7 "))}</div>`
     : "";
 
-  const createdByNames = (details.created_by || []).map((c) => c.name).join(", ");
+  const createdByNames = (details.created_by || [])
+    .map((c) => c.name)
+    .join(", ");
   const createdByHtml = createdByNames
     ? `<div class="tmdb-created-by">${_esc(`Created by ${createdByNames}`)}</div>`
     : "";
@@ -1120,19 +1119,18 @@ const _renderMovie = (
   );
   const heroInfoInner = createdByHtml + ratingsHtml + plotHtml;
 
-  const heroMain =
-    trailerEmbed
-      ? `<div class="tmdb-hero tmdb-hero--movie tmdb-hero--movie-with-trailer">` +
-        `<div class="tmdb-hero-media">${imageCombo}</div>` +
-        `<div class="tmdb-hero-side">` +
-        `<div class="tmdb-hero-trailer">${trailerEmbed}</div>` +
-        `<div class="tmdb-hero-info">${heroInfoInner}</div>` +
-        `</div>` +
-        `</div>`
-      : `<div class="tmdb-hero tmdb-hero--movie">` +
-        `<div class="tmdb-hero-media">${imageCombo}</div>` +
-        `<div class="tmdb-hero-info">${heroInfoInner}</div>` +
-        `</div>`;
+  const heroMain = trailerEmbed
+    ? `<div class="tmdb-hero tmdb-hero--movie tmdb-hero--movie-with-trailer">` +
+      `<div class="tmdb-hero-media">${imageCombo}</div>` +
+      `<div class="tmdb-hero-side">` +
+      `<div class="tmdb-hero-trailer">${trailerEmbed}</div>` +
+      `<div class="tmdb-hero-info">${heroInfoInner}</div>` +
+      `</div>` +
+      `</div>`
+    : `<div class="tmdb-hero tmdb-hero--movie">` +
+      `<div class="tmdb-hero-media">${imageCombo}</div>` +
+      `<div class="tmdb-hero-info">${heroInfoInner}</div>` +
+      `</div>`;
 
   const cast = credits?.cast || [];
   const castStrip = _buildCastStrip(cast);
@@ -1169,13 +1167,7 @@ const _renderMovie = (
   );
 };
 
-const _renderTv = (
-  details,
-  credits,
-  images,
-  jellyfinItem,
-  omdbRatings,
-) => {
+const _renderTv = (details, credits, images, jellyfinItem, omdbRatings) => {
   const name = _esc(details.name || "");
   const year = _esc((details.first_air_date || "").slice(0, 4));
   const overview = details.overview || "";
@@ -1194,7 +1186,9 @@ const _renderTv = (
     backdrops[1] || "",
   );
 
-  const createdByNames = (details.created_by || []).map((c) => c.name).join(", ");
+  const createdByNames = (details.created_by || [])
+    .map((c) => c.name)
+    .join(", ");
   const createdByHtml = createdByNames
     ? `<div class="tmdb-created-by">${_esc(`Created by ${createdByNames}`)}</div>`
     : "";
@@ -1333,35 +1327,37 @@ const _buildMoviePanel = async (id, ctx) => {
 const _buildTvPanel = async (id, ctx) => {
   const details = await _tmdb(`tv/${id}`, ctx);
   if (!details) return null;
-  const [credits, aggregateCredits, images, jellyfinItem, ext] = await Promise.all([
-    _tmdb(`tv/${id}/credits`, ctx),
-    _tmdb(`tv/${id}/aggregate_credits`, ctx),
-    _tmdb(`tv/${id}/images?include_image_language=en,null`, ctx),
-    jellyfinUrl && jellyfinApiKey
-      ? _jellyfinSearch(details.name || details.original_name || "", ctx)
-      : Promise.resolve(null),
-    _tmdb(`tv/${id}/external_ids`, ctx),
-  ]);
+  const [credits, aggregateCredits, images, jellyfinItem, ext] =
+    await Promise.all([
+      _tmdb(`tv/${id}/credits`, ctx),
+      _tmdb(`tv/${id}/aggregate_credits`, ctx),
+      _tmdb(`tv/${id}/images?include_image_language=en,null`, ctx),
+      jellyfinUrl && jellyfinApiKey
+        ? _jellyfinSearch(details.name || details.original_name || "", ctx)
+        : Promise.resolve(null),
+      _tmdb(`tv/${id}/external_ids`, ctx),
+    ]);
   let omdbRatings = null;
   if (omdbApiKey && ext?.imdb_id) {
     const raw = await _omdbFetch({ i: ext.imdb_id }, ctx);
     omdbRatings = _parseOmdbRatings(raw);
   }
   const normalizedCredits = {
-    cast: Array.isArray(aggregateCredits?.cast) && aggregateCredits.cast.length
-      ? aggregateCredits.cast.map((c) => {
-          const roles = Array.isArray(c.roles) ? c.roles : [];
-          const firstRole = roles[0] || {};
-          return {
-            id: c.id,
-            name: c.name,
-            profile_path: c.profile_path,
-            character: firstRole.character || "",
-            total_episode_count: c.total_episode_count || 0,
-            order: c.order,
-          };
-        })
-      : (credits?.cast || []),
+    cast:
+      Array.isArray(aggregateCredits?.cast) && aggregateCredits.cast.length
+        ? aggregateCredits.cast.map((c) => {
+            const roles = Array.isArray(c.roles) ? c.roles : [];
+            const firstRole = roles[0] || {};
+            return {
+              id: c.id,
+              name: c.name,
+              profile_path: c.profile_path,
+              character: firstRole.character || "",
+              total_episode_count: c.total_episode_count || 0,
+              order: c.order,
+            };
+          })
+        : credits?.cast || [],
     crew: credits?.crew || [],
   };
 
@@ -1412,67 +1408,37 @@ const _entityHandler = (builder) => async (request) => {
     const idRaw = url.searchParams.get("id") || "";
     const id = parseInt(idRaw, 10);
     if (!id || Number.isNaN(id)) {
-      return new Response(JSON.stringify({ error: "Missing or invalid id" }), {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store",
-        },
-      });
+      return _jsonResponse({ error: "Missing or invalid id" }, 400);
     }
     if (!tmdbApiKey) {
-      return new Response(
-        JSON.stringify({ error: "TMDB API key not configured" }),
-        {
-          status: 503,
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-store",
-          },
-        },
-      );
+      return _jsonResponse({ error: "TMDB API key not configured" }, 503);
     }
     const panel = await builder(id, undefined);
     if (!panel) {
-      return new Response(JSON.stringify({ error: "Not found" }), {
-        status: 404,
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store",
-        },
-      });
+      return _jsonResponse({ error: "Not found" }, 404);
     }
-    return new Response(JSON.stringify(panel), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store",
-      },
-    });
+    return _jsonResponse(panel, 200);
   } catch (err) {
-    return new Response(
-      JSON.stringify({
-        error: "Internal error",
-        detail: String(err && err.message),
-      }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store",
-        },
-      },
+    return _jsonResponse(
+      { error: "Internal error", detail: String(err && err.message) },
+      500,
     );
   }
 };
 
+function _jsonResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 // Dedicated handler for the season route — it takes two query params (tv, season)
 // rather than a single id, so it doesn't fit the generic _entityHandler shape.
 const _seasonHandler = async (request) => {
-  const jsonHeaders = {
-    "Content-Type": "application/json",
-    "Cache-Control": "no-store",
-  };
   try {
     const url = new URL(request.url);
     const tvRaw = url.searchParams.get("tv") || "";
@@ -1480,35 +1446,20 @@ const _seasonHandler = async (request) => {
     const tvId = parseInt(tvRaw, 10);
     const seasonNumber = parseInt(seasonRaw, 10);
     if (!tvId || Number.isNaN(tvId) || Number.isNaN(seasonNumber)) {
-      return new Response(
-        JSON.stringify({ error: "Missing or invalid tv/season" }),
-        { status: 400, headers: jsonHeaders },
-      );
+      return _jsonResponse({ error: "Missing or invalid tv/season" }, 400);
     }
     if (!tmdbApiKey) {
-      return new Response(
-        JSON.stringify({ error: "TMDB API key not configured" }),
-        { status: 503, headers: jsonHeaders },
-      );
+      return _jsonResponse({ error: "TMDB API key not configured" }, 503);
     }
     const panel = await _buildSeasonPanel(tvId, seasonNumber);
     if (!panel) {
-      return new Response(JSON.stringify({ error: "Not found" }), {
-        status: 404,
-        headers: jsonHeaders,
-      });
+      return _jsonResponse({ error: "Not found" }, 404);
     }
-    return new Response(JSON.stringify(panel), {
-      status: 200,
-      headers: jsonHeaders,
-    });
+    return _jsonResponse(panel, 200);
   } catch (err) {
-    return new Response(
-      JSON.stringify({
-        error: "Internal error",
-        detail: String(err && err.message),
-      }),
-      { status: 500, headers: jsonHeaders },
+    return _jsonResponse(
+      { error: "Internal error", detail: String(err && err.message) },
+      500,
     );
   }
 };
@@ -1541,7 +1492,7 @@ export const slot = {
   id: "tmdb-trankil",
   name: "TMDB",
   description:
-    'Shows rich info panels for movies, TV shows, and actors. Activates on natural-language queries (e.g. titles or actor names) and when film-site or database URLs appear in search results.',
+    "Shows rich info panels for movies, TV shows, and actors. Activates on natural-language queries (e.g. titles or actor names) and when film-site or database URLs appear in search results.",
   position: "above-results",
   // Needed so ctx.results is populated for URL-based detection (TMDB/IMDB/Allocine
   // links in the organic search results). Natural-language activation still works

@@ -447,8 +447,6 @@ export const slot = {
     if (context?.tab && context.tab !== "all") return { html: "" };
 
     const rawQuery = (query || "").trim();
-    const isCommand = COMMAND_PREFIX_RE.test(rawQuery);
-    const viaCommand = context?._currencyViaCommand === true;
 
     try {
       const clean = query.replace(
@@ -510,61 +508,33 @@ export const slot = {
           pairRate = rates[a] && rates[b] ? rates[b] / rates[a] : null;
         }
         if (!pairRate) return "";
-        const rateStr =
-          pairRate >= 1000
-            ? _fmt(pairRate, 0)
-            : pairRate >= 1
-              ? _fmt(pairRate, 4)
-              : _fmt(pairRate, 6);
+        const rateStr = _fmtRate(pairRate, 0);
         return `<div class="cxs-pair" data-from="${a}" data-to="${b}">
           <div class="cxs-pair-name">${a} / ${b}</div>
           <div class="cxs-pair-rate">${rateStr}</div>
         </div>`;
       }).join("");
 
-      const resultStr =
-        result >= 1000
-          ? _fmt(result, 2)
-          : result >= 1
-            ? _fmt(result, 4)
-            : _fmt(result, 6);
-      const rateStr =
-        rates[to] >= 1000
-          ? _fmt(rates[to], 2)
-          : rates[to] >= 1
-            ? _fmt(rates[to], 4)
-            : _fmt(rates[to], 6);
+      const resultStr = _fmtRate(result);
+      const rateStr = _fmtRate(rates[to]);
       const amountStr = _fmt(amount, amount % 1 === 0 ? 0 : 2);
 
-      const html = template
-        .split("{{from_flag}}")
-        .join(_makeFlag(from))
-        .split("{{from_code}}")
-        .join(from)
-        .split("{{from_name}}")
-        .join(_esc(CURRENCIES[from] || from))
-        .split("{{to_flag}}")
-        .join(_makeFlag(to))
-        .split("{{to_code}}")
-        .join(to)
-        .split("{{to_name}}")
-        .join(_esc(CURRENCIES[to] || to))
-        .split("{{amount_for_js}}")
-        .join(amount)
-        .split("{{rate_for_js}}")
-        .join(rates[to] || 0)
-        .split("{{from_for_js}}")
-        .join(from)
-        .split("{{to_for_js}}")
-        .join(to)
-        .split("{{amount}}")
-        .join(amountStr)
-        .split("{{result}}")
-        .join(resultStr)
-        .split("{{rate}}")
-        .join(rateStr)
-        .split("{{pairs_html}}")
-        .join(pairsHtml);
+      const html = _fillTemplate(template, {
+        from_flag: _makeFlag(from),
+        from_code: from,
+        from_name: _esc(CURRENCIES[from] || from),
+        to_flag: _makeFlag(to),
+        to_code: to,
+        to_name: _esc(CURRENCIES[to] || to),
+        amount_for_js: amount,
+        rate_for_js: rates[to] || 0,
+        from_for_js: from,
+        to_for_js: to,
+        amount: amountStr,
+        result: resultStr,
+        rate: rateStr,
+        pairs_html: pairsHtml,
+      });
 
       return { html };
     } catch (e) {
@@ -599,4 +569,15 @@ function _esc(s) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+function _fmtRate(n, bigDecimals = 2) {
+  if (n >= 1000) return _fmt(n, bigDecimals);
+  if (n >= 1) return _fmt(n, 4);
+  return _fmt(n, 6);
+}
+function _fillTemplate(tpl, vars) {
+  return Object.entries(vars).reduce(
+    (s, [k, v]) => s.split(`{{${k}}}`).join(String(v)),
+    tpl,
+  );
 }
