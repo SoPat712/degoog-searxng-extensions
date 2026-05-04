@@ -843,8 +843,10 @@ body {
         max-width: var(--literallygoogle-results-main-col-max);
     }
 
-    /* Images/videos: single column (no sidebar). Reset web layout inset so grids stay
-       edge-to-edge; do not stack this on `.container` padding. */
+    /* Images/videos: restore degoog's flex layout so the sticky media-preview
+       panel can expand into view when an image is clicked. Our custom CSS grid
+       is for web results only — degoog's .media-mode class (added by JS on the
+       layout element) then handles sidebar hiding and panel animation itself. */
     #results-page:is(
             :has(#results-tabs .results-tab[data-type="images"].active),
             :has(
@@ -860,13 +862,14 @@ body {
             :has(#results-list .video-card)
         )
         #results-layout {
-        grid-template-columns: minmax(0, 1fr);
+        display: flex;
+        flex-direction: row;
         max-width: none;
         margin-inline-start: 0;
         margin-inline-end: auto;
         margin-top: 0.5rem;
         padding: 0;
-        column-gap: 0;
+        gap: 0;
     }
 
     #results-page:is(
@@ -883,7 +886,9 @@ body {
             :has(#results-list .image-card),
             :has(#results-list .video-card)
         )
-        :is(#slot-above-results, #results-main) {
+        #results-main {
+        flex: 1;
+        min-width: 0;
         max-width: none;
     }
 
