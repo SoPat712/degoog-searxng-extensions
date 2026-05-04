@@ -1626,12 +1626,8 @@ export const slot = {
         entity = await _resolveEntity(detected, q, ctx);
       }
 
-      // 2) Fallback: natural-language match against TMDB search with a
-      //    confidence gate so we don't show noise for ambiguous queries.
-      if (!entity) {
-        entity = await _resolveFromQuery(q, ctx);
-      }
-
+      // 2) Strict mode: only render when result URLs contain a supported
+      //    movie/TV/person source (TMDB/IMDb/Allocine). Do not query-match.
       if (!entity) return { html: "" };
 
       const { type, id } = entity;
